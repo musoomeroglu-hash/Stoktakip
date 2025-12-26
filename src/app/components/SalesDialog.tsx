@@ -1,0 +1,238 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Plus, Trash2, ShoppingCart } from "lucide-react";
+import { toast } from "sonner";
+import type { Product, SaleItem } from "../utils/api";
+
+interface SalesDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onCompleteSale: (items: SaleItem[], totalPrice: number, totalProfit: number) => void;
+  products: Product[];
+}
+
+export function SalesDialog({ open, onOpenChange, onCompleteSale, products }: SalesDialogProps) {
+  const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState("");
+  const [quantity, setQuantity] = useState(1);
+
+  const addItem = () => {
+    const product = products.find((p) => p.id === selectedProductId);
+    if (!product) {
+      toast.error("Lütfen bir ürün seçin");
+      return;
+    }
+
+    if (quantity <= 0) {
+      toast.error("Geçerli bir miktar girin");
+      return;
+    }
+
+    if (quantity > product.stock) {
+      toast.error("Yetersiz stok!");
+      return;
+    }
+
+    const existingItem = saleItems.find((item) => item.productId === product.id);
+    
+    if (existingItem) {
+      const newQuantity = existingItem.quantity + quantity;
+      if (newQuantity > product.stock) {
+        toast.error("Yetersiz stok!");
+        return;
+      }
+      
+      setSaleItems(
+        saleItems.map((item) =>
+          item.productId === product.id
+            ? { ...item, quantity: newQuantity, profit: (product.salePrice - product.purchasePrice) * newQuantity }
+            : item
+        )
+      );
+    } else {
+      setSaleItems([
+        ...saleItems,
+        {
+          productId: product.id,
+          productName: product.name,
+          quantity,
+          salePrice: product.salePrice,
+          purchasePrice: product.purchasePrice,
+          profit: (product.salePrice - product.purchasePrice) * quantity,
+        },
+      ]);
+    }
+
+    setSelectedProductId("");
+    setQuantity(1);
+    toast.success("Ürün sepete eklendi");
+  };
+
+  const removeItem = (productId: string) => {
+    setSaleItems(saleItems.filter((item) => item.productId !== productId));
+  };
+
+  const updateQuantity = (productId: string, newQuantity: number) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product) return;
+
+    if (newQuantity > product.stock) {
+      toast.error("Yetersiz stok!");
+      return;
+    }
+
+    if (newQuantity <= 0) {
+      removeItem(productId);
+      return;
+    }
+
+    setSaleItems(
+      saleItems.map((item) =>
+        item.productId === productId
+          ? { 
+              ...item, 
+              quantity: newQuantity,
+              profit: (product.salePrice - product.purchasePrice) * newQuantity 
+            }
+          : item
+      )
+    );
+  };
+
+  const totalPrice = saleItems.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
+  const totalProfit = saleItems.reduce((sum, item) => sum + item.profit, 0);
+
+  const handleCompleteSale = () => {
+    if (saleItems.length === 0) {
+      toast.error("Sepete ürün ekleyin");
+      return;
+    }
+
+    onCompleteSale(saleItems, totalPrice, totalProfit);
+    setSaleItems([]);
+    onOpenChange(false);
+  };
+
+  const availableProducts = products.filter((p) => p.stock > 0);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-900 dark:to-blue-950/30">
+        <DialogHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 -mx-6 -mt-6 px-6 py-4 rounded-t-lg">
+          <DialogTitle className="flex items-center gap-2">
+            <ShoppingCart className="w-5 h-5" />
+            Satış Yap
+          </DialogTitle>
+          <DialogDescription>
+            Ürünleri sepete ekleyin ve satışı tamamlayın
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-4">
+          {/* Add Product Section */}
+          <div className="p-4 border rounded-lg bg-muted/30">
+            <h3 className="font-medium mb-3">Ürün Ekle</h3>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Ürün seçin" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableProducts.map((product) => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.name} - ₺{product.salePrice} (Stok: {product.stock})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-24">
+                <Input
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                  placeholder="Adet"
+                />
+              </div>
+              <Button onClick={addItem} type="button">
+                <Plus className="w-4 h-4 mr-2" />
+                Ekle
+              </Button>
+            </div>
+          </div>
+
+          {/* Cart Items */}
+          {saleItems.length > 0 ? (
+            <div className="space-y-2">
+              <h3 className="font-medium">Sepet ({saleItems.length} ürün)</h3>
+              <div className="border rounded-lg divide-y">
+                {saleItems.map((item) => (
+                  <div key={item.productId} className="p-3 flex items-center justify-between gap-4">
+                    <div className="flex-1">
+                      <p className="font-medium">{item.productName}</p>
+                      <p className="text-sm text-muted-foreground">
+                        ₺{item.salePrice} x {item.quantity} = ₺{(item.salePrice * item.quantity).toFixed(2)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => updateQuantity(item.productId, parseInt(e.target.value) || 0)}
+                        className="w-20"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeItem(item.productId)}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              Sepet boş - Ürün ekleyin
+            </div>
+          )}
+
+          {/* Summary */}
+          {saleItems.length > 0 && (
+            <div className="p-4 border rounded-lg bg-primary/5">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Toplam Tutar:</span>
+                  <span className="text-xl font-semibold">₺{totalPrice.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-green-600">
+                  <span>Toplam Kâr:</span>
+                  <span className="font-semibold">₺{totalProfit.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            İptal
+          </Button>
+          <Button onClick={handleCompleteSale} disabled={saleItems.length === 0}>
+            <ShoppingCart className="w-4 h-4 mr-2" />
+            Satışı Tamamla
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

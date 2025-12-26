@@ -1,46 +1,58 @@
 import { useState, useEffect } from "react";
-import { Package, Search, Plus, TrendingDown, AlertCircle, Warehouse, Menu, LayoutDashboard, DollarSign, Upload, Smartphone } from "lucide-react";
+import { 
+  Package, 
+  Plus, 
+  ShoppingCart, 
+  BarChart3, 
+  FolderTree, 
+  Search,
+  Edit,
+  Trash2,
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  Download,
+  Upload,
+  Settings
+} from "lucide-react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Badge } from "./components/ui/badge";
-import { AddProductDialog } from "./components/AddProductDialog";
-import { EditProductDialog } from "./components/EditProductDialog";
-import { StockAdjustDialog } from "./components/StockAdjustDialog";
-import { ExcelImport } from "./components/ExcelImport";
-import { AddPhoneModel } from "./components/AddPhoneModel";
-import { ProductCard } from "./components/ProductCard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
+import { CategoryDialog } from "./components/CategoryDialog";
+import { ProductDialog } from "./components/ProductDialog";
+import { SalesDialog } from "./components/SalesDialog";
+import { ReportsView } from "./components/ReportsView";
+import { CategoryManagementDialog } from "./components/CategoryManagementDialog";
+import { BulkUploadDialog } from "./components/BulkUploadDialog";
+import { SalesTypeDialog } from "./components/SalesTypeDialog";
+import { RepairDialog } from "./components/RepairDialog";
 import { toast, Toaster } from "sonner";
-import { categories, defaultPhoneModels, getAllPhoneModels } from "./data/categories";
-import { api } from "./utils/api";
-
-interface Product {
-  id: string;
-  name: string;
-  category: string;
-  phoneModel?: string;
-  quantity: number;
-  minQuantity: number;
-  price: number;
-  description: string;
-  createdAt: string;
-}
+import { api, type Category, type Product, type Sale, type SaleItem, type RepairRecord } from "./utils/api";
+import * as XLSX from "xlsx";
 
 function App() {
+  const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [phoneModels, setPhoneModels] = useState<Record<string, string[]>>(defaultPhoneModels);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [stockAdjustDialogOpen, setStockAdjustDialogOpen] = useState(false);
-  const [excelImportOpen, setExcelImportOpen] = useState(false);
-  const [addModelOpen, setAddModelOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load products and phone models from Supabase on mount
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [productDialogOpen, setProductDialogOpen] = useState(false);
+  const [salesDialogOpen, setSalesDialogOpen] = useState(false);
+  
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [activeView, setActiveView] = useState<"products" | "reports">("products");
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
+  const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
+  const [salesTypeOpen, setSalesTypeOpen] = useState(false);
+  const [repairOpen, setRepairOpen] = useState(false);
+
   useEffect(() => {
     loadData();
   }, []);
@@ -48,77 +60,30 @@ function App() {
   const loadData = async () => {
     try {
       setLoading(true);
-      
-      // Load products
-      const loadedProducts = await api.getProducts();
-      setProducts(loadedProducts);
-      
-      // Load phone models
-      const loadedModels = await api.getPhoneModels();
-      if (Object.keys(loadedModels).length > 0) {
-        setPhoneModels(loadedModels);
-      } else {
-        // Initialize with default models
-        for (const [brand, models] of Object.entries(defaultPhoneModels)) {
-          for (const model of models) {
-            await api.addPhoneModel(brand, model);
-          }
-        }
-        const updatedModels = await api.getPhoneModels();
-        setPhoneModels(updatedModels);
-      }
-      
-      // Add sample data if no products exist
-      if (loadedProducts.length === 0) {
-        const sampleProducts = [
-          {
-            name: "Şeffaf Silikon Kılıf",
-            category: "Telefon Kılıfı",
-            phoneModel: "Apple iPhone 15 Pro Max",
-            quantity: 15,
-            minQuantity: 5,
-            price: 150,
-            description: "Şeffaf, anti-yellowing teknolojisi",
-            createdAt: new Date().toISOString(),
-          },
-          {
-            name: "Premium Cam Ekran Koruyucu",
-            category: "Kırılmaz Ekran",
-            phoneModel: "Samsung Galaxy S24 Ultra",
-            quantity: 3,
-            minQuantity: 10,
-            price: 200,
-            description: "9H sertlik, ultra ince",
-            createdAt: new Date().toISOString(),
-          },
-          {
-            name: "Kamera Lens Koruma",
-            category: "Kamera Koruyucu Lens",
-            phoneModel: "Apple iPhone 15 Pro",
-            quantity: 0,
-            minQuantity: 8,
-            price: 120,
-            description: "Metal halka ile kamera koruması",
-            createdAt: new Date().toISOString(),
-          },
-          {
-            name: "Gizlilik Ekran Filmi",
-            category: "Hayalet Ekran",
-            phoneModel: "Xiaomi 14 Pro",
-            quantity: 25,
-            minQuantity: 10,
-            price: 250,
-            description: "180° gizlilik koruması",
-            createdAt: new Date().toISOString(),
-          },
+      const [categoriesData, productsData, salesData] = await Promise.all([
+        api.getCategories().catch(() => []),
+        api.getProducts().catch(() => []),
+        api.getSales().catch(() => []),
+      ]);
+
+      setCategories(categoriesData);
+      setProducts(productsData);
+      setSales(salesData);
+
+      // Initialize with sample data if empty
+      if (categoriesData.length === 0) {
+        const sampleCategories = [
+          { name: "Elektronik", createdAt: new Date().toISOString() },
+          { name: "Giyim", createdAt: new Date().toISOString() },
+          { name: "Gıda", createdAt: new Date().toISOString() },
         ];
         
-        for (const product of sampleProducts) {
-          await api.addProduct(product);
+        for (const cat of sampleCategories) {
+          await api.addCategory(cat);
         }
         
-        const refreshedProducts = await api.getProducts();
-        setProducts(refreshedProducts);
+        const refreshedCategories = await api.getCategories();
+        setCategories(refreshedCategories);
       }
     } catch (error) {
       console.error("Error loading data:", error);
@@ -128,28 +93,58 @@ function App() {
     }
   };
 
-  const handleAddProduct = async (productData: Omit<Product, "id" | "createdAt">) => {
+  // Category handlers
+  const handleAddCategory = async (category: Omit<Category, "id">) => {
     try {
-      const newProduct = await api.addProduct({
-        ...productData,
-        createdAt: new Date().toISOString(),
-      });
-      setProducts([...products, newProduct]);
-      toast.success("Ürün başarıyla eklendi!");
+      const newCategory = await api.addCategory(category);
+      setCategories([...categories, newCategory]);
+      toast.success("Kategori eklendi");
     } catch (error) {
-      console.error("Error adding product:", error);
-      toast.error("Ürün eklenirken hata oluştu");
+      console.error("Error adding category:", error);
+      toast.error("Kategori eklenirken hata oluştu");
     }
   };
 
-  const handleUpdateProduct = async (updatedProduct: Product) => {
+  const handleDeleteCategory = async (id: string) => {
+    const hasProducts = products.some((p) => p.categoryId === id);
+    const hasSubCategories = categories.some((c) => c.parentId === id);
+    
+    if (hasProducts) {
+      toast.error("Bu kategoride ürünler var, önce onları silin");
+      return;
+    }
+    
+    if (hasSubCategories) {
+      toast.error("Bu kategorinin alt kategorileri var, önce onları silin");
+      return;
+    }
+
     try {
-      await api.updateProduct(updatedProduct.id, updatedProduct);
-      setProducts(products.map((p) => (p.id === updatedProduct.id ? updatedProduct : p)));
-      toast.success("Ürün başarıyla güncellendi!");
+      await api.deleteCategory(id);
+      setCategories(categories.filter((c) => c.id !== id));
+      toast.success("Kategori silindi");
     } catch (error) {
-      console.error("Error updating product:", error);
-      toast.error("Ürün güncellenirken hata oluştu");
+      console.error("Error deleting category:", error);
+      toast.error("Kategori silinirken hata oluştu");
+    }
+  };
+
+  // Product handlers
+  const handleSaveProduct = async (product: Omit<Product, "id"> | Product) => {
+    try {
+      if ("id" in product) {
+        const updated = await api.updateProduct(product.id, product);
+        setProducts(products.map((p) => (p.id === product.id ? updated : p)));
+        toast.success("Ürün güncellendi");
+      } else {
+        const newProduct = await api.addProduct(product);
+        setProducts([...products, newProduct]);
+        toast.success("Ürün eklendi");
+      }
+      setEditingProduct(null);
+    } catch (error) {
+      console.error("Error saving product:", error);
+      toast.error("Ürün kaydedilirken hata oluştu");
     }
   };
 
@@ -157,348 +152,459 @@ function App() {
     try {
       await api.deleteProduct(id);
       setProducts(products.filter((p) => p.id !== id));
-      toast.success("Ürün başarıyla silindi!");
+      toast.success("Ürün silindi");
     } catch (error) {
       console.error("Error deleting product:", error);
       toast.error("Ürün silinirken hata oluştu");
     }
   };
 
-  const handleStockAdjust = async (productId: string, adjustment: number) => {
+  // Sale handler
+  const handleCompleteSale = async (items: SaleItem[], totalPrice: number, totalProfit: number) => {
     try {
-      const product = products.find((p) => p.id === productId);
-      if (!product) return;
-
-      const updatedProduct = {
-        ...product,
-        quantity: Math.max(0, product.quantity + adjustment),
+      const sale: Omit<Sale, "id"> = {
+        items,
+        totalPrice,
+        totalProfit,
+        date: new Date().toISOString(),
       };
 
-      await api.updateProduct(productId, updatedProduct);
-      setProducts(products.map((p) => (p.id === productId ? updatedProduct : p)));
-      toast.success(adjustment > 0 ? "Stok eklendi!" : "Stok çıkarıldı!");
+      const newSale = await api.addSale(sale);
+      setSales([newSale, ...sales]);
+
+      // Refresh products to get updated stock
+      const updatedProducts = await api.getProducts();
+      setProducts(updatedProducts);
+
+      toast.success("Satış tamamlandı!");
     } catch (error) {
-      console.error("Error adjusting stock:", error);
-      toast.error("Stok güncellenirken hata oluştu");
+      console.error("Error completing sale:", error);
+      toast.error("Satış kaydedilirken hata oluştu");
     }
   };
 
-  const handleBulkImport = async (importedProducts: Omit<Product, "id" | "createdAt">[]) => {
-    try {
-      const productsWithDate = importedProducts.map((p) => ({
-        ...p,
-        createdAt: new Date().toISOString(),
-      }));
-      
-      const newProducts = await api.bulkImportProducts(productsWithDate);
-      setProducts([...products, ...newProducts]);
-      toast.success(`${newProducts.length} ürün başarıyla yüklendi!`);
-    } catch (error) {
-      console.error("Error bulk importing:", error);
-      toast.error("Toplu yükleme sırasında hata oluştu");
-    }
-  };
-
-  const handleAddPhoneModel = async (brand: string, model: string) => {
-    try {
-      const updatedModels = await api.addPhoneModel(brand, model);
-      setPhoneModels(updatedModels);
-      toast.success("Telefon modeli eklendi!");
-    } catch (error) {
-      console.error("Error adding phone model:", error);
-      toast.error("Model eklenirken hata oluştu");
-    }
-  };
-
-  const openEditDialog = (product: Product) => {
-    setSelectedProduct(product);
-    setEditDialogOpen(true);
-  };
-
-  const openStockAdjustDialog = (product: Product) => {
-    setSelectedProduct(product);
-    setStockAdjustDialogOpen(true);
-  };
-
-  // Filter products based on search and category
+  // Filtering
   const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.phoneModel?.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
-
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.barcode?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategoryId ? product.categoryId === selectedCategoryId : true;
     return matchesSearch && matchesCategory;
   });
 
-  // Statistics
-  const totalProducts = products.length;
-  const lowStockCount = products.filter((p) => p.quantity <= p.minQuantity && p.quantity > 0).length;
-  const outOfStockCount = products.filter((p) => p.quantity === 0).length;
-  const totalValue = products.reduce((sum, p) => sum + p.price * p.quantity, 0);
-
-  // Category statistics
-  const getCategoryStats = () => {
-    return categories.map((category) => {
-      const categoryProducts = products.filter((p) => p.category === category);
-      const totalItems = categoryProducts.reduce((sum, p) => sum + p.quantity, 0);
-      const value = categoryProducts.reduce((sum, p) => sum + p.price * p.quantity, 0);
-      const lowStock = categoryProducts.filter((p) => p.quantity <= p.minQuantity && p.quantity > 0).length;
-      
-      return {
-        category,
-        count: categoryProducts.length,
-        totalItems,
-        value,
-        lowStock,
-      };
-    });
+  const getCategoryName = (categoryId: string) => {
+    const category = categories.find((c) => c.id === categoryId);
+    if (!category) return "Bilinmeyen";
+    
+    if (category.parentId) {
+      const parent = categories.find((c) => c.id === category.parentId);
+      return parent ? `${parent.name} > ${category.name}` : category.name;
+    }
+    
+    return category.name;
   };
+
+  const toggleCategory = (categoryId: string) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(categoryId)) {
+      newExpanded.delete(categoryId);
+    } else {
+      newExpanded.add(categoryId);
+    }
+    setExpandedCategories(newExpanded);
+  };
+
+  // Excel Export
+  const handleExportToExcel = () => {
+    try {
+      const exportData = products.map((product) => ({
+        "Ürün Adı": product.name,
+        "Kategori": getCategoryName(product.categoryId),
+        "Barkod": product.barcode || "",
+        "Stok": product.stock,
+        "Min Stok": product.minStock,
+        "Alış Fiyatı": product.purchasePrice,
+        "Satış Fiyatı": product.salePrice,
+        "Kâr Marjı": product.salePrice - product.purchasePrice,
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Ürünler");
+
+      XLSX.writeFile(wb, `urunler_${new Date().toISOString().split('T')[0]}.xlsx`);
+      toast.success("Excel dosyası indirildi");
+    } catch (error) {
+      console.error("Excel export error:", error);
+      toast.error("Excel dosyası oluşturulamadı");
+    }
+  };
+
+  // Excel Import
+  const handleImportFromExcel = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json<{
+          "Ürün Adı": string;
+          "Kategori": string;
+          "Barkod"?: string;
+          "Stok": number;
+          "Min Stok": number;
+          "Alış Fiyatı": number;
+          "Satış Fiyatı": number;
+        }>(worksheet);
+
+        let updatedCount = 0;
+        let errorCount = 0;
+
+        for (const row of jsonData) {
+          try {
+            // Find existing product by name or barcode
+            const existingProduct = products.find(
+              (p) => p.name === row["Ürün Adı"] || (row["Barkod"] && p.barcode === row["Barkod"])
+            );
+
+            if (existingProduct) {
+              // Update prices
+              await api.updateProduct(existingProduct.id, {
+                ...existingProduct,
+                purchasePrice: row["Alış Fiyatı"],
+                salePrice: row["Satış Fiyatı"],
+                stock: row["Stok"],
+                minStock: row["Min Stok"],
+              });
+              updatedCount++;
+            }
+          } catch (error) {
+            console.error(`Error updating product ${row["Ürün Adı"]}:`, error);
+            errorCount++;
+          }
+        }
+
+        // Refresh products
+        const updatedProducts = await api.getProducts();
+        setProducts(updatedProducts);
+
+        if (updatedCount > 0) {
+          toast.success(`${updatedCount} ürün güncellendi`);
+        }
+        if (errorCount > 0) {
+          toast.error(`${errorCount} ürün güncellenemedi`);
+        }
+      } catch (error) {
+        console.error("Excel import error:", error);
+        toast.error("Excel dosyası okunamadı");
+      }
+    };
+
+    reader.readAsArrayBuffer(file);
+    // Reset input
+    event.target.value = "";
+  };
+
+  // Bulk product upload handler
+  const handleBulkAdd = async (products: Omit<Product, "id">[]) => {
+    try {
+      const added = await api.bulkImportProducts(products);
+      setProducts([...products, ...added]);
+      toast.success(`${added.length} ürün eklendi`);
+    } catch (error) {
+      console.error("Bulk add error:", error);
+      toast.error("Toplu ürün eklenirken hata oluştu");
+    }
+  };
+
+  // Handle repair
+  const handleAddRepair = async (repair: Omit<RepairRecord, "id">) => {
+    try {
+      await api.addRepair(repair);
+      toast.success("Tamir kaydı oluşturuldu!");
+    } catch (error) {
+      console.error("Repair add error:", error);
+      toast.error("Tamir kaydı oluşturulamadı");
+    }
+  };
+
+  // Handle sales type selection
+  const handleSalesTypeSelect = (type: "sale" | "repair") => {
+    if (type === "sale") {
+      setSalesDialogOpen(true);
+    } else {
+      setRepairOpen(true);
+    }
+  };
+
+  const lowStockProducts = products.filter((p) => p.stock <= p.minStock);
+  const totalInventoryValue = products.reduce((sum, p) => sum + (p.stock * p.purchasePrice), 0);
 
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <Warehouse className="w-12 h-12 animate-pulse mx-auto mb-4 text-primary" />
+          <Package className="w-12 h-12 animate-pulse mx-auto mb-4 text-primary" />
           <p className="text-muted-foreground">Yükleniyor...</p>
         </div>
       </div>
     );
   }
 
+  const mainCategories = categories.filter(c => !c.parentId);
+
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       <Toaster position="top-right" />
-      
-      {/* Sidebar */}
-      <aside className={`${sidebarOpen ? "w-64" : "w-0"} border-r bg-card transition-all duration-300 overflow-hidden flex-shrink-0`}>
-        <div className="p-4 border-b">
-          <div className="flex items-center gap-2 mb-4">
-            <Warehouse className="w-6 h-6 text-primary" />
-            <h2 className="font-semibold">Kategoriler</h2>
+
+      {/* Header */}
+      <header className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Stok Yönetim Sistemi</h1>
+              <p className="text-sm text-muted-foreground">Profesyonel İşletme Yönetimi</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => setCategoryDialogOpen(true)} variant="outline" size="sm" className="border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-950">
+                <FolderTree className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Kategori</span>
+              </Button>
+              <Button onClick={() => setProductDialogOpen(true)} variant="outline" size="sm" className="border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-950">
+                <Plus className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Ürün</span>
+              </Button>
+              <Button onClick={() => setBulkUploadOpen(true)} variant="outline" size="sm" className="border-purple-200 hover:bg-purple-50 dark:border-purple-800 dark:hover:bg-purple-950">
+                <Upload className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Toplu</span>
+              </Button>
+              <Button onClick={handleExportToExcel} variant="outline" size="sm" className="border-orange-200 hover:bg-orange-50 dark:border-orange-800 dark:hover:bg-orange-950">
+                <Download className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">İndir</span>
+              </Button>
+              <label htmlFor="excel-upload">
+                <Button variant="outline" size="sm" asChild className="border-pink-200 hover:bg-pink-50 dark:border-pink-800 dark:hover:bg-pink-950">
+                  <span>
+                    <Upload className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Yükle</span>
+                  </span>
+                </Button>
+              </label>
+              <input
+                id="excel-upload"
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={handleImportFromExcel}
+              />
+              <Button onClick={() => setSalesTypeOpen(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">Satış/Tamir</span>
+              </Button>
+            </div>
           </div>
         </div>
-        
-        <nav className="p-2">
-          <button
-            onClick={() => setSelectedCategory(null)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
-              selectedCategory === null
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted"
-            }`}
-          >
-            <LayoutDashboard className="w-5 h-5" />
-            <span>Dashboard</span>
-          </button>
-          
-          {categories.map((category) => {
-            const categoryCount = products.filter((p) => p.category === category).length;
-            return (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-lg mb-1 transition-colors ${
-                  selectedCategory === category
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Package className="w-5 h-5" />
-                  <span className="text-sm">{category}</span>
-                </div>
-                <Badge variant={selectedCategory === category ? "secondary" : "outline"} className="ml-auto">
-                  {categoryCount}
-                </Badge>
-              </button>
-            );
-          })}
-        </nav>
-      </aside>
+      </header>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="border-b bg-card">
-          <div className="px-4 py-4">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-              >
-                <Menu className="w-5 h-5" />
-              </Button>
-              
-              <div className="flex-1">
-                <h1>Stok Takip Sistemi</h1>
-                <p className="text-sm text-muted-foreground">
-                  {selectedCategory ? selectedCategory : "Genel Bakış"}
-                </p>
-              </div>
-
-              <Button variant="outline" size="sm" onClick={() => setAddModelOpen(true)}>
-                <Smartphone className="w-4 h-4 mr-2" />
-                Model Ekle
-              </Button>
-              
-              <Button variant="outline" size="sm" onClick={() => setExcelImportOpen(true)}>
-                <Upload className="w-4 h-4 mr-2" />
-                Excel Yükle
-              </Button>
-
-              <Button onClick={() => setAddDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Yeni Ürün
-              </Button>
+      <div className="flex flex-col md:flex-row">
+        {/* Sidebar - Kategoriler */}
+        <aside className="w-full md:w-64 border-b md:border-r md:border-b-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm md:min-h-[calc(100vh-73px)] md:sticky md:top-[73px] shadow-sm">
+          <div className="p-4 space-y-2 max-h-[300px] md:max-h-none overflow-y-auto">
+            <div className="mb-4">
+              <h2 className="font-semibold mb-2">KATEGORİLER</h2>
             </div>
-          </div>
-        </header>
 
-        <main className="flex-1 overflow-auto p-6">
-          {/* Dashboard View */}
-          {!selectedCategory && (
-            <div className="space-y-6">
-              {/* Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                        <Package className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Toplam Ürün</p>
-                        <p className="text-2xl font-semibold">{totalProducts}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
-                        <TrendingDown className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Düşük Stok</p>
-                        <p className="text-2xl font-semibold">{lowStockCount}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-red-100 dark:bg-red-900 rounded-lg">
-                        <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Stokta Yok</p>
-                        <p className="text-2xl font-semibold">{outOfStockCount}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-green-100 dark:bg-green-900 rounded-lg">
-                        <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Toplam Değer</p>
-                        <p className="text-2xl font-semibold">₺{totalValue.toLocaleString('tr-TR')}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+            {/* Tüm Ürünler */}
+            <button
+              onClick={() => {
+                setSelectedCategoryId(null);
+                setActiveView("products");
+              }}
+              className={`w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors ${
+                selectedCategoryId === null && activeView === "products" ? "bg-primary text-primary-foreground" : ""
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Package className="w-4 h-4" />
+                <span>Tüm Ürünler</span>
+                <Badge variant="secondary" className="ml-auto">{products.length}</Badge>
               </div>
+            </button>
 
-              {/* Category Overview */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Kategori Bazlı Durum</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {getCategoryStats().map((stat) => (
-                      <div
-                        key={stat.category}
-                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-                        onClick={() => setSelectedCategory(stat.category)}
+            <div className="border-t pt-2 mt-2" />
+
+            {/* Ana Kategoriler & Alt Kategoriler */}
+            {mainCategories.map((mainCat) => {
+              const subCategories = categories.filter(c => c.parentId === mainCat.id);
+              const hasSubCategories = subCategories.length > 0;
+              const isExpanded = expandedCategories.has(mainCat.id);
+              const mainCatProductCount = products.filter(p => p.categoryId === mainCat.id).length;
+              const allProductCount = products.filter(p => 
+                p.categoryId === mainCat.id || 
+                subCategories.some(sub => sub.id === p.categoryId)
+              ).length;
+
+              return (
+                <div key={mainCat.id} className="space-y-1">
+                  {/* Ana Kategori */}
+                  <div className="flex items-center gap-1">
+                    {hasSubCategories && (
+                      <button
+                        onClick={() => toggleCategory(mainCat.id)}
+                        className="p-1 hover:bg-muted rounded"
                       >
-                        <div className="flex-1">
-                          <h3 className="font-medium">{stat.category}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {stat.count} ürün çeşidi • {stat.totalItems} adet stok
-                          </p>
+                        {isExpanded ? (
+                          <ChevronDown className="w-4 h-4" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setSelectedCategoryId(mainCat.id);
+                        setActiveView("products");
+                      }}
+                      className={`flex-1 text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors ${
+                        !hasSubCategories ? "ml-6" : ""
+                      } ${
+                        selectedCategoryId === mainCat.id ? "bg-primary text-primary-foreground" : ""
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FolderTree className="w-4 h-4" />
+                          <span className="text-sm">{mainCat.name}</span>
                         </div>
-                        <div className="text-right">
-                          <p className="font-semibold">₺{stat.value.toLocaleString('tr-TR')}</p>
-                          {stat.lowStock > 0 && (
-                            <Badge variant="secondary" className="mt-1">
-                              {stat.lowStock} düşük stok
-                            </Badge>
-                          )}
-                        </div>
+                        <Badge variant="secondary" className="text-xs">
+                          {hasSubCategories ? allProductCount : mainCatProductCount}
+                        </Badge>
                       </div>
-                    ))}
+                    </button>
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* Recent Low Stock Alerts */}
-              {lowStockCount > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <AlertCircle className="w-5 h-5 text-yellow-600" />
-                      Stok Uyarıları
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {products
-                        .filter((p) => p.quantity <= p.minQuantity)
-                        .slice(0, 5)
-                        .map((product) => (
-                          <div
-                            key={product.id}
-                            className="flex items-center justify-between p-3 border rounded-lg"
+                  {/* Alt Kategoriler */}
+                  {hasSubCategories && isExpanded && (
+                    <div className="ml-6 space-y-1">
+                      {subCategories.map((subCat) => {
+                        const subProductCount = products.filter(p => p.categoryId === subCat.id).length;
+                        return (
+                          <button
+                            key={subCat.id}
+                            onClick={() => {
+                              setSelectedCategoryId(subCat.id);
+                              setActiveView("products");
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors ${
+                              selectedCategoryId === subCat.id ? "bg-primary text-primary-foreground" : ""
+                            }`}
                           >
-                            <div>
-                              <p className="font-medium">{product.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {product.category} • {product.phoneModel}
-                              </p>
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm">→ {subCat.name}</span>
+                              <Badge variant="outline" className="text-xs">{subProductCount}</Badge>
                             </div>
-                            <Badge variant={product.quantity === 0 ? "destructive" : "secondary"}>
-                              {product.quantity === 0 ? "Stokta Yok" : `${product.quantity} adet kaldı`}
-                            </Badge>
-                          </div>
-                        ))}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <div className="border-t pt-2 mt-4" />
+
+            {/* Kategori Yönetimi */}
+            <button
+              onClick={() => setCategoryManagementOpen(true)}
+              className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                <span>Kategori Yönetimi</span>
+              </div>
+            </button>
+
+            {/* Raporlar */}
+            <button
+              onClick={() => setActiveView("reports")}
+              className={`w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors ${
+                activeView === "reports" ? "bg-primary text-primary-foreground" : ""
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                <span>Raporlar</span>
+              </div>
+            </button>
+          </div>
+        </aside>
+
+        {/* Ana İçerik */}
+        <main className="flex-1 p-6">
+          {activeView === "products" ? (
+            <div className="space-y-6">
+              {/* Quick Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/50 border-blue-200 dark:border-blue-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-blue-700 dark:text-blue-300">Toplam Ürün</p>
+                        <p className="text-2xl font-semibold text-blue-900 dark:text-blue-100">{products.length}</p>
+                      </div>
+                      <Package className="w-8 h-8 text-blue-500" />
                     </div>
                   </CardContent>
                 </Card>
-              )}
-            </div>
-          )}
 
-          {/* Category Products View */}
-          {selectedCategory && (
-            <div className="space-y-6">
-              {/* Search Bar */}
+                <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950 dark:to-green-900/50 border-green-200 dark:border-green-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-green-700 dark:text-green-300">Stok Değeri</p>
+                        <p className="text-2xl font-semibold text-green-900 dark:text-green-100">₺{totalInventoryValue.toLocaleString('tr-TR')}</p>
+                      </div>
+                      <BarChart3 className="w-8 h-8 text-green-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950 dark:to-orange-900/50 border-orange-200 dark:border-orange-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-orange-700 dark:text-orange-300">Düşük Stok</p>
+                        <p className="text-2xl font-semibold text-orange-900 dark:text-orange-100">{lowStockProducts.length}</p>
+                      </div>
+                      <AlertTriangle className="w-8 h-8 text-orange-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950 dark:to-purple-900/50 border-purple-200 dark:border-purple-800">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-purple-700 dark:text-purple-300">Kategoriler</p>
+                        <p className="text-2xl font-semibold text-purple-900 dark:text-purple-100">{categories.length}</p>
+                      </div>
+                      <FolderTree className="w-8 h-8 text-purple-500" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Search */}
               <div className="flex gap-4">
                 <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
-                    placeholder="Ürün veya model ara..."
+                    placeholder="Ürün veya barkod ara..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="pl-10"
@@ -506,71 +612,202 @@ function App() {
                 </div>
               </div>
 
-              {/* Products Grid */}
-              {filteredProducts.length === 0 ? (
-                <Card>
-                  <CardContent className="flex flex-col items-center justify-center py-16">
-                    <Package className="w-16 h-16 text-muted-foreground mb-4" />
-                    <p className="text-muted-foreground">
-                      {searchQuery ? "Aramanıza uygun ürün bulunamadı" : "Bu kategoride henüz ürün yok"}
-                    </p>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredProducts.map((product) => (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      onEdit={openEditDialog}
-                      onDelete={handleDeleteProduct}
-                      onAdjustStock={openStockAdjustDialog}
-                    />
-                  ))}
+              {/* Products Table */}
+              <Card className="bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-900 dark:to-blue-950/30">
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
+                  <div className="flex items-center justify-between">
+                    <CardTitle>
+                      {selectedCategoryId 
+                        ? `${getCategoryName(selectedCategoryId)} - Ürünler (${filteredProducts.length})`
+                        : `Tüm Ürünler (${filteredProducts.length})`
+                      }
+                    </CardTitle>
+                    {selectedCategoryId && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          if (window.confirm("Bu kategoriyi silmek istediğinize emin misiniz?")) {
+                            handleDeleteCategory(selectedCategoryId);
+                            setSelectedCategoryId(null);
+                          }
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b bg-gradient-to-r from-blue-100/50 to-purple-100/50 dark:from-blue-900/30 dark:to-purple-900/30">
+                          <th className="text-left p-3">Ürün Adı</th>
+                          <th className="text-left p-3">Kategori</th>
+                          <th className="text-center p-3">Stok</th>
+                          <th className="text-right p-3">Alış</th>
+                          <th className="text-right p-3">Satış</th>
+                          <th className="text-right p-3">Kâr</th>
+                          <th className="text-center p-3">İşlemler</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredProducts.map((product, index) => {
+                          const purchasePrice = product.purchasePrice || 0;
+                          const salePrice = product.salePrice || 0;
+                          const profit = salePrice - purchasePrice;
+                          const margin = salePrice > 0 ? (profit / salePrice * 100).toFixed(1) : "0";
+                          const isLowStock = product.stock <= product.minStock;
+
+                          // Alternating row colors
+                          const rowColor = index % 2 === 0 
+                            ? "bg-white/50 dark:bg-gray-900/50" 
+                            : "bg-blue-50/30 dark:bg-blue-950/20";
+
+                          return (
+                            <tr key={product.id} className={`border-b ${rowColor} hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition-colors`}>
+                              <td className="p-3">
+                                <div>
+                                  <p className="font-medium">{product.name}</p>
+                                  {product.barcode && (
+                                    <p className="text-xs text-muted-foreground">{product.barcode}</p>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="p-3 text-sm">{getCategoryName(product.categoryId)}</td>
+                              <td className="p-3 text-center">
+                                <Badge variant={isLowStock ? "destructive" : "secondary"}>
+                                  {product.stock}
+                                </Badge>
+                              </td>
+                              <td className="text-right p-3">₺{purchasePrice.toFixed(2)}</td>
+                              <td className="text-right p-3 font-medium">₺{salePrice.toFixed(2)}</td>
+                              <td className="text-right p-3">
+                                <div className="text-green-600 dark:text-green-400">
+                                  ₺{profit.toFixed(2)}
+                                  <span className="text-xs ml-1">(%{margin})</span>
+                                </div>
+                              </td>
+                              <td className="p-3">
+                                <div className="flex justify-center gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      setEditingProduct(product);
+                                      setProductDialogOpen(true);
+                                    }}
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteProduct(product.id)}
+                                  >
+                                    <Trash2 className="w-4 h-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    {filteredProducts.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        Ürün bulunamadı
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            // Raporlar Görünümü
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold">Satış Raporları</h2>
+                <div className="flex gap-2">
+                  <Button
+                    variant={reportPeriod === "daily" ? "default" : "outline"}
+                    onClick={() => setReportPeriod("daily")}
+                  >
+                    Günlük
+                  </Button>
+                  <Button
+                    variant={reportPeriod === "weekly" ? "default" : "outline"}
+                    onClick={() => setReportPeriod("weekly")}
+                  >
+                    Haftalık
+                  </Button>
+                  <Button
+                    variant={reportPeriod === "monthly" ? "default" : "outline"}
+                    onClick={() => setReportPeriod("monthly")}
+                  >
+                    Aylık
+                  </Button>
                 </div>
-              )}
+              </div>
+
+              <ReportsView sales={sales} period={reportPeriod} />
             </div>
           )}
         </main>
       </div>
 
       {/* Dialogs */}
-      <AddProductDialog
-        open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
-        onAdd={handleAddProduct}
-        phoneModels={phoneModels}
+      <CategoryDialog
+        open={categoryDialogOpen}
+        onOpenChange={setCategoryDialogOpen}
+        onAdd={handleAddCategory}
+        categories={categories}
       />
 
-      <EditProductDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        product={selectedProduct}
-        onUpdate={handleUpdateProduct}
-        phoneModels={phoneModels}
+      <ProductDialog
+        open={productDialogOpen}
+        onOpenChange={(open) => {
+          setProductDialogOpen(open);
+          if (!open) setEditingProduct(null);
+        }}
+        onSave={handleSaveProduct}
+        categories={categories}
+        editProduct={editingProduct}
       />
 
-      {selectedProduct && (
-        <StockAdjustDialog
-          open={stockAdjustDialogOpen}
-          onOpenChange={setStockAdjustDialogOpen}
-          productName={selectedProduct.name}
-          currentStock={selectedProduct.quantity}
-          onAdjust={(adjustment) => handleStockAdjust(selectedProduct.id, adjustment)}
-        />
-      )}
-
-      <ExcelImport
-        open={excelImportOpen}
-        onOpenChange={setExcelImportOpen}
-        onImport={handleBulkImport}
+      <SalesDialog
+        open={salesDialogOpen}
+        onOpenChange={setSalesDialogOpen}
+        onCompleteSale={handleCompleteSale}
+        products={products}
       />
 
-      <AddPhoneModel
-        open={addModelOpen}
-        onOpenChange={setAddModelOpen}
-        onAdd={handleAddPhoneModel}
-        existingBrands={Object.keys(phoneModels)}
+      <CategoryManagementDialog
+        open={categoryManagementOpen}
+        onOpenChange={setCategoryManagementOpen}
+        categories={categories}
+        products={products}
+        onDeleteCategory={handleDeleteCategory}
+      />
+
+      <BulkUploadDialog
+        open={bulkUploadOpen}
+        onOpenChange={setBulkUploadOpen}
+        categories={categories}
+        onBulkAdd={handleBulkAdd}
+      />
+
+      <SalesTypeDialog
+        open={salesTypeOpen}
+        onOpenChange={setSalesTypeOpen}
+        onSelectType={handleSalesTypeSelect}
+      />
+
+      <RepairDialog
+        open={repairOpen}
+        onOpenChange={setRepairOpen}
+        onSave={handleAddRepair}
       />
     </div>
   );
