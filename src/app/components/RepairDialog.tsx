@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -40,50 +40,89 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
 
   const [scannerActive, setScannerActive] = useState(false);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const scannerRunningRef = useRef(false);
   const scannerDivId = "qr-reader";
 
   const profit = formData.repairCost - formData.partsCost;
 
-  const startScanner = async () => {
-    try {
-      const html5QrCode = new Html5Qrcode(scannerDivId);
-      html5QrCodeRef.current = html5QrCode;
+  // useEffect to start/stop scanner based on scannerActive state
+  useEffect(() => {
+    if (scannerActive && open) {
+      // Wait a bit for DOM to be ready
+      const timer = setTimeout(async () => {
+        try {
+          const html5QrCode = new Html5Qrcode(scannerDivId);
+          html5QrCodeRef.current = html5QrCode;
 
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-        },
-        (decodedText) => {
-          // IMEI okutuldu
-          setFormData({ ...formData, imei: decodedText });
-          stopScanner();
-        },
-        (errorMessage) => {
-          // Hata mesajlarını ignore ediyoruz (sürekli hata veriyor)
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+            },
+            (decodedText) => {
+              // IMEI okutuldu
+              setFormData(prev => ({ ...prev, imei: decodedText }));
+              setScannerActive(false);
+            },
+            (errorMessage) => {
+              // Hata mesajlarını ignore ediyoruz (sürekli hata veriyor)
+            }
+          );
+          
+          scannerRunningRef.current = true;
+        } catch (err: any) {
+          // Sadece geliştirme modunda konsola yaz
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Scanner başlatma hatası:", err);
+          }
+          
+          if (err.name === 'NotAllowedError' || err.message?.includes('Permission denied')) {
+            // Kamera izni reddedildi - sessizce iptal et
+            // Kullanıcı zaten red ettiğini biliyor, ekstra uyarıya gerek yok
+          } else {
+            // Başka bir hata varsa bildir
+            alert("Kamera erişimi sağlanamadı. IMEI'yi manuel olarak girebilirsiniz.");
+          }
+          
+          setScannerActive(false);
+          html5QrCodeRef.current = null;
+          scannerRunningRef.current = false;
         }
-      );
+      }, 100);
 
-      setScannerActive(true);
-    } catch (err) {
-      console.error("Scanner başlatma hatası:", err);
-      alert("Kamera erişimi sağlanamadı. Lütfen manuel olarak girin.");
+      return () => clearTimeout(timer);
+    } else if (!scannerActive && html5QrCodeRef.current && scannerRunningRef.current) {
+      // Stop scanner only if it's running
+      html5QrCodeRef.current
+        .stop()
+        .then(() => {
+          html5QrCodeRef.current?.clear();
+          html5QrCodeRef.current = null;
+          scannerRunningRef.current = false;
+        })
+        .catch((err) => {
+          console.error("Scanner durdurma hatası:", err);
+          html5QrCodeRef.current = null;
+          scannerRunningRef.current = false;
+        });
     }
-  };
+  }, [scannerActive, open]);
 
-  const stopScanner = async () => {
-    if (html5QrCodeRef.current) {
-      try {
-        await html5QrCodeRef.current.stop();
-        html5QrCodeRef.current.clear();
-      } catch (err) {
-        console.error("Scanner durdurma hatası:", err);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (html5QrCodeRef.current && scannerRunningRef.current) {
+        html5QrCodeRef.current
+          .stop()
+          .catch(() => {})
+          .finally(() => {
+            scannerRunningRef.current = false;
+          });
+        html5QrCodeRef.current = null;
       }
-      html5QrCodeRef.current = null;
-    }
-    setScannerActive(false);
-  };
+    };
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,7 +147,7 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
 
     // Stop scanner if active
     if (scannerActive) {
-      stopScanner();
+      setScannerActive(false);
     }
 
     onOpenChange(false);
@@ -116,7 +155,7 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
 
   const handleClose = () => {
     if (scannerActive) {
-      stopScanner();
+      setScannerActive(false);
     }
     onOpenChange(false);
   };
@@ -189,7 +228,7 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
                 <Button
                   type="button"
                   variant={scannerActive ? "destructive" : "outline"}
-                  onClick={scannerActive ? stopScanner : startScanner}
+                  onClick={scannerActive ? () => setScannerActive(false) : () => setScannerActive(true)}
                   size="icon"
                 >
                   {scannerActive ? <X className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
