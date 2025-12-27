@@ -17,6 +17,7 @@ import { SalesDialog } from "./components/SalesDialog";
 import { ReportsView } from "./components/ReportsView";
 import { CariView } from "./components/CariView";
 import { RepairsView } from "./components/RepairsView";
+import { SalesPanelView } from "./components/SalesPanelView";
 import { CategoryManagementDialog } from "./components/CategoryManagementDialog";
 import { motion, AnimatePresence } from "motion/react";
 import { 
@@ -54,8 +55,8 @@ function App() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
-  const [activeView, setActiveView] = useState<"products" | "reports" | "repairs" | "caris">("products");
+  const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly" | "all">("daily");
+  const [activeView, setActiveView] = useState<"products" | "reports" | "repairs" | "caris" | "salesPanel">("salesPanel");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
@@ -382,6 +383,30 @@ function App() {
     } catch (error) {
       console.error("Error updating repair status:", error);
       toast.error("Durum güncellenemedi");
+    }
+  };
+
+  // Handle repair update
+  const handleUpdateRepair = async (id: string, data: Partial<RepairRecord>) => {
+    try {
+      const updated = await api.updateRepair(id, data);
+      setRepairs(repairs.map((r) => (r.id === id ? updated : r)));
+      toast.success("Tamir güncellendi");
+    } catch (error) {
+      console.error("Error updating repair:", error);
+      toast.error("Tamir güncellenirken hata oluştu");
+    }
+  };
+
+  // Handle repair delete
+  const handleDeleteRepair = async (id: string) => {
+    try {
+      await api.deleteRepair(id);
+      setRepairs(repairs.filter((r) => r.id !== id));
+      toast.success("Tamir silindi");
+    } catch (error) {
+      console.error("Error deleting repair:", error);
+      toast.error("Tamir silinirken hata oluştu");
     }
   };
 
@@ -713,6 +738,21 @@ function App() {
 
             <div className="border-t pt-2 mt-4" />
 
+            {/* Satış Paneli */}
+            <button
+              onClick={() => setActiveView("salesPanel")}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
+                activeView === "salesPanel" 
+                  ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md" 
+                  : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="w-4 h-4" />
+                <span>Satış Paneli</span>
+              </div>
+            </button>
+
             {/* Kategori Yönetimi */}
             <button
               onClick={() => setCategoryManagementOpen(true)}
@@ -1015,6 +1055,12 @@ function App() {
                     >
                       Aylık
                     </Button>
+                    <Button
+                      variant={reportPeriod === "all" ? "default" : "outline"}
+                      onClick={() => setReportPeriod("all")}
+                    >
+                      Tümü
+                    </Button>
                   </div>
                 </div>
 
@@ -1041,7 +1087,7 @@ function App() {
                   onUpdateStatus={handleUpdateRepairStatus}
                 />
               </motion.div>
-            ) : (
+            ) : activeView === "caris" ? (
               // Cariler Görünümü
               <motion.div
                 key="caris"
@@ -1058,6 +1104,25 @@ function App() {
                   onUpdateCustomer={handleUpdateCustomer}
                   onDeleteCustomer={handleDeleteCustomer}
                   onAddTransaction={handleAddCustomerTransaction}
+                />
+              </motion.div>
+            ) : (
+              // Satış Paneli Görünümü
+              <motion.div
+                key="salesPanel"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="space-y-6"
+              >
+                <SalesPanelView 
+                  sales={sales}
+                  repairs={repairs}
+                  categories={categories}
+                  onDeleteSale={handleDeleteSale}
+                  onUpdateRepair={handleUpdateRepair}
+                  onDeleteRepair={handleDeleteRepair}
                 />
               </motion.div>
             )}

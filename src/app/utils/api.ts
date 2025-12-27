@@ -47,6 +47,7 @@ export interface SaleItem {
   salePrice: number;
   purchasePrice: number;
   profit: number;
+  categoryId?: string;
 }
 
 export interface Sale {
@@ -216,6 +217,20 @@ export const api = {
       body: JSON.stringify({ status }),
     });
     return result.data;
+  },
+
+  async updateRepair(id: string, repair: Partial<RepairRecord>): Promise<RepairRecord> {
+    const result = await fetchAPI(`/repairs/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(repair),
+    });
+    return result.data;
+  },
+
+  async deleteRepair(id: string): Promise<void> {
+    await fetchAPI(`/repairs/${id}`, {
+      method: "DELETE",
+    });
   },
 
   // Customers

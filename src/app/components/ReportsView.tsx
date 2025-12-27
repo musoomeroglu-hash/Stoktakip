@@ -4,19 +4,34 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { TrendingUp, DollarSign, ShoppingBag, Percent, Trash2, Edit, HandCoins } from "lucide-react";
 import { format, startOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
 import { Button } from "./ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
-import type { Sale, CustomerTransaction } from "../utils/api";
+import type { Sale, CustomerTransaction, SaleItem } from "../utils/api";
 
 interface ReportsViewProps {
   sales: Sale[];
-  period: "daily" | "weekly" | "monthly";
+  period: "daily" | "weekly" | "monthly" | "all";
   customerTransactions: CustomerTransaction[];
   onDeleteSale: (id: string) => void;
+  onUpdateSale?: (id: string, sale: Sale) => void;
 }
 
-export function ReportsView({ sales, period, customerTransactions, onDeleteSale }: ReportsViewProps) {
+export function ReportsView({ sales, period, customerTransactions, onDeleteSale, onUpdateSale }: ReportsViewProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [saleToDelete, setSaleToDelete] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [editForm, setEditForm] = useState<{
+    items: SaleItem[];
+    totalPrice: number;
+    totalProfit: number;
+  }>({
+    items: [],
+    totalPrice: 0,
+    totalProfit: 0,
+  });
 
   const periodData = useMemo(() => {
     const now = new Date();
@@ -35,6 +50,10 @@ export function ReportsView({ sales, period, customerTransactions, onDeleteSale 
       case "monthly":
         startDate = startOfMonth(now);
         days = 30;
+        break;
+      case "all":
+        startDate = new Date(0);
+        days = 0;
         break;
     }
 
@@ -115,6 +134,7 @@ export function ReportsView({ sales, period, customerTransactions, onDeleteSale 
     daily: "Bugün",
     weekly: "Bu Hafta",
     monthly: "Bu Ay",
+    all: "Tüm Zamanlar",
   }[period];
 
   const handleDeleteClick = (id: string) => {
@@ -128,6 +148,29 @@ export function ReportsView({ sales, period, customerTransactions, onDeleteSale 
       setSaleToDelete(null);
     }
     setDeleteDialogOpen(false);
+  };
+
+  const handleEditClick = (sale: Sale) => {
+    setEditingSale(sale);
+    setEditForm({
+      items: sale.items,
+      totalPrice: sale.totalPrice,
+      totalProfit: sale.totalProfit,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const confirmEdit = () => {
+    if (editingSale && onUpdateSale) {
+      onUpdateSale(editingSale.id, {
+        ...editingSale,
+        items: editForm.items,
+        totalPrice: editForm.totalPrice,
+        totalProfit: editForm.totalProfit,
+      });
+      setEditingSale(null);
+    }
+    setEditDialogOpen(false);
   };
 
   return (
@@ -319,6 +362,16 @@ export function ReportsView({ sales, period, customerTransactions, onDeleteSale 
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
+                      {onUpdateSale && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditClick(sale)}
+                          className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -350,6 +403,104 @@ export function ReportsView({ sales, period, customerTransactions, onDeleteSale 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Sale Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Satışı Düzenle</DialogTitle>
+          </DialogHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {editForm.items.map((item, index) => (
+                <div key={index} className="flex items-center gap-4">
+                  <Label className="w-24">Ürün Adı:</Label>
+                  <Input
+                    value={item.productName}
+                    onChange={(e) => {
+                      const newItems = [...editForm.items];
+                      newItems[index].productName = e.target.value;
+                      setEditForm({ ...editForm, items: newItems });
+                    }}
+                    className="w-40"
+                  />
+                  <Label className="w-24">Adet:</Label>
+                  <Input
+                    type="number"
+                    value={item.quantity}
+                    onChange={(e) => {
+                      const newItems = [...editForm.items];
+                      newItems[index].quantity = parseInt(e.target.value, 10);
+                      setEditForm({ ...editForm, items: newItems });
+                    }}
+                    className="w-20"
+                  />
+                  <Label className="w-24">Satış Fiyatı:</Label>
+                  <Input
+                    type="number"
+                    value={item.salePrice}
+                    onChange={(e) => {
+                      const newItems = [...editForm.items];
+                      newItems[index].salePrice = parseFloat(e.target.value);
+                      setEditForm({ ...editForm, items: newItems });
+                    }}
+                    className="w-20"
+                  />
+                  <Label className="w-24">Kâr:</Label>
+                  <Input
+                    type="number"
+                    value={item.profit}
+                    onChange={(e) => {
+                      const newItems = [...editForm.items];
+                      newItems[index].profit = parseFloat(e.target.value);
+                      setEditForm({ ...editForm, items: newItems });
+                    }}
+                    className="w-20"
+                  />
+                </div>
+              ))}
+              <div className="flex items-center gap-4">
+                <Label className="w-24">Toplam Tutar:</Label>
+                <Input
+                  type="number"
+                  value={editForm.totalPrice}
+                  onChange={(e) => {
+                    setEditForm({ ...editForm, totalPrice: parseFloat(e.target.value) });
+                  }}
+                  className="w-40"
+                />
+                <Label className="w-24">Toplam Kâr:</Label>
+                <Input
+                  type="number"
+                  value={editForm.totalProfit}
+                  onChange={(e) => {
+                    setEditForm({ ...editForm, totalProfit: parseFloat(e.target.value) });
+                  }}
+                  className="w-40"
+                />
+              </div>
+            </div>
+          </CardContent>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setEditDialogOpen(false)}
+              className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+            >
+              İptal
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={confirmEdit}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Kaydet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
