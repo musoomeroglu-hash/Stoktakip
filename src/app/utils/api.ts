@@ -62,11 +62,14 @@ export interface RepairRecord {
   customerName: string;
   customerPhone: string;
   deviceInfo: string;
+  imei: string;
   problemDescription: string;
   repairCost: number;
   partsCost: number;
   profit: number;
+  status: "in_progress" | "completed" | "delivered";
   createdAt: string;
+  deliveredAt?: string;
 }
 
 export interface Customer {
@@ -189,6 +192,14 @@ export const api = {
     const result = await fetchAPI("/repairs", {
       method: "POST",
       body: JSON.stringify(repair),
+    });
+    return result.data;
+  },
+
+  async updateRepairStatus(id: string, status: "in_progress" | "completed" | "delivered"): Promise<RepairRecord> {
+    const result = await fetchAPI(`/repairs/${id}/status`, {
+      method: "PUT",
+      body: JSON.stringify({ status }),
     });
     return result.data;
   },

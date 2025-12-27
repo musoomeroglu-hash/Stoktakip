@@ -1,20 +1,23 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Wrench } from "lucide-react";
+import { Wrench, Camera, X } from "lucide-react";
+import { Html5Qrcode } from "html5-qrcode";
 
 export interface RepairRecord {
   id: string;
   customerName: string;
   customerPhone: string;
   deviceInfo: string;
+  imei: string;
   problemDescription: string;
   repairCost: number;
   partsCost: number;
   profit: number;
+  status: string;
   createdAt: string;
 }
 
@@ -29,12 +32,58 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
     customerName: "",
     customerPhone: "",
     deviceInfo: "",
+    imei: "",
     problemDescription: "",
     repairCost: 0,
     partsCost: 0,
   });
 
+  const [scannerActive, setScannerActive] = useState(false);
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const scannerDivId = "qr-reader";
+
   const profit = formData.repairCost - formData.partsCost;
+
+  const startScanner = async () => {
+    try {
+      const html5QrCode = new Html5Qrcode(scannerDivId);
+      html5QrCodeRef.current = html5QrCode;
+
+      await html5QrCode.start(
+        { facingMode: "environment" },
+        {
+          fps: 10,
+          qrbox: { width: 250, height: 250 },
+        },
+        (decodedText) => {
+          // IMEI okutuldu
+          setFormData({ ...formData, imei: decodedText });
+          stopScanner();
+        },
+        (errorMessage) => {
+          // Hata mesajlarını ignore ediyoruz (sürekli hata veriyor)
+        }
+      );
+
+      setScannerActive(true);
+    } catch (err) {
+      console.error("Scanner başlatma hatası:", err);
+      alert("Kamera erişimi sağlanamadı. Lütfen manuel olarak girin.");
+    }
+  };
+
+  const stopScanner = async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        await html5QrCodeRef.current.stop();
+        html5QrCodeRef.current.clear();
+      } catch (err) {
+        console.error("Scanner durdurma hatası:", err);
+      }
+      html5QrCodeRef.current = null;
+    }
+    setScannerActive(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +91,7 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
     onSave({
       ...formData,
       profit,
+      status: "in_progress",
       createdAt: new Date().toISOString(),
     });
 
@@ -50,16 +100,29 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
       customerName: "",
       customerPhone: "",
       deviceInfo: "",
+      imei: "",
       problemDescription: "",
       repairCost: 0,
       partsCost: 0,
     });
 
+    // Stop scanner if active
+    if (scannerActive) {
+      stopScanner();
+    }
+
+    onOpenChange(false);
+  };
+
+  const handleClose = () => {
+    if (scannerActive) {
+      stopScanner();
+    }
     onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -110,6 +173,42 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
                 required
               />
             </div>
+
+            {/* IMEI Alanı */}
+            <div className="space-y-2">
+              <Label htmlFor="imei">IMEI *</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="imei"
+                  value={formData.imei}
+                  onChange={(e) => setFormData({ ...formData, imei: e.target.value })}
+                  placeholder="IMEI numarasını girin veya okutun"
+                  required
+                  disabled={scannerActive}
+                />
+                <Button
+                  type="button"
+                  variant={scannerActive ? "destructive" : "outline"}
+                  onClick={scannerActive ? stopScanner : startScanner}
+                  size="icon"
+                >
+                  {scannerActive ? <X className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
+                </Button>
+              </div>
+            </div>
+
+            {/* QR Code Scanner Area */}
+            {scannerActive && (
+              <div className="space-y-2">
+                <div 
+                  id={scannerDivId} 
+                  className="w-full border-2 border-dashed border-primary rounded-lg overflow-hidden"
+                />
+                <p className="text-sm text-muted-foreground text-center">
+                  IMEI barkodunu kamera önüne tutun
+                </p>
+              </div>
+            )}
 
             {/* Arıza Açıklaması */}
             <div className="space-y-2">
@@ -182,7 +281,7 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button type="button" variant="outline" onClick={handleClose}>
               İptal
             </Button>
             <Button type="submit">

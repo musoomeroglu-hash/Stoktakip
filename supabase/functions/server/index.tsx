@@ -243,6 +243,33 @@ app.post("/make-server-929c4905/repairs", async (c) => {
   }
 });
 
+// Update repair status
+app.put("/make-server-929c4905/repairs/:id/status", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const { status } = await c.req.json();
+    
+    // Get existing repair
+    const repair = await kv.get(`repair:${id}`);
+    if (!repair) {
+      return c.json({ success: false, error: "Repair not found" }, 404);
+    }
+    
+    // Update status and deliveredAt if status is delivered
+    const updatedRepair = {
+      ...repair,
+      status,
+      deliveredAt: status === "delivered" ? new Date().toISOString() : repair.deliveredAt,
+    };
+    
+    await kv.set(`repair:${id}`, updatedRepair);
+    return c.json({ success: true, data: updatedRepair });
+  } catch (error) {
+    console.error("Error updating repair status:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
 // Customers
 app.get("/make-server-929c4905/customers", async (c) => {
   try {

@@ -16,6 +16,7 @@ import { Input } from "./components/ui/input";
 import { SalesDialog } from "./components/SalesDialog";
 import { ReportsView } from "./components/ReportsView";
 import { CariView } from "./components/CariView";
+import { RepairsView } from "./components/RepairsView";
 import { CategoryManagementDialog } from "./components/CategoryManagementDialog";
 import { 
   Package, 
@@ -32,13 +33,15 @@ import {
   Download,
   Upload,
   Settings,
-  User
+  User,
+  Wrench
 } from "lucide-react";
 
 function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [repairs, setRepairs] = useState<RepairRecord[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,7 +53,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
-  const [activeView, setActiveView] = useState<"products" | "reports" | "caris">("products");
+  const [activeView, setActiveView] = useState<"products" | "reports" | "repairs" | "caris">("products");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
@@ -65,16 +68,18 @@ function App() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [categoriesData, productsData, salesData, customersData] = await Promise.all([
+      const [categoriesData, productsData, salesData, repairsData, customersData] = await Promise.all([
         api.getCategories().catch(() => []),
         api.getProducts().catch(() => []),
         api.getSales().catch(() => []),
+        api.getRepairs().catch(() => []),
         api.getCustomers().catch(() => []),
       ]);
 
       setCategories(categoriesData);
       setProducts(productsData);
       setSales(salesData);
+      setRepairs(repairsData);
       setCustomers(customersData);
 
       // Initialize with sample data if empty
@@ -331,11 +336,48 @@ function App() {
   // Handle repair
   const handleAddRepair = async (repair: Omit<RepairRecord, "id">) => {
     try {
-      await api.addRepair(repair);
+      const newRepair = await api.addRepair(repair);
+      setRepairs([newRepair, ...repairs]);
       toast.success("Tamir kaydı oluşturuldu!");
     } catch (error) {
       console.error("Repair add error:", error);
       toast.error("Tamir kaydı oluşturulamadı");
+    }
+  };
+
+  // Handle repair status update
+  const handleUpdateRepairStatus = async (id: string, status: "in_progress" | "completed" | "delivered") => {
+    try {
+      const updated = await api.updateRepairStatus(id, status);
+      
+      // If delivered, add to sales
+      if (status === "delivered") {
+        const sale: Omit<Sale, "id"> = {
+          items: [{
+            productId: "repair-" + id,
+            productName: `Tamir: ${updated.deviceInfo}`,
+            quantity: 1,
+            salePrice: updated.repairCost,
+            purchasePrice: updated.partsCost,
+            profit: updated.profit,
+          }],
+          totalPrice: updated.repairCost,
+          totalProfit: updated.profit,
+          date: new Date().toISOString(),
+        };
+        
+        const newSale = await api.addSale(sale);
+        setSales([newSale, ...sales]);
+      }
+      
+      // Refresh repairs
+      const updatedRepairs = await api.getRepairs();
+      setRepairs(updatedRepairs);
+      
+      toast.success(`Durum güncellendi: ${status === "completed" ? "Tamir Edildi" : "Teslim Edildi"}`);
+    } catch (error) {
+      console.error("Error updating repair status:", error);
+      toast.error("Durum güncellenemedi");
     }
   };
 
@@ -665,6 +707,20 @@ function App() {
               </div>
             </button>
 
+            {/* Tamir Kayıtları */}
+            <button
+              onClick={() => setActiveView("repairs")}
+              className={`w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors ${
+                activeView === "repairs" ? "bg-primary text-primary-foreground" : ""
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Wrench className="w-4 h-4" />
+                <span>Tamir Kayıtları</span>
+                <Badge variant="secondary" className="ml-auto">{repairs.length}</Badge>
+              </div>
+            </button>
+
             {/* Cariler */}
             <button
               onClick={() => setActiveView("caris")}
@@ -912,6 +968,15 @@ function App() {
               </div>
 
               <ReportsView sales={sales} period={reportPeriod} />
+            </div>
+          ) : activeView === "repairs" ? (
+            // Tamirler Görünümü
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold">Tamir Kayıtları</h2>
+              <RepairsView 
+                repairs={repairs}
+                onUpdateStatus={handleUpdateRepairStatus}
+              />
             </div>
           ) : (
             // Cariler Görünümü
