@@ -1,16 +1,23 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { TrendingUp, DollarSign, ShoppingBag, Percent } from "lucide-react";
+import { TrendingUp, DollarSign, ShoppingBag, Percent, Trash2, Edit, HandCoins } from "lucide-react";
 import { format, startOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
-import type { Sale } from "../utils/api";
+import { Button } from "./ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
+import type { Sale, CustomerTransaction } from "../utils/api";
 
 interface ReportsViewProps {
   sales: Sale[];
   period: "daily" | "weekly" | "monthly";
+  customerTransactions: CustomerTransaction[];
+  onDeleteSale: (id: string) => void;
 }
 
-export function ReportsView({ sales, period }: ReportsViewProps) {
+export function ReportsView({ sales, period, customerTransactions, onDeleteSale }: ReportsViewProps) {
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [saleToDelete, setSaleToDelete] = useState<string | null>(null);
+
   const periodData = useMemo(() => {
     const now = new Date();
     let startDate: Date;
@@ -32,6 +39,12 @@ export function ReportsView({ sales, period }: ReportsViewProps) {
     }
 
     const filteredSales = sales.filter((sale) => new Date(sale.date) >= startDate);
+    const filteredTransactions = customerTransactions.filter(
+      (tx) => new Date(tx.createdAt) >= startDate && tx.type === "payment_received"
+    );
+
+    // Tahsilat hesapla
+    const totalCollected = filteredTransactions.reduce((sum, tx) => sum + tx.amount, 0);
 
     // Group by day for chart
     const chartData: { [key: string]: { revenue: number; profit: number; count: number } } = {};
@@ -94,8 +107,9 @@ export function ReportsView({ sales, period }: ReportsViewProps) {
       profitMargin,
       topProducts,
       filteredSales,
+      totalCollected,
     };
-  }, [sales, period]);
+  }, [sales, period, customerTransactions]);
 
   const periodLabel = {
     daily: "Bugün",
@@ -103,10 +117,23 @@ export function ReportsView({ sales, period }: ReportsViewProps) {
     monthly: "Bu Ay",
   }[period];
 
+  const handleDeleteClick = (id: string) => {
+    setSaleToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (saleToDelete) {
+      onDeleteSale(saleToDelete);
+      setSaleToDelete(null);
+    }
+    setDeleteDialogOpen(false);
+  };
+
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/50 border-blue-200 dark:border-blue-800">
           <CardContent className="p-6">
             <div className="text-sm text-blue-700 dark:text-blue-300">Toplam Satış</div>
@@ -125,6 +152,16 @@ export function ReportsView({ sales, period }: ReportsViewProps) {
           <CardContent className="p-6">
             <div className="text-sm text-purple-700 dark:text-purple-300">Toplam Kâr</div>
             <div className="text-3xl font-bold text-purple-900 dark:text-purple-100 mt-2">₺{periodData.totalProfit.toLocaleString('tr-TR')}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950 dark:to-amber-900/50 border-amber-200 dark:border-amber-800">
+          <CardContent className="p-6">
+            <div className="text-sm text-amber-700 dark:text-amber-300 flex items-center gap-1">
+              <HandCoins className="w-4 h-4" />
+              Tahsilat
+            </div>
+            <div className="text-3xl font-bold text-amber-900 dark:text-amber-100 mt-2">₺{periodData.totalCollected.toLocaleString('tr-TR')}</div>
           </CardContent>
         </Card>
       </div>
@@ -252,6 +289,7 @@ export function ReportsView({ sales, period }: ReportsViewProps) {
                   <th className="text-right p-3">Tutar</th>
                   <th className="text-right p-3">Kâr</th>
                   <th className="text-right p-3">Marj</th>
+                  <th className="text-right p-3">İşlem</th>
                 </tr>
               </thead>
               <tbody>
@@ -272,6 +310,16 @@ export function ReportsView({ sales, period }: ReportsViewProps) {
                     <td className="text-right p-3">
                       {((sale.totalProfit / sale.totalPrice) * 100).toFixed(1)}%
                     </td>
+                    <td className="text-right p-3">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteClick(sale.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -284,6 +332,24 @@ export function ReportsView({ sales, period }: ReportsViewProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Satışı Sil</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bu satışı silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve ürün stokları geri yüklenecektir.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+              Sil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

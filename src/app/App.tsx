@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast, Toaster } from "sonner";
-import { api, type Category, type Product, type Sale, type SaleItem, type RepairRecord, type Customer } from "./utils/api";
+import { api, type Category, type Product, type Sale, type SaleItem, type RepairRecord, type Customer, type CustomerTransaction } from "./utils/api";
 import * as XLSX from "xlsx";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
@@ -18,6 +18,7 @@ import { ReportsView } from "./components/ReportsView";
 import { CariView } from "./components/CariView";
 import { RepairsView } from "./components/RepairsView";
 import { CategoryManagementDialog } from "./components/CategoryManagementDialog";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   Package, 
   Plus, 
@@ -43,6 +44,7 @@ function App() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [repairs, setRepairs] = useState<RepairRecord[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customerTransactions, setCustomerTransactions] = useState<CustomerTransaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -68,12 +70,13 @@ function App() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [categoriesData, productsData, salesData, repairsData, customersData] = await Promise.all([
+      const [categoriesData, productsData, salesData, repairsData, customersData, customerTransactionsData] = await Promise.all([
         api.getCategories().catch(() => []),
         api.getProducts().catch(() => []),
         api.getSales().catch(() => []),
         api.getRepairs().catch(() => []),
         api.getCustomers().catch(() => []),
+        api.getCustomerTransactions().catch(() => []),
       ]);
 
       setCategories(categoriesData);
@@ -81,6 +84,7 @@ function App() {
       setSales(salesData);
       setRepairs(repairsData);
       setCustomers(customersData);
+      setCustomerTransactions(customerTransactionsData);
 
       // Initialize with sample data if empty
       if (categoriesData.length === 0) {
@@ -486,6 +490,22 @@ function App() {
     }
   };
 
+  const handleDeleteSale = async (id: string) => {
+    try {
+      await api.deleteSale(id);
+      setSales(sales.filter((s) => s.id !== id));
+      
+      // Refresh products to update stock
+      const updatedProducts = await api.getProducts();
+      setProducts(updatedProducts);
+      
+      toast.success("Satış silindi ve stoklar güncellendi");
+    } catch (error) {
+      console.error("Error deleting sale:", error);
+      toast.error("Satış silinirken hata oluştu");
+    }
+  };
+
   const handleAddCustomerTransaction = async (
     customerId: string,
     type: "debt" | "credit" | "payment_received" | "payment_made",
@@ -495,9 +515,13 @@ function App() {
     try {
       await api.addCustomerTransaction(customerId, type, amount, description);
       
-      // Refresh customers
-      const updatedCustomers = await api.getCustomers();
+      // Refresh customers and transactions
+      const [updatedCustomers, updatedTransactions] = await Promise.all([
+        api.getCustomers(),
+        api.getCustomerTransactions(),
+      ]);
       setCustomers(updatedCustomers);
+      setCustomerTransactions(updatedTransactions);
       
       toast.success("İşlem eklendi");
     } catch (error) {
@@ -589,14 +613,16 @@ function App() {
                 setSelectedCategoryId(null);
                 setActiveView("products");
               }}
-              className={`w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors ${
-                selectedCategoryId === null && activeView === "products" ? "bg-primary text-primary-foreground" : ""
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
+                selectedCategoryId === null && activeView === "products" 
+                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md" 
+                  : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent"
               }`}
             >
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4" />
                 <span>Tüm Ürünler</span>
-                <Badge variant="secondary" className="ml-auto">{products.length}</Badge>
+                <Badge variant={selectedCategoryId === null && activeView === "products" ? "secondary" : "outline"} className="ml-auto">{products.length}</Badge>
               </div>
             </button>
 
@@ -620,7 +646,7 @@ function App() {
                     {hasSubCategories && (
                       <button
                         onClick={() => toggleCategory(mainCat.id)}
-                        className="p-1 hover:bg-muted rounded"
+                        className="p-1 hover:bg-muted rounded transition-colors"
                       >
                         {isExpanded ? (
                           <ChevronDown className="w-4 h-4" />
@@ -634,10 +660,12 @@ function App() {
                         setSelectedCategoryId(mainCat.id);
                         setActiveView("products");
                       }}
-                      className={`flex-1 text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors ${
+                      className={`flex-1 text-left px-3 py-2 rounded-lg transition-all duration-300 ${
                         !hasSubCategories ? "ml-6" : ""
                       } ${
-                        selectedCategoryId === mainCat.id ? "bg-primary text-primary-foreground" : ""
+                        selectedCategoryId === mainCat.id 
+                          ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md" 
+                          : "hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:border-indigo-200 dark:hover:border-indigo-800 border border-transparent"
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -645,7 +673,7 @@ function App() {
                           <FolderTree className="w-4 h-4" />
                           <span className="text-sm">{mainCat.name}</span>
                         </div>
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant={selectedCategoryId === mainCat.id ? "secondary" : "outline"} className="text-xs">
                           {hasSubCategories ? allProductCount : mainCatProductCount}
                         </Badge>
                       </div>
@@ -664,13 +692,15 @@ function App() {
                               setSelectedCategoryId(subCat.id);
                               setActiveView("products");
                             }}
-                            className={`w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors ${
-                              selectedCategoryId === subCat.id ? "bg-primary text-primary-foreground" : ""
+                            className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
+                              selectedCategoryId === subCat.id 
+                                ? "bg-gradient-to-r from-violet-500 to-violet-600 text-white shadow-md" 
+                                : "hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:border-violet-200 dark:hover:border-violet-800 border border-transparent"
                             }`}
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-sm">→ {subCat.name}</span>
-                              <Badge variant="outline" className="text-xs">{subProductCount}</Badge>
+                              <Badge variant={selectedCategoryId === subCat.id ? "secondary" : "outline"} className="text-xs">{subProductCount}</Badge>
                             </div>
                           </button>
                         );
@@ -686,19 +716,21 @@ function App() {
             {/* Kategori Yönetimi */}
             <button
               onClick={() => setCategoryManagementOpen(true)}
-              className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors"
+              className="w-full text-left px-3 py-2 rounded-lg transition-all duration-300 hover:bg-slate-100 dark:hover:bg-slate-900/30 hover:border-slate-300 dark:hover:border-slate-700 border border-transparent"
             >
               <div className="flex items-center gap-2">
-                <Settings className="w-4 h-4" />
-                <span>Kategori Yönetimi</span>
+                <Settings className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                <span className="text-slate-700 dark:text-slate-300">Kategori Yönetimi</span>
               </div>
             </button>
 
             {/* Raporlar */}
             <button
               onClick={() => setActiveView("reports")}
-              className={`w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors ${
-                activeView === "reports" ? "bg-primary text-primary-foreground" : ""
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
+                activeView === "reports" 
+                  ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md" 
+                  : "hover:bg-green-50 dark:hover:bg-green-950/30 hover:border-green-200 dark:hover:border-green-800 border border-transparent"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -710,22 +742,26 @@ function App() {
             {/* Tamir Kayıtları */}
             <button
               onClick={() => setActiveView("repairs")}
-              className={`w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors ${
-                activeView === "repairs" ? "bg-primary text-primary-foreground" : ""
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
+                activeView === "repairs" 
+                  ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md" 
+                  : "hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-200 dark:hover:border-orange-800 border border-transparent"
               }`}
             >
               <div className="flex items-center gap-2">
                 <Wrench className="w-4 h-4" />
                 <span>Tamir Kayıtları</span>
-                <Badge variant="secondary" className="ml-auto">{repairs.length}</Badge>
+                <Badge variant={activeView === "repairs" ? "secondary" : "outline"} className="ml-auto">{repairs.length}</Badge>
               </div>
             </button>
 
             {/* Cariler */}
             <button
               onClick={() => setActiveView("caris")}
-              className={`w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors ${
-                activeView === "caris" ? "bg-primary text-primary-foreground" : ""
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
+                activeView === "caris" 
+                  ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-md" 
+                  : "hover:bg-pink-50 dark:hover:bg-pink-950/30 hover:border-pink-200 dark:hover:border-pink-800 border border-transparent"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -738,259 +774,294 @@ function App() {
 
         {/* Ana İçerik */}
         <main className="flex-1 p-6">
-          {activeView === "products" ? (
-            <div className="space-y-6">
-              {/* Quick Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/50 border-blue-200 dark:border-blue-800">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-blue-700 dark:text-blue-300">Toplam Ürün</p>
-                        <p className="text-2xl font-semibold text-blue-900 dark:text-blue-100">{products.length}</p>
+          <AnimatePresence mode="wait">
+            {activeView === "products" ? (
+              <motion.div
+                key="products"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="space-y-6"
+              >
+                {/* Quick Stats */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/50 border-blue-200 dark:border-blue-800">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-blue-700 dark:text-blue-300">Toplam Ürün</p>
+                          <p className="text-2xl font-semibold text-blue-900 dark:text-blue-100">{products.length}</p>
+                        </div>
+                        <Package className="w-8 h-8 text-blue-500" />
                       </div>
-                      <Package className="w-8 h-8 text-blue-500" />
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
 
-                <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950 dark:to-green-900/50 border-green-200 dark:border-green-800">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-green-700 dark:text-green-300">Stok Değeri</p>
-                        <p className="text-2xl font-semibold text-green-900 dark:text-green-100">₺{totalInventoryValue.toLocaleString('tr-TR')}</p>
+                  <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950 dark:to-green-900/50 border-green-200 dark:border-green-800">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-green-700 dark:text-green-300">Stok Değeri</p>
+                          <p className="text-2xl font-semibold text-green-900 dark:text-green-100">₺{totalInventoryValue.toLocaleString('tr-TR')}</p>
+                        </div>
+                        <BarChart3 className="w-8 h-8 text-green-500" />
                       </div>
-                      <BarChart3 className="w-8 h-8 text-green-500" />
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
 
-                <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950 dark:to-orange-900/50 border-orange-200 dark:border-orange-800">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-orange-700 dark:text-orange-300">Düşük Stok</p>
-                        <p className="text-2xl font-semibold text-orange-900 dark:text-orange-100">{lowStockProducts.length}</p>
+                  <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950 dark:to-orange-900/50 border-orange-200 dark:border-orange-800">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-orange-700 dark:text-orange-300">Düşük Stok</p>
+                          <p className="text-2xl font-semibold text-orange-900 dark:text-orange-100">{lowStockProducts.length}</p>
+                        </div>
+                        <AlertTriangle className="w-8 h-8 text-orange-500" />
                       </div>
-                      <AlertTriangle className="w-8 h-8 text-orange-500" />
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
 
-                <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950 dark:to-purple-900/50 border-purple-200 dark:border-purple-800">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-purple-700 dark:text-purple-300">Kategoriler</p>
-                        <p className="text-2xl font-semibold text-purple-900 dark:text-purple-100">{categories.length}</p>
+                  <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950 dark:to-purple-900/50 border-purple-200 dark:border-purple-800">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-purple-700 dark:text-purple-300">Kategoriler</p>
+                          <p className="text-2xl font-semibold text-purple-900 dark:text-purple-100">{categories.length}</p>
+                        </div>
+                        <FolderTree className="w-8 h-8 text-purple-500" />
                       </div>
-                      <FolderTree className="w-8 h-8 text-purple-500" />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Search */}
-              <div className="flex gap-4">
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Ürün veya barkod ara..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-10"
-                  />
+                    </CardContent>
+                  </Card>
                 </div>
-              </div>
 
-              {/* Products Table */}
-              <Card className="bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-900 dark:to-blue-950/30">
-                <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
-                  <div className="flex items-center justify-between">
-                    <CardTitle>
-                      {selectedCategoryId 
-                        ? `${getCategoryName(selectedCategoryId)} - Ürünler (${filteredProducts.length})`
-                        : `Tüm Ürünler (${filteredProducts.length})`
-                      }
-                    </CardTitle>
-                    <div className="flex gap-2">
-                      {selectedProducts.size > 0 && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={handleBulkDelete}
-                        >
-                          <Trash2 className="w-4 h-4 mr-2" />
-                          Seçili Sil ({selectedProducts.size})
-                        </Button>
-                      )}
-                      {selectedCategoryId && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            if (window.confirm("Bu kategoriyi silmek istediğinize emin misiniz?")) {
-                              handleDeleteCategory(selectedCategoryId);
-                              setSelectedCategoryId(null);
-                            }
-                          }}
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
+                {/* Search */}
+                <div className="flex gap-4">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Ürün veya barkod ara..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                {/* Products Table */}
+                <Card className="bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-900 dark:to-blue-950/30">
+                  <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
+                    <div className="flex items-center justify-between">
+                      <CardTitle>
+                        {selectedCategoryId 
+                          ? `${getCategoryName(selectedCategoryId)} - Ürünler (${filteredProducts.length})`
+                          : `Tüm Ürünler (${filteredProducts.length})`
+                        }
+                      </CardTitle>
+                      <div className="flex gap-2">
+                        {selectedProducts.size > 0 && (
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={handleBulkDelete}
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Seçili Sil ({selectedProducts.size})
+                          </Button>
+                        )}
+                        {selectedCategoryId && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              if (window.confirm("Bu kategoriyi silmek istediğinize emin misiniz?")) {
+                                handleDeleteCategory(selectedCategoryId);
+                                setSelectedCategoryId(null);
+                              }
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 text-destructive" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b bg-gradient-to-r from-blue-100/50 to-purple-100/50 dark:from-blue-900/30 dark:to-purple-900/30">
+                            <th className="text-center p-3 w-12">
+                              <Checkbox
+                                checked={selectedProducts.size === filteredProducts.length && filteredProducts.length > 0}
+                                onCheckedChange={toggleAllProducts}
+                              />
+                            </th>
+                            <th className="text-left p-3">Ürün Adı</th>
+                            <th className="text-left p-3">Kategori</th>
+                            <th className="text-center p-3">Stok</th>
+                            <th className="text-right p-3">Alış</th>
+                            <th className="text-right p-3">Satış</th>
+                            <th className="text-right p-3">Kâr</th>
+                            <th className="text-center p-3">İşlemler</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredProducts.map((product, index) => {
+                            const purchasePrice = product.purchasePrice || 0;
+                            const salePrice = product.salePrice || 0;
+                            const profit = salePrice - purchasePrice;
+                            const margin = salePrice > 0 ? (profit / salePrice * 100).toFixed(1) : "0";
+                            const isLowStock = product.stock <= product.minStock;
+
+                            // Alternating row colors
+                            const rowColor = index % 2 === 0 
+                              ? "bg-white/50 dark:bg-gray-900/50" 
+                              : "bg-blue-50/30 dark:bg-blue-950/20";
+
+                            return (
+                              <tr key={product.id} className={`border-b ${rowColor} hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition-colors`}>
+                                <td className="p-3 text-center">
+                                  <Checkbox
+                                    checked={selectedProducts.has(product.id)}
+                                    onCheckedChange={() => toggleProductSelection(product.id)}
+                                  />
+                                </td>
+                                <td className="p-3">
+                                  <div>
+                                    <p className="font-medium">{product.name}</p>
+                                    {product.barcode && (
+                                      <p className="text-xs text-muted-foreground">{product.barcode}</p>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="p-3 text-sm">{getCategoryName(product.categoryId)}</td>
+                                <td className="p-3 text-center">
+                                  <Badge variant={isLowStock ? "destructive" : "secondary"}>
+                                    {product.stock}
+                                  </Badge>
+                                </td>
+                                <td className="text-right p-3">₺{purchasePrice.toFixed(2)}</td>
+                                <td className="text-right p-3 font-medium">₺{salePrice.toFixed(2)}</td>
+                                <td className="text-right p-3">
+                                  <div className="text-green-600 dark:text-green-400">
+                                    ₺{profit.toFixed(2)}
+                                    <span className="text-xs ml-1">(%{margin})</span>
+                                  </div>
+                                </td>
+                                <td className="p-3">
+                                  <div className="flex justify-center gap-1">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => {
+                                        setEditingProduct(product);
+                                        setProductDialogOpen(true);
+                                      }}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleDeleteProduct(product.id)}
+                                    >
+                                      <Trash2 className="w-4 h-4 text-destructive" />
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                      {filteredProducts.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          Ürün bulunamadı
+                        </div>
                       )}
                     </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ) : activeView === "reports" ? (
+              // Raporlar Görünümü
+              <motion.div
+                key="reports"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="space-y-6"
+              >
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">Satış Raporları</h2>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={reportPeriod === "daily" ? "default" : "outline"}
+                      onClick={() => setReportPeriod("daily")}
+                    >
+                      Günlük
+                    </Button>
+                    <Button
+                      variant={reportPeriod === "weekly" ? "default" : "outline"}
+                      onClick={() => setReportPeriod("weekly")}
+                    >
+                      Haftalık
+                    </Button>
+                    <Button
+                      variant={reportPeriod === "monthly" ? "default" : "outline"}
+                      onClick={() => setReportPeriod("monthly")}
+                    >
+                      Aylık
+                    </Button>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b bg-gradient-to-r from-blue-100/50 to-purple-100/50 dark:from-blue-900/30 dark:to-purple-900/30">
-                          <th className="text-center p-3 w-12">
-                            <Checkbox
-                              checked={selectedProducts.size === filteredProducts.length && filteredProducts.length > 0}
-                              onCheckedChange={toggleAllProducts}
-                            />
-                          </th>
-                          <th className="text-left p-3">Ürün Adı</th>
-                          <th className="text-left p-3">Kategori</th>
-                          <th className="text-center p-3">Stok</th>
-                          <th className="text-right p-3">Alış</th>
-                          <th className="text-right p-3">Satış</th>
-                          <th className="text-right p-3">Kâr</th>
-                          <th className="text-center p-3">İşlemler</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {filteredProducts.map((product, index) => {
-                          const purchasePrice = product.purchasePrice || 0;
-                          const salePrice = product.salePrice || 0;
-                          const profit = salePrice - purchasePrice;
-                          const margin = salePrice > 0 ? (profit / salePrice * 100).toFixed(1) : "0";
-                          const isLowStock = product.stock <= product.minStock;
-
-                          // Alternating row colors
-                          const rowColor = index % 2 === 0 
-                            ? "bg-white/50 dark:bg-gray-900/50" 
-                            : "bg-blue-50/30 dark:bg-blue-950/20";
-
-                          return (
-                            <tr key={product.id} className={`border-b ${rowColor} hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition-colors`}>
-                              <td className="p-3 text-center">
-                                <Checkbox
-                                  checked={selectedProducts.has(product.id)}
-                                  onCheckedChange={() => toggleProductSelection(product.id)}
-                                />
-                              </td>
-                              <td className="p-3">
-                                <div>
-                                  <p className="font-medium">{product.name}</p>
-                                  {product.barcode && (
-                                    <p className="text-xs text-muted-foreground">{product.barcode}</p>
-                                  )}
-                                </div>
-                              </td>
-                              <td className="p-3 text-sm">{getCategoryName(product.categoryId)}</td>
-                              <td className="p-3 text-center">
-                                <Badge variant={isLowStock ? "destructive" : "secondary"}>
-                                  {product.stock}
-                                </Badge>
-                              </td>
-                              <td className="text-right p-3">₺{purchasePrice.toFixed(2)}</td>
-                              <td className="text-right p-3 font-medium">₺{salePrice.toFixed(2)}</td>
-                              <td className="text-right p-3">
-                                <div className="text-green-600 dark:text-green-400">
-                                  ₺{profit.toFixed(2)}
-                                  <span className="text-xs ml-1">(%{margin})</span>
-                                </div>
-                              </td>
-                              <td className="p-3">
-                                <div className="flex justify-center gap-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => {
-                                      setEditingProduct(product);
-                                      setProductDialogOpen(true);
-                                    }}
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => handleDeleteProduct(product.id)}
-                                  >
-                                    <Trash2 className="w-4 h-4 text-destructive" />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                    {filteredProducts.length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        Ürün bulunamadı
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          ) : activeView === "reports" ? (
-            // Raporlar Görünümü
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Satış Raporları</h2>
-                <div className="flex gap-2">
-                  <Button
-                    variant={reportPeriod === "daily" ? "default" : "outline"}
-                    onClick={() => setReportPeriod("daily")}
-                  >
-                    Günlük
-                  </Button>
-                  <Button
-                    variant={reportPeriod === "weekly" ? "default" : "outline"}
-                    onClick={() => setReportPeriod("weekly")}
-                  >
-                    Haftalık
-                  </Button>
-                  <Button
-                    variant={reportPeriod === "monthly" ? "default" : "outline"}
-                    onClick={() => setReportPeriod("monthly")}
-                  >
-                    Aylık
-                  </Button>
                 </div>
-              </div>
 
-              <ReportsView sales={sales} period={reportPeriod} />
-            </div>
-          ) : activeView === "repairs" ? (
-            // Tamirler Görünümü
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold">Tamir Kayıtları</h2>
-              <RepairsView 
-                repairs={repairs}
-                onUpdateStatus={handleUpdateRepairStatus}
-              />
-            </div>
-          ) : (
-            // Cariler Görünümü
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold">Cariler</h2>
-              <CariView 
-                customers={customers}
-                onAddCustomer={handleAddCustomer}
-                onUpdateCustomer={handleUpdateCustomer}
-                onDeleteCustomer={handleDeleteCustomer}
-                onAddTransaction={handleAddCustomerTransaction}
-              />
-            </div>
-          )}
+                <ReportsView 
+                  sales={sales} 
+                  period={reportPeriod} 
+                  customerTransactions={customerTransactions}
+                  onDeleteSale={handleDeleteSale}
+                />
+              </motion.div>
+            ) : activeView === "repairs" ? (
+              // Tamirler Görünümü
+              <motion.div
+                key="repairs"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="space-y-6"
+              >
+                <h2 className="text-2xl font-bold">Tamir Kayıtları</h2>
+                <RepairsView 
+                  repairs={repairs}
+                  onUpdateStatus={handleUpdateRepairStatus}
+                />
+              </motion.div>
+            ) : (
+              // Cariler Görünümü
+              <motion.div
+                key="caris"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="space-y-6"
+              >
+                <h2 className="text-2xl font-bold">Cariler</h2>
+                <CariView 
+                  customers={customers}
+                  onAddCustomer={handleAddCustomer}
+                  onUpdateCustomer={handleUpdateCustomer}
+                  onDeleteCustomer={handleDeleteCustomer}
+                  onAddTransaction={handleAddCustomerTransaction}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
       </div>
 

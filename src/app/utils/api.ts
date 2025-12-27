@@ -171,6 +171,20 @@ export const api = {
     return result.data;
   },
 
+  async updateSale(id: string, sale: Sale): Promise<Sale> {
+    const result = await fetchAPI(`/sales/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(sale),
+    });
+    return result.data;
+  },
+
+  async deleteSale(id: string): Promise<void> {
+    await fetchAPI(`/sales/${id}`, {
+      method: "DELETE",
+    });
+  },
+
   // Reports
   async getReportSummary(period: "daily" | "weekly" | "monthly"): Promise<{
     totalSales: number;
@@ -242,5 +256,10 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ customerId, type, amount, description }),
     });
+  },
+
+  async getCustomerTransactions(): Promise<CustomerTransaction[]> {
+    const result = await fetchAPI("/customer-transactions");
+    return result.data || [];
   },
 };
