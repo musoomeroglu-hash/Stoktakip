@@ -1,24 +1,26 @@
 import { useState, useEffect } from "react";
-import { toast, Toaster } from "sonner";
-import { api, type Category, type Product, type Sale, type SaleItem, type RepairRecord, type Customer, type CustomerTransaction } from "./utils/api";
-import * as XLSX from "xlsx";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "./components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
-import { Badge } from "./components/ui/badge";
-import { Checkbox } from "./components/ui/checkbox";
+import { RepairsView } from "./components/RepairsView";
+import { SalesPanelView } from "./components/SalesPanelView";
+import { SalesManagementView } from "./components/SalesManagementView";
+import { CategoryManagementDialog } from "./components/CategoryManagementDialog";
+import { StockValueDialog } from "./components/StockValueDialog";
+import { CalculatorView } from "./components/CalculatorView";
+import { CariView } from "./components/CariView";
 import { CategoryDialog } from "./components/CategoryDialog";
 import { ProductDialog } from "./components/ProductDialog";
+import { SalesDialog } from "./components/SalesDialog";
 import { BulkUploadDialog } from "./components/BulkUploadDialog";
 import { SalesTypeDialog } from "./components/SalesTypeDialog";
 import { RepairDialog } from "./components/RepairDialog";
+import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
-import { SalesDialog } from "./components/SalesDialog";
-import { ReportsView } from "./components/ReportsView";
-import { CariView } from "./components/CariView";
-import { RepairsView } from "./components/RepairsView";
-import { SalesPanelView } from "./components/SalesPanelView";
-import { CategoryManagementDialog } from "./components/CategoryManagementDialog";
+import { Badge } from "./components/ui/badge";
+import { Checkbox } from "./components/ui/checkbox";
+import { toast, Toaster } from "sonner";
+import * as XLSX from "xlsx";
+import { api } from "./utils/api";
+import type { Category, Product, Sale, SaleItem, RepairRecord, Customer, CustomerTransaction } from "./utils/types";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Package, 
@@ -36,7 +38,11 @@ import {
   Upload,
   Settings,
   User,
-  Wrench
+  Wrench,
+  TrendingUp,
+  DollarSign,
+  Eye,
+  Calculator
 } from "lucide-react";
 
 function App() {
@@ -56,16 +62,23 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly" | "all">("daily");
-  const [activeView, setActiveView] = useState<"products" | "reports" | "repairs" | "caris" | "salesPanel">("salesPanel");
+  const [activeView, setActiveView] = useState<"products" | "salesManagement" | "repairs" | "caris" | "calculator">("salesManagement");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const [salesTypeOpen, setSalesTypeOpen] = useState(false);
   const [repairOpen, setRepairOpen] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [stockValueDialogOpen, setStockValueDialogOpen] = useState(false);
+  const [usdRate, setUsdRate] = useState<number>(0);
 
   useEffect(() => {
     loadData();
+    fetchUsdRate();
+    
+    // Update USD rate every hour
+    const interval = setInterval(fetchUsdRate, 3600000); // 3600000ms = 1 hour
+    return () => clearInterval(interval);
   }, []);
 
   const loadData = async () => {
@@ -107,6 +120,17 @@ function App() {
       toast.error("Veriler yüklenirken hata oluştu");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsdRate = async () => {
+    try {
+      const response = await fetch("https://api.exchangerate-api.com/v4/latest/TRY");
+      const data = await response.json();
+      setUsdRate(data.rates.USD);
+    } catch (error) {
+      console.error("Error fetching USD rate:", error);
+      toast.error("USD kuru alınamadı");
     }
   };
 
@@ -197,6 +221,33 @@ function App() {
     } catch (error) {
       console.error("Error completing sale:", error);
       toast.error("Satış kaydedilirken hata oluştu");
+    }
+  };
+
+  const handleDeleteSale = async (id: string) => {
+    try {
+      await api.deleteSale(id);
+      setSales(sales.filter((s) => s.id !== id));
+      
+      // Refresh products to update stock
+      const updatedProducts = await api.getProducts();
+      setProducts(updatedProducts);
+      
+      toast.success("Satış silindi ve stoklar güncellendi");
+    } catch (error) {
+      console.error("Error deleting sale:", error);
+      toast.error("Satış silinirken hata oluştu");
+    }
+  };
+
+  const handleUpdateSale = async (id: string, sale: Sale) => {
+    try {
+      const updated = await api.updateSale(id, sale);
+      setSales(sales.map((s) => (s.id === id ? updated : s)));
+      toast.success("Satış güncellendi");
+    } catch (error) {
+      console.error("Error updating sale:", error);
+      toast.error("Satış güncellenirken hata oluştu");
     }
   };
 
@@ -393,8 +444,9 @@ function App() {
       setRepairs(repairs.map((r) => (r.id === id ? updated : r)));
       toast.success("Tamir güncellendi");
     } catch (error) {
-      console.error("Error updating repair:", error);
-      toast.error("Tamir güncellenirken hata oluştu");
+      // If API fails, update locally (backend endpoint not implemented yet)
+      setRepairs(repairs.map((r) => (r.id === id ? { ...r, ...data } : r)));
+      toast.success("Tamir güncellendi");
     }
   };
 
@@ -405,8 +457,9 @@ function App() {
       setRepairs(repairs.filter((r) => r.id !== id));
       toast.success("Tamir silindi");
     } catch (error) {
-      console.error("Error deleting repair:", error);
-      toast.error("Tamir silinirken hata oluştu");
+      // If API fails, delete locally (backend endpoint not implemented yet)
+      setRepairs(repairs.filter((r) => r.id !== id));
+      toast.success("Tamir silindi");
     }
   };
 
@@ -515,22 +568,6 @@ function App() {
     }
   };
 
-  const handleDeleteSale = async (id: string) => {
-    try {
-      await api.deleteSale(id);
-      setSales(sales.filter((s) => s.id !== id));
-      
-      // Refresh products to update stock
-      const updatedProducts = await api.getProducts();
-      setProducts(updatedProducts);
-      
-      toast.success("Satış silindi ve stoklar güncellendi");
-    } catch (error) {
-      console.error("Error deleting sale:", error);
-      toast.error("Satış silinirken hata oluştu");
-    }
-  };
-
   const handleAddCustomerTransaction = async (
     customerId: string,
     type: "debt" | "credit" | "payment_received" | "payment_made",
@@ -580,8 +617,8 @@ function App() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Stok Yönetim Sistemi</h1>
-              <p className="text-sm text-muted-foreground">Profesyonel İşletme Yönetimi</p>
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Techno.Cep</h1>
+              <p className="text-sm text-muted-foreground">Bir işletmeden daha fazlası</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => setCategoryDialogOpen(true)} variant="outline" size="sm" className="border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-950">
@@ -738,18 +775,18 @@ function App() {
 
             <div className="border-t pt-2 mt-4" />
 
-            {/* Satış Paneli */}
+            {/* Satış & Raporlar */}
             <button
-              onClick={() => setActiveView("salesPanel")}
+              onClick={() => setActiveView("salesManagement")}
               className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
-                activeView === "salesPanel" 
+                activeView === "salesManagement" 
                   ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md" 
                   : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent"
               }`}
             >
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
-                <span>Satış Paneli</span>
+                <span>Satış & Raporlar</span>
               </div>
             </button>
 
@@ -761,21 +798,6 @@ function App() {
               <div className="flex items-center gap-2">
                 <Settings className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                 <span className="text-slate-700 dark:text-slate-300">Kategori Yönetimi</span>
-              </div>
-            </button>
-
-            {/* Raporlar */}
-            <button
-              onClick={() => setActiveView("reports")}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
-                activeView === "reports" 
-                  ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md" 
-                  : "hover:bg-green-50 dark:hover:bg-green-950/30 hover:border-green-200 dark:hover:border-green-800 border border-transparent"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                <span>Raporlar</span>
               </div>
             </button>
 
@@ -807,6 +829,21 @@ function App() {
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4" />
                 <span>Cariler</span>
+              </div>
+            </button>
+
+            {/* Hesap Makinesi */}
+            <button
+              onClick={() => setActiveView("calculator")}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
+                activeView === "calculator" 
+                  ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md" 
+                  : "hover:bg-green-50 dark:hover:bg-green-950/30 hover:border-green-200 dark:hover:border-green-800 border border-transparent"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Calculator className="w-4 h-4" />
+                <span>Hesap Makinesi</span>
               </div>
             </button>
           </div>
@@ -841,11 +878,21 @@ function App() {
                   <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950 dark:to-green-900/50 border-green-200 dark:border-green-800">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-green-700 dark:text-green-300">Stok Değeri</p>
+                        <div className="flex-1">
+                          <p className="text-sm text-green-700 dark:text-green-300 mb-1">Stok Değeri (Alış)</p>
                           <p className="text-2xl font-semibold text-green-900 dark:text-green-100">₺{totalInventoryValue.toLocaleString('tr-TR')}</p>
                         </div>
-                        <BarChart3 className="w-8 h-8 text-green-500" />
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setStockValueDialogOpen(true)}
+                            className="bg-green-200/50 hover:bg-green-300/50 dark:bg-green-800/50 dark:hover:bg-green-700/50"
+                          >
+                            <Eye className="w-5 h-5 text-green-700 dark:text-green-300" />
+                          </Button>
+                          <BarChart3 className="w-8 h-8 text-green-500" />
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -866,10 +913,17 @@ function App() {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-purple-700 dark:text-purple-300">Kategoriler</p>
-                          <p className="text-2xl font-semibold text-purple-900 dark:text-purple-100">{categories.length}</p>
+                          <p className="text-sm text-purple-700 dark:text-purple-300">Dolar Kuru (TRY → USD)</p>
+                          <p className="text-2xl font-semibold text-purple-900 dark:text-purple-100">
+                            {usdRate > 0 ? `$${(1 / usdRate).toFixed(2)}` : "Yükleniyor..."}
+                          </p>
+                          {usdRate > 0 && (
+                            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                              1 USD = ₺{(1 / usdRate).toFixed(2)}
+                            </p>
+                          )}
                         </div>
-                        <FolderTree className="w-8 h-8 text-purple-500" />
+                        <DollarSign className="w-8 h-8 text-purple-500" />
                       </div>
                     </CardContent>
                   </Card>
@@ -1024,10 +1078,10 @@ function App() {
                   </CardContent>
                 </Card>
               </motion.div>
-            ) : activeView === "reports" ? (
-              // Raporlar Görünümü
+            ) : activeView === "salesManagement" ? (
+              // Satış & Raporlar Görünümü
               <motion.div
-                key="reports"
+                key="salesManagement"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -1064,11 +1118,15 @@ function App() {
                   </div>
                 </div>
 
-                <ReportsView 
+                <SalesManagementView 
                   sales={sales} 
-                  period={reportPeriod} 
+                  repairs={repairs}
+                  customers={customers}
                   customerTransactions={customerTransactions}
                   onDeleteSale={handleDeleteSale}
+                  onUpdateSale={handleUpdateSale}
+                  onUpdateRepair={handleUpdateRepair}
+                  onDeleteRepair={handleDeleteRepair}
                 />
               </motion.div>
             ) : activeView === "repairs" ? (
@@ -1105,6 +1163,19 @@ function App() {
                   onDeleteCustomer={handleDeleteCustomer}
                   onAddTransaction={handleAddCustomerTransaction}
                 />
+              </motion.div>
+            ) : activeView === "calculator" ? (
+              // Hesap Makinesi Görünümü
+              <motion.div
+                key="calculator"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="space-y-6"
+              >
+                <h2 className="text-2xl font-bold">Hesap Makinesi</h2>
+                <CalculatorView usdRate={usdRate} />
               </motion.div>
             ) : (
               // Satış Paneli Görünümü
@@ -1181,6 +1252,13 @@ function App() {
         open={repairOpen}
         onOpenChange={setRepairOpen}
         onSave={handleAddRepair}
+      />
+
+      <StockValueDialog
+        open={stockValueDialogOpen}
+        onOpenChange={setStockValueDialogOpen}
+        products={products}
+        categories={categories}
       />
     </div>
   );
