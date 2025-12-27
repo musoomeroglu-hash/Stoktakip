@@ -45,6 +45,72 @@ import {
   Calculator
 } from "lucide-react";
 
+// Success sound function using Web Audio API
+const playSuccessSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    // Create oscillator for first note
+    const oscillator1 = audioContext.createOscillator();
+    const gainNode1 = audioContext.createGain();
+    
+    oscillator1.connect(gainNode1);
+    gainNode1.connect(audioContext.destination);
+    
+    oscillator1.frequency.value = 800; // C note
+    oscillator1.type = 'sine';
+    
+    gainNode1.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+    
+    oscillator1.start(audioContext.currentTime);
+    oscillator1.stop(audioContext.currentTime + 0.15);
+    
+    // Create oscillator for second note (higher)
+    const oscillator2 = audioContext.createOscillator();
+    const gainNode2 = audioContext.createGain();
+    
+    oscillator2.connect(gainNode2);
+    gainNode2.connect(audioContext.destination);
+    
+    oscillator2.frequency.value = 1000; // E note
+    oscillator2.type = 'sine';
+    
+    gainNode2.gain.setValueAtTime(0, audioContext.currentTime + 0.1);
+    gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.1);
+    gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+    
+    oscillator2.start(audioContext.currentTime + 0.1);
+    oscillator2.stop(audioContext.currentTime + 0.3);
+  } catch (error) {
+    console.error("Error playing sound:", error);
+  }
+};
+
+// Soft click sound for menu navigation
+const playMenuSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 600; // Soft tone
+    oscillator.type = 'sine';
+    
+    gainNode.gain.setValueAtTime(0.15, audioContext.currentTime); // Lower volume
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08); // Shorter duration
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.08);
+  } catch (error) {
+    console.error("Error playing menu sound:", error);
+  }
+};
+
 function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -217,6 +283,8 @@ function App() {
       const updatedProducts = await api.getProducts();
       setProducts(updatedProducts);
 
+      // Play success sound
+      playSuccessSound();
       toast.success("Satış tamamlandı!");
     } catch (error) {
       console.error("Error completing sale:", error);
@@ -226,6 +294,24 @@ function App() {
 
   const handleDeleteSale = async (id: string) => {
     try {
+      // Check if this sale is related to a repair
+      const sale = sales.find(s => s.id === id);
+      if (sale && sale.items.length > 0) {
+        const repairItem = sale.items[0];
+        if (repairItem.productId && repairItem.productId.startsWith("repair-")) {
+          // Extract repair ID
+          const repairId = repairItem.productId.replace("repair-", "");
+          
+          // Revert repair status to completed
+          const repair = repairs.find(r => r.id === repairId);
+          if (repair && repair.status === "delivered") {
+            await api.updateRepairStatus(repairId, "completed");
+            const updatedRepairs = await api.getRepairs();
+            setRepairs(updatedRepairs);
+          }
+        }
+      }
+      
       await api.deleteSale(id);
       setSales(sales.filter((s) => s.id !== id));
       
@@ -429,6 +515,11 @@ function App() {
       // Refresh repairs
       const updatedRepairs = await api.getRepairs();
       setRepairs(updatedRepairs);
+      
+      // Play success sound if delivered
+      if (status === "delivered") {
+        playSuccessSound();
+      }
       
       toast.success(`Durum güncellendi: ${status === "completed" ? "Tamir Edildi" : "Teslim Edildi"}`);
     } catch (error) {
@@ -672,6 +763,7 @@ function App() {
             {/* Tüm Ürünler */}
             <button
               onClick={() => {
+                playMenuSound();
                 setSelectedCategoryId(null);
                 setActiveView("products");
               }}
@@ -719,6 +811,7 @@ function App() {
                     )}
                     <button
                       onClick={() => {
+                        playMenuSound();
                         setSelectedCategoryId(mainCat.id);
                         setActiveView("products");
                       }}
@@ -751,6 +844,7 @@ function App() {
                           <button
                             key={subCat.id}
                             onClick={() => {
+                              playMenuSound();
                               setSelectedCategoryId(subCat.id);
                               setActiveView("products");
                             }}
@@ -777,7 +871,10 @@ function App() {
 
             {/* Satış & Raporlar */}
             <button
-              onClick={() => setActiveView("salesManagement")}
+              onClick={() => {
+                playMenuSound();
+                setActiveView("salesManagement");
+              }}
               className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
                 activeView === "salesManagement" 
                   ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md" 
@@ -803,7 +900,10 @@ function App() {
 
             {/* Tamir Kayıtları */}
             <button
-              onClick={() => setActiveView("repairs")}
+              onClick={() => {
+                playMenuSound();
+                setActiveView("repairs");
+              }}
               className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
                 activeView === "repairs" 
                   ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md" 
@@ -819,7 +919,10 @@ function App() {
 
             {/* Cariler */}
             <button
-              onClick={() => setActiveView("caris")}
+              onClick={() => {
+                playMenuSound();
+                setActiveView("caris");
+              }}
               className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
                 activeView === "caris" 
                   ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-md" 
@@ -834,7 +937,10 @@ function App() {
 
             {/* Hesap Makinesi */}
             <button
-              onClick={() => setActiveView("calculator")}
+              onClick={() => {
+                playMenuSound();
+                setActiveView("calculator");
+              }}
               className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
                 activeView === "calculator" 
                   ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md" 
