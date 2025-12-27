@@ -220,4 +220,122 @@ app.get("/make-server-929c4905/reports/summary", async (c) => {
   }
 });
 
+// Repairs
+app.get("/make-server-929c4905/repairs", async (c) => {
+  try {
+    const repairs = await kv.getByPrefix("repair:");
+    return c.json({ success: true, data: repairs });
+  } catch (error) {
+    console.error("Error fetching repairs:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.post("/make-server-929c4905/repairs", async (c) => {
+  try {
+    const repair = await c.req.json();
+    const id = Date.now().toString();
+    await kv.set(`repair:${id}`, { ...repair, id });
+    return c.json({ success: true, data: { ...repair, id } });
+  } catch (error) {
+    console.error("Error adding repair:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// Customers
+app.get("/make-server-929c4905/customers", async (c) => {
+  try {
+    const customers = await kv.getByPrefix("customer:");
+    return c.json({ success: true, data: customers });
+  } catch (error) {
+    console.error("Error fetching customers:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.post("/make-server-929c4905/customers", async (c) => {
+  try {
+    const customer = await c.req.json();
+    const id = customer.id || Date.now().toString();
+    await kv.set(`customer:${id}`, { ...customer, id });
+    return c.json({ success: true, data: { ...customer, id } });
+  } catch (error) {
+    console.error("Error adding customer:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.put("/make-server-929c4905/customers/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const customer = await c.req.json();
+    await kv.set(`customer:${id}`, { ...customer, id });
+    return c.json({ success: true, data: { ...customer, id } });
+  } catch (error) {
+    console.error("Error updating customer:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.delete("/make-server-929c4905/customers/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    await kv.del(`customer:${id}`);
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting customer:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// Customer transactions
+app.post("/make-server-929c4905/customer-transactions", async (c) => {
+  try {
+    const { customerId, type, amount, description } = await c.req.json();
+    
+    // Get customer
+    const customer = await kv.get(`customer:${customerId}`);
+    if (!customer) {
+      return c.json({ success: false, error: "Customer not found" }, 404);
+    }
+    
+    // Update customer balance
+    switch (type) {
+      case "debt":
+        customer.debt += amount;
+        break;
+      case "credit":
+        customer.credit += amount;
+        break;
+      case "payment_received":
+        customer.debt = Math.max(0, customer.debt - amount);
+        break;
+      case "payment_made":
+        customer.credit = Math.max(0, customer.credit - amount);
+        break;
+    }
+    
+    // Save updated customer
+    await kv.set(`customer:${customerId}`, customer);
+    
+    // Save transaction record
+    const transactionId = Date.now().toString();
+    const transaction = {
+      id: transactionId,
+      customerId,
+      type,
+      amount,
+      description,
+      createdAt: new Date().toISOString(),
+    };
+    await kv.set(`transaction:${transactionId}`, transaction);
+    
+    return c.json({ success: true, data: transaction });
+  } catch (error) {
+    console.error("Error adding customer transaction:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
 Deno.serve(app.fetch);

@@ -42,6 +42,9 @@ export function ReportsView({ sales, period }: ReportsViewProps) {
       chartData[dateKey] = { revenue: 0, profit: 0, count: 0 };
     }
 
+    // Calculate top selling products
+    const productSales: { [productId: string]: { name: string; quantity: number; revenue: number; profit: number } } = {};
+
     filteredSales.forEach((sale) => {
       const dateKey = format(new Date(sale.date), "dd MMM");
       if (chartData[dateKey]) {
@@ -49,7 +52,28 @@ export function ReportsView({ sales, period }: ReportsViewProps) {
         chartData[dateKey].profit += sale.totalProfit;
         chartData[dateKey].count += 1;
       }
+
+      // Track product sales
+      sale.items.forEach((item) => {
+        if (!productSales[item.productId]) {
+          productSales[item.productId] = {
+            name: item.productName,
+            quantity: 0,
+            revenue: 0,
+            profit: 0,
+          };
+        }
+        productSales[item.productId].quantity += item.quantity;
+        productSales[item.productId].revenue += item.salePrice * item.quantity;
+        productSales[item.productId].profit += item.profit * item.quantity;
+      });
     });
+
+    // Sort products by quantity sold
+    const topProducts = Object.entries(productSales)
+      .map(([id, data]) => ({ id, ...data }))
+      .sort((a, b) => b.quantity - a.quantity)
+      .slice(0, 10);
 
     const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.totalPrice, 0);
     const totalProfit = filteredSales.reduce((sum, sale) => sum + sale.totalProfit, 0);
@@ -68,6 +92,8 @@ export function ReportsView({ sales, period }: ReportsViewProps) {
       totalSales,
       avgSale,
       profitMargin,
+      topProducts,
+      filteredSales,
     };
   }, [sales, period]);
 
@@ -145,6 +171,71 @@ export function ReportsView({ sales, period }: ReportsViewProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Top Selling Products */}
+      <Card className="bg-gradient-to-br from-white to-orange-50/30 dark:from-gray-900 dark:to-orange-950/30">
+        <CardHeader className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-950 dark:to-yellow-950">
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-orange-600" />
+            En Çok Satılan Ürünler - {periodLabel}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b bg-gradient-to-r from-orange-100/50 to-yellow-100/50 dark:from-orange-900/30 dark:to-yellow-900/30">
+                  <th className="text-left p-3">Sıra</th>
+                  <th className="text-left p-3">Ürün Adı</th>
+                  <th className="text-center p-3">Satış Adedi</th>
+                  <th className="text-right p-3">Toplam Gelir</th>
+                  <th className="text-right p-3">Toplam Kâr</th>
+                  <th className="text-right p-3">Kâr Marjı</th>
+                </tr>
+              </thead>
+              <tbody>
+                {periodData.topProducts.map((product, index) => {
+                  const margin = product.revenue > 0 ? (product.profit / product.revenue * 100) : 0;
+                  const rowColor = index % 2 === 0 
+                    ? "bg-white/50 dark:bg-gray-900/50" 
+                    : "bg-orange-50/30 dark:bg-orange-950/20";
+                  
+                  return (
+                    <tr key={product.id} className={`border-b ${rowColor} hover:bg-yellow-50/50 dark:hover:bg-yellow-950/30 transition-colors`}>
+                      <td className="p-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
+                          index === 0 ? 'bg-gradient-to-br from-yellow-400 to-orange-500 text-white' :
+                          index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-gray-800' :
+                          index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600 text-white' :
+                          'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
+                        }`}>
+                          {index + 1}
+                        </div>
+                      </td>
+                      <td className="p-3 font-medium">{product.name}</td>
+                      <td className="text-center p-3">
+                        <span className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium">
+                          {product.quantity}
+                        </span>
+                      </td>
+                      <td className="text-right p-3 font-medium">₺{product.revenue.toFixed(2)}</td>
+                      <td className="text-right p-3 text-green-600 dark:text-green-400 font-medium">₺{product.profit.toFixed(2)}</td>
+                      <td className="text-right p-3">
+                        <span className="text-purple-600 dark:text-purple-400">%{margin.toFixed(1)}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {periodData.topProducts.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                Bu dönemde satış yapılmamış
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Recent Sales Table */}
       <Card>

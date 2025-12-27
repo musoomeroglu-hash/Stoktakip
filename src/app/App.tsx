@@ -1,4 +1,22 @@
 import { useState, useEffect } from "react";
+import { toast, Toaster } from "sonner";
+import { api, type Category, type Product, type Sale, type SaleItem, type RepairRecord, type Customer } from "./utils/api";
+import * as XLSX from "xlsx";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "./components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
+import { Badge } from "./components/ui/badge";
+import { Checkbox } from "./components/ui/checkbox";
+import { CategoryDialog } from "./components/CategoryDialog";
+import { ProductDialog } from "./components/ProductDialog";
+import { BulkUploadDialog } from "./components/BulkUploadDialog";
+import { SalesTypeDialog } from "./components/SalesTypeDialog";
+import { RepairDialog } from "./components/RepairDialog";
+import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
+import { SalesDialog } from "./components/SalesDialog";
+import { ReportsView } from "./components/ReportsView";
+import { CariView } from "./components/CariView";
+import { CategoryManagementDialog } from "./components/CategoryManagementDialog";
 import { 
   Package, 
   Plus, 
@@ -13,29 +31,15 @@ import {
   ChevronRight,
   Download,
   Upload,
-  Settings
+  Settings,
+  User
 } from "lucide-react";
-import { Button } from "./components/ui/button";
-import { Input } from "./components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
-import { Badge } from "./components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
-import { CategoryDialog } from "./components/CategoryDialog";
-import { ProductDialog } from "./components/ProductDialog";
-import { SalesDialog } from "./components/SalesDialog";
-import { ReportsView } from "./components/ReportsView";
-import { CategoryManagementDialog } from "./components/CategoryManagementDialog";
-import { BulkUploadDialog } from "./components/BulkUploadDialog";
-import { SalesTypeDialog } from "./components/SalesTypeDialog";
-import { RepairDialog } from "./components/RepairDialog";
-import { toast, Toaster } from "sonner";
-import { api, type Category, type Product, type Sale, type SaleItem, type RepairRecord } from "./utils/api";
-import * as XLSX from "xlsx";
 
 function App() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -46,12 +50,13 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
-  const [activeView, setActiveView] = useState<"products" | "reports">("products");
+  const [activeView, setActiveView] = useState<"products" | "reports" | "caris">("products");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const [salesTypeOpen, setSalesTypeOpen] = useState(false);
   const [repairOpen, setRepairOpen] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadData();
@@ -60,15 +65,17 @@ function App() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [categoriesData, productsData, salesData] = await Promise.all([
+      const [categoriesData, productsData, salesData, customersData] = await Promise.all([
         api.getCategories().catch(() => []),
         api.getProducts().catch(() => []),
         api.getSales().catch(() => []),
+        api.getCustomers().catch(() => []),
       ]);
 
       setCategories(categoriesData);
       setProducts(productsData);
       setSales(salesData);
+      setCustomers(customersData);
 
       // Initialize with sample data if empty
       if (categoriesData.length === 0) {
@@ -341,6 +348,122 @@ function App() {
     }
   };
 
+  // Bulk delete handler
+  const handleBulkDelete = async () => {
+    if (selectedProducts.size === 0) {
+      toast.error("Lütfen silinecek ürünleri seçin");
+      return;
+    }
+
+    if (!window.confirm(`${selectedProducts.size} ürünü silmek istediğinize emin misiniz?`)) {
+      return;
+    }
+
+    try {
+      let deletedCount = 0;
+      let errorCount = 0;
+
+      for (const productId of selectedProducts) {
+        try {
+          await api.deleteProduct(productId);
+          deletedCount++;
+        } catch (error) {
+          console.error(`Error deleting product ${productId}:`, error);
+          errorCount++;
+        }
+      }
+
+      // Refresh products
+      const updatedProducts = await api.getProducts();
+      setProducts(updatedProducts);
+      setSelectedProducts(new Set());
+
+      if (deletedCount > 0) {
+        toast.success(`${deletedCount} ürün silindi`);
+      }
+      if (errorCount > 0) {
+        toast.error(`${errorCount} ürün silinemedi`);
+      }
+    } catch (error) {
+      console.error("Bulk delete error:", error);
+      toast.error("Toplu silme işlemi başarısız oldu");
+    }
+  };
+
+  // Toggle product selection
+  const toggleProductSelection = (productId: string) => {
+    const newSelected = new Set(selectedProducts);
+    if (newSelected.has(productId)) {
+      newSelected.delete(productId);
+    } else {
+      newSelected.add(productId);
+    }
+    setSelectedProducts(newSelected);
+  };
+
+  // Toggle all products selection
+  const toggleAllProducts = () => {
+    if (selectedProducts.size === filteredProducts.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
+    }
+  };
+
+  // Customer handlers
+  const handleAddCustomer = async (customer: Omit<Customer, "id">) => {
+    try {
+      const newCustomer = await api.addCustomer(customer);
+      setCustomers([...customers, newCustomer]);
+      toast.success("Cari eklendi");
+    } catch (error) {
+      console.error("Error adding customer:", error);
+      toast.error("Cari eklenirken hata oluştu");
+    }
+  };
+
+  const handleUpdateCustomer = async (id: string, customer: Customer) => {
+    try {
+      const updated = await api.updateCustomer(id, customer);
+      setCustomers(customers.map((c) => (c.id === id ? updated : c)));
+      toast.success("Cari güncellendi");
+    } catch (error) {
+      console.error("Error updating customer:", error);
+      toast.error("Cari güncellenirken hata oluştu");
+    }
+  };
+
+  const handleDeleteCustomer = async (id: string) => {
+    try {
+      await api.deleteCustomer(id);
+      setCustomers(customers.filter((c) => c.id !== id));
+      toast.success("Cari silindi");
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+      toast.error("Cari silinirken hata oluştu");
+    }
+  };
+
+  const handleAddCustomerTransaction = async (
+    customerId: string,
+    type: "debt" | "credit" | "payment_received" | "payment_made",
+    amount: number,
+    description: string
+  ) => {
+    try {
+      await api.addCustomerTransaction(customerId, type, amount, description);
+      
+      // Refresh customers
+      const updatedCustomers = await api.getCustomers();
+      setCustomers(updatedCustomers);
+      
+      toast.success("İşlem eklendi");
+    } catch (error) {
+      console.error("Error adding customer transaction:", error);
+      toast.error("İşlem eklenirken hata oluştu");
+    }
+  };
+
   const lowStockProducts = products.filter((p) => p.stock <= p.minStock);
   const totalInventoryValue = products.reduce((sum, p) => sum + (p.stock * p.purchasePrice), 0);
 
@@ -541,6 +664,19 @@ function App() {
                 <span>Raporlar</span>
               </div>
             </button>
+
+            {/* Cariler */}
+            <button
+              onClick={() => setActiveView("caris")}
+              className={`w-full text-left px-3 py-2 rounded-lg hover:bg-muted transition-colors ${
+                activeView === "caris" ? "bg-primary text-primary-foreground" : ""
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                <span>Cariler</span>
+              </div>
+            </button>
           </div>
         </aside>
 
@@ -622,20 +758,32 @@ function App() {
                         : `Tüm Ürünler (${filteredProducts.length})`
                       }
                     </CardTitle>
-                    {selectedCategoryId && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          if (window.confirm("Bu kategoriyi silmek istediğinize emin misiniz?")) {
-                            handleDeleteCategory(selectedCategoryId);
-                            setSelectedCategoryId(null);
-                          }
-                        }}
-                      >
-                        <Trash2 className="w-4 h-4 text-destructive" />
-                      </Button>
-                    )}
+                    <div className="flex gap-2">
+                      {selectedProducts.size > 0 && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={handleBulkDelete}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Seçili Sil ({selectedProducts.size})
+                        </Button>
+                      )}
+                      {selectedCategoryId && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            if (window.confirm("Bu kategoriyi silmek istediğinize emin misiniz?")) {
+                              handleDeleteCategory(selectedCategoryId);
+                              setSelectedCategoryId(null);
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -643,6 +791,12 @@ function App() {
                     <table className="w-full">
                       <thead>
                         <tr className="border-b bg-gradient-to-r from-blue-100/50 to-purple-100/50 dark:from-blue-900/30 dark:to-purple-900/30">
+                          <th className="text-center p-3 w-12">
+                            <Checkbox
+                              checked={selectedProducts.size === filteredProducts.length && filteredProducts.length > 0}
+                              onCheckedChange={toggleAllProducts}
+                            />
+                          </th>
                           <th className="text-left p-3">Ürün Adı</th>
                           <th className="text-left p-3">Kategori</th>
                           <th className="text-center p-3">Stok</th>
@@ -667,6 +821,12 @@ function App() {
 
                           return (
                             <tr key={product.id} className={`border-b ${rowColor} hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition-colors`}>
+                              <td className="p-3 text-center">
+                                <Checkbox
+                                  checked={selectedProducts.has(product.id)}
+                                  onCheckedChange={() => toggleProductSelection(product.id)}
+                                />
+                              </td>
                               <td className="p-3">
                                 <div>
                                   <p className="font-medium">{product.name}</p>
@@ -724,7 +884,7 @@ function App() {
                 </CardContent>
               </Card>
             </div>
-          ) : (
+          ) : activeView === "reports" ? (
             // Raporlar Görünümü
             <div className="space-y-6">
               <div className="flex justify-between items-center">
@@ -752,6 +912,18 @@ function App() {
               </div>
 
               <ReportsView sales={sales} period={reportPeriod} />
+            </div>
+          ) : (
+            // Cariler Görünümü
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold">Cariler</h2>
+              <CariView 
+                customers={customers}
+                onAddCustomer={handleAddCustomer}
+                onUpdateCustomer={handleUpdateCustomer}
+                onDeleteCustomer={handleDeleteCustomer}
+                onAddTransaction={handleAddCustomerTransaction}
+              />
             </div>
           )}
         </main>

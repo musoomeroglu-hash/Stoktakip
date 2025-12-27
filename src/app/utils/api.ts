@@ -69,6 +69,26 @@ export interface RepairRecord {
   createdAt: string;
 }
 
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email?: string;
+  debt: number; // Borç (müşterinin bize olan borcu)
+  credit: number; // Alacak (bizim müşteriye olan borcumuz)
+  notes?: string;
+  createdAt: string;
+}
+
+export interface CustomerTransaction {
+  id: string;
+  customerId: string;
+  type: "debt" | "credit" | "payment_received" | "payment_made";
+  amount: number;
+  description: string;
+  createdAt: string;
+}
+
 export const api = {
   // Categories
   async getCategories(): Promise<Category[]> {
@@ -171,5 +191,45 @@ export const api = {
       body: JSON.stringify(repair),
     });
     return result.data;
+  },
+
+  // Customers
+  async getCustomers(): Promise<Customer[]> {
+    const result = await fetchAPI("/customers");
+    return result.data || [];
+  },
+
+  async addCustomer(customer: Omit<Customer, "id">): Promise<Customer> {
+    const result = await fetchAPI("/customers", {
+      method: "POST",
+      body: JSON.stringify(customer),
+    });
+    return result.data;
+  },
+
+  async updateCustomer(id: string, customer: Customer): Promise<Customer> {
+    const result = await fetchAPI(`/customers/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(customer),
+    });
+    return result.data;
+  },
+
+  async deleteCustomer(id: string): Promise<void> {
+    await fetchAPI(`/customers/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  async addCustomerTransaction(
+    customerId: string,
+    type: "debt" | "credit" | "payment_received" | "payment_made",
+    amount: number,
+    description: string
+  ): Promise<void> {
+    await fetchAPI("/customer-transactions", {
+      method: "POST",
+      body: JSON.stringify({ customerId, type, amount, description }),
+    });
   },
 };
