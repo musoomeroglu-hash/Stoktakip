@@ -21,6 +21,9 @@ interface SalesManagementViewProps {
   onUpdateSale: (id: string, sale: Sale) => void;
   onUpdateRepair: (id: string, data: Partial<RepairRecord>) => void;
   onDeleteRepair: (id: string) => void;
+  currency: "TRY" | "USD";
+  usdRate: number;
+  formatPrice: (price: number) => string;
 }
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#f43f5e', '#84cc16'];
@@ -34,7 +37,18 @@ export function SalesManagementView({
   onUpdateSale,
   onUpdateRepair,
   onDeleteRepair,
+  currency,
+  usdRate,
+  formatPrice,
 }: SalesManagementViewProps) {
+  // Helper to format price with locale
+  const formatPriceLocale = (price: number) => {
+    if (currency === "USD" && usdRate > 0) {
+      return `$${(price / usdRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
+    return `₺${price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
   const [editingRepair, setEditingRepair] = useState<RepairRecord | null>(null);
   const [editRepairDialogOpen, setEditRepairDialogOpen] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
@@ -196,7 +210,7 @@ export function SalesManagementView({
               <div>
                 <p className="text-sm text-blue-700 dark:text-blue-300">Toplam Ciro</p>
                 <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
-                  ₺{profitLossStats.totalRevenue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                  {formatPriceLocale(profitLossStats.totalRevenue)}
                 </p>
               </div>
               <DollarSign className="w-12 h-12 text-blue-500" />
@@ -210,7 +224,7 @@ export function SalesManagementView({
               <div>
                 <p className="text-sm text-green-700 dark:text-green-300">Toplam Kâr</p>
                 <p className="text-3xl font-bold text-green-900 dark:text-green-100">
-                  ₺{profitLossStats.totalProfit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                  {formatPriceLocale(profitLossStats.totalProfit)}
                 </p>
               </div>
               <TrendingUp className="w-12 h-12 text-green-500" />
@@ -238,7 +252,7 @@ export function SalesManagementView({
               <div>
                 <p className="text-sm text-orange-700 dark:text-orange-300">Cari Bakiye</p>
                 <p className={`text-3xl font-bold ${cariStats.balance >= 0 ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'}`}>
-                  ₺{cariStats.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                  {formatPriceLocale(cariStats.balance)}
                 </p>
               </div>
               <User className="w-12 h-12 text-orange-500" />
@@ -281,11 +295,11 @@ export function SalesManagementView({
                 <div className="flex gap-4">
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Ciro</p>
-                    <p className="text-xl font-semibold">₺{repairStats.revenue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-xl font-semibold">{formatPriceLocale(repairStats.revenue)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Kâr</p>
-                    <p className="text-xl font-semibold text-green-600">₺{repairStats.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-xl font-semibold text-green-600">{formatPriceLocale(repairStats.profit)}</p>
                   </div>
                 </div>
               </div>
@@ -311,15 +325,15 @@ export function SalesManagementView({
                             <div className="flex gap-4 text-sm">
                               <div>
                                 <span className="text-muted-foreground">Tamir:</span>{" "}
-                                <span className="font-semibold">₺{repair.repairCost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                <span className="font-semibold">{formatPriceLocale(repair.repairCost)}</span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Malzeme:</span>{" "}
-                                <span className="font-semibold">₺{repair.partsCost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                <span className="font-semibold">{formatPriceLocale(repair.partsCost)}</span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Kâr:</span>{" "}
-                                <span className="font-semibold text-green-600">₺{repair.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                <span className="font-semibold text-green-600">{formatPriceLocale(repair.profit)}</span>
                               </div>
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">
@@ -359,11 +373,11 @@ export function SalesManagementView({
                 <div className="flex gap-4">
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Ciro</p>
-                    <p className="text-xl font-semibold">₺{productSaleStats.revenue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-xl font-semibold">{formatPriceLocale(productSaleStats.revenue)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Kâr</p>
-                    <p className="text-xl font-semibold text-green-600">₺{productSaleStats.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-xl font-semibold text-green-600">{formatPriceLocale(productSaleStats.profit)}</p>
                   </div>
                 </div>
               </div>
@@ -387,18 +401,18 @@ export function SalesManagementView({
                                   <span className="font-medium">{item.productName}</span>{" "}
                                   <span className="text-muted-foreground">x{item.quantity}</span>{" "}
                                   <span className="text-muted-foreground">-</span>{" "}
-                                  <span className="font-semibold">₺{(item.salePrice * item.quantity).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                  <span className="font-semibold">{formatPriceLocale(item.salePrice * item.quantity)}</span>
                                 </div>
                               ))}
                             </div>
                             <div className="flex gap-4 text-sm">
                               <div>
                                 <span className="text-muted-foreground">Toplam:</span>{" "}
-                                <span className="font-semibold">₺{sale.totalPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                <span className="font-semibold">{formatPriceLocale(sale.totalPrice)}</span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Kâr:</span>{" "}
-                                <span className="font-semibold text-green-600">₺{sale.totalProfit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                <span className="font-semibold text-green-600">{formatPriceLocale(sale.totalProfit)}</span>
                               </div>
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">
@@ -440,20 +454,20 @@ export function SalesManagementView({
                 <Card className="bg-red-50 dark:bg-red-950/30">
                   <CardContent className="p-4">
                     <p className="text-sm text-muted-foreground">Toplam Alacak</p>
-                    <p className="text-2xl font-bold text-red-600">₺{cariStats.totalDebt.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-2xl font-bold text-red-600">{formatPriceLocale(cariStats.totalDebt)}</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-blue-50 dark:bg-blue-950/30">
                   <CardContent className="p-4">
                     <p className="text-sm text-muted-foreground">Toplam Borç</p>
-                    <p className="text-2xl font-bold text-blue-600">₺{cariStats.totalCredit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-2xl font-bold text-blue-600">{formatPriceLocale(cariStats.totalCredit)}</p>
                   </CardContent>
                 </Card>
                 <Card className={cariStats.balance >= 0 ? "bg-green-50 dark:bg-green-950/30" : "bg-red-50 dark:bg-red-950/30"}>
                   <CardContent className="p-4">
                     <p className="text-sm text-muted-foreground">Bakiye</p>
                     <p className={`text-2xl font-bold ${cariStats.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      ₺{cariStats.balance.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      {formatPriceLocale(cariStats.balance)}
                     </p>
                   </CardContent>
                 </Card>
@@ -474,11 +488,11 @@ export function SalesManagementView({
                           <div className="text-right space-y-1">
                             <div className="text-sm">
                               <span className="text-muted-foreground">Alacak:</span>{" "}
-                              <span className="font-semibold text-red-600">₺{customer.debt.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                              <span className="font-semibold text-red-600">{formatPriceLocale(customer.debt)}</span>
                             </div>
                             <div className="text-sm">
                               <span className="text-muted-foreground">Borç:</span>{" "}
-                              <span className="font-semibold text-blue-600">₺{customer.credit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                              <span className="font-semibold text-blue-600">{formatPriceLocale(customer.credit)}</span>
                             </div>
                           </div>
                         </div>
@@ -506,15 +520,15 @@ export function SalesManagementView({
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-sm">Ürün Satışları</span>
-                          <span className="font-semibold">₺{productSaleStats.revenue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                          <span className="font-semibold">{formatPriceLocale(productSaleStats.revenue)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">Tamir Gelirleri</span>
-                          <span className="font-semibold">₺{repairStats.revenue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                          <span className="font-semibold">{formatPriceLocale(repairStats.revenue)}</span>
                         </div>
                         <div className="flex justify-between border-t pt-2">
                           <span className="font-medium">Toplam Gelir</span>
-                          <span className="font-bold text-blue-600">₺{profitLossStats.totalRevenue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                          <span className="font-bold text-blue-600">{formatPriceLocale(profitLossStats.totalRevenue)}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -526,15 +540,15 @@ export function SalesManagementView({
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-sm">Ürün Maliyetleri</span>
-                          <span className="font-semibold">₺{(productSaleStats.revenue - productSaleStats.profit).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                          <span className="font-semibold">{formatPriceLocale(productSaleStats.revenue - productSaleStats.profit)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">Tamir Maliyetleri</span>
-                          <span className="font-semibold">₺{(repairStats.revenue - repairStats.profit).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                          <span className="font-semibold">{formatPriceLocale(repairStats.revenue - repairStats.profit)}</span>
                         </div>
                         <div className="flex justify-between border-t pt-2">
                           <span className="font-medium">Toplam Maliyet</span>
-                          <span className="font-bold text-red-600">₺{profitLossStats.totalCost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                          <span className="font-bold text-red-600">{formatPriceLocale(profitLossStats.totalCost)}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -547,7 +561,7 @@ export function SalesManagementView({
                       <div>
                         <p className="text-sm text-muted-foreground mb-1">Net Kar/Zarar</p>
                         <p className="text-4xl font-bold text-green-600">
-                          ₺{profitLossStats.totalProfit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                          {formatPriceLocale(profitLossStats.totalProfit)}
                         </p>
                       </div>
                       <div className="text-right">
@@ -677,19 +691,19 @@ export function SalesManagementView({
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Ürün Satış Kârı</span>
                     <span className="font-semibold text-blue-600">
-                      ₺{productSaleStats.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      {formatPriceLocale(productSaleStats.profit)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Tamir Kârı</span>
                     <span className="font-semibold text-orange-600">
-                      ₺{repairStats.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      {formatPriceLocale(repairStats.profit)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
                     <span className="font-medium">Toplam Kâr</span>
                     <span className="text-xl font-bold text-green-600">
-                      ₺{profitLossStats.totalProfit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                      {formatPriceLocale(profitLossStats.totalProfit)}
                     </span>
                   </div>
                 </div>
@@ -744,10 +758,10 @@ export function SalesManagementView({
                         <div className="flex items-center gap-2">
                           <div className="text-right">
                             <p className="font-semibold">
-                              ₺{(isSale ? item.totalPrice : item.repairCost).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                              {formatPriceLocale(isSale ? item.totalPrice : item.repairCost)}
                             </p>
                             <p className="text-sm text-green-600">
-                              +₺{(isSale ? item.totalProfit : item.profit).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+                              +{formatPriceLocale(isSale ? item.totalProfit : item.profit)}
                             </p>
                           </div>
                           <div className="flex gap-1">

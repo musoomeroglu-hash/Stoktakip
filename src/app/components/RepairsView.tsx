@@ -9,31 +9,12 @@ import type { RepairRecord } from "../utils/api";
 interface RepairsViewProps {
   repairs: RepairRecord[];
   onUpdateStatus: (id: string, status: "in_progress" | "completed" | "delivered") => void;
+  currency: "TRY" | "USD";
+  usdRate: number;
+  formatPrice: (price: number) => string;
 }
 
-export function RepairsView({ repairs, onUpdateStatus }: RepairsViewProps) {
-  const getStatusBadge = (status: RepairRecord["status"]) => {
-    switch (status) {
-      case "in_progress":
-        return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">Tamir Ediliyor</Badge>;
-      case "completed":
-        return <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">Tamir Edildi</Badge>;
-      case "delivered":
-        return <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300">Teslim Edildi</Badge>;
-    }
-  };
-
-  const getNextStatus = (currentStatus: RepairRecord["status"]) => {
-    switch (currentStatus) {
-      case "in_progress":
-        return { status: "completed" as const, label: "Tamir Edildi", icon: CheckCircle };
-      case "completed":
-        return { status: "delivered" as const, label: "Teslim Et", icon: Truck };
-      default:
-        return null;
-    }
-  };
-
+export function RepairsView({ repairs, onUpdateStatus, currency, usdRate, formatPrice }: RepairsViewProps) {
   // Grouping repairs by status
   const inProgressRepairs = repairs.filter(r => r.status === "in_progress");
   const completedRepairs = repairs.filter(r => r.status === "completed");
@@ -76,7 +57,7 @@ export function RepairsView({ repairs, onUpdateStatus }: RepairsViewProps) {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm text-purple-700 dark:text-purple-300">Toplam Gelir</div>
-                <div className="text-3xl font-bold text-purple-900 dark:text-purple-100 mt-2">₺{totalRevenue.toFixed(2)}</div>
+                <div className="text-3xl font-bold text-purple-900 dark:text-purple-100 mt-2">{formatPrice(totalRevenue)}</div>
               </div>
               <DollarSign className="w-10 h-10 text-purple-500" />
             </div>
@@ -88,7 +69,7 @@ export function RepairsView({ repairs, onUpdateStatus }: RepairsViewProps) {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm text-orange-700 dark:text-orange-300">Toplam Kâr</div>
-                <div className="text-3xl font-bold text-orange-900 dark:text-orange-100 mt-2">₺{totalProfit.toFixed(2)}</div>
+                <div className="text-3xl font-bold text-orange-900 dark:text-orange-100 mt-2">{formatPrice(totalProfit)}</div>
               </div>
               <Package className="w-10 h-10 text-orange-500" />
             </div>
@@ -108,7 +89,7 @@ export function RepairsView({ repairs, onUpdateStatus }: RepairsViewProps) {
           </CardHeader>
           <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
             {inProgressRepairs.map((repair) => (
-              <RepairCard key={repair.id} repair={repair} onUpdateStatus={onUpdateStatus} />
+              <RepairCard key={repair.id} repair={repair} onUpdateStatus={onUpdateStatus} formatPrice={formatPrice} />
             ))}
             {inProgressRepairs.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
@@ -128,7 +109,7 @@ export function RepairsView({ repairs, onUpdateStatus }: RepairsViewProps) {
           </CardHeader>
           <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
             {completedRepairs.map((repair) => (
-              <RepairCard key={repair.id} repair={repair} onUpdateStatus={onUpdateStatus} />
+              <RepairCard key={repair.id} repair={repair} onUpdateStatus={onUpdateStatus} formatPrice={formatPrice} />
             ))}
             {completedRepairs.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
@@ -148,7 +129,7 @@ export function RepairsView({ repairs, onUpdateStatus }: RepairsViewProps) {
           </CardHeader>
           <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
             {deliveredRepairs.map((repair) => (
-              <RepairCard key={repair.id} repair={repair} onUpdateStatus={onUpdateStatus} />
+              <RepairCard key={repair.id} repair={repair} onUpdateStatus={onUpdateStatus} formatPrice={formatPrice} />
             ))}
             {deliveredRepairs.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
@@ -164,10 +145,12 @@ export function RepairsView({ repairs, onUpdateStatus }: RepairsViewProps) {
 
 function RepairCard({ 
   repair, 
-  onUpdateStatus 
+  onUpdateStatus,
+  formatPrice
 }: { 
   repair: RepairRecord; 
   onUpdateStatus: (id: string, status: "in_progress" | "completed" | "delivered") => void;
+  formatPrice: (price: number) => string;
 }) {
   const nextStatus = getNextStatus(repair.status);
   const NextIcon = nextStatus?.icon;
@@ -209,11 +192,11 @@ function RepairCard({
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
             <span className="text-muted-foreground">Tamir Ücreti:</span>
-            <p className="font-medium">₺{repair.repairCost.toFixed(2)}</p>
+            <p className="font-medium">{formatPrice(repair.repairCost)}</p>
           </div>
           <div>
             <span className="text-muted-foreground">Kâr:</span>
-            <p className="font-medium text-green-600 dark:text-green-400">₺{repair.profit.toFixed(2)}</p>
+            <p className="font-medium text-green-600 dark:text-green-400">{formatPrice(repair.profit)}</p>
           </div>
         </div>
 

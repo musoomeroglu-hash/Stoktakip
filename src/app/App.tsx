@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { LoginScreen } from "./components/LoginScreen";
 import { RepairsView } from "./components/RepairsView";
 import { SalesPanelView } from "./components/SalesPanelView";
 import { SalesManagementView } from "./components/SalesManagementView";
@@ -12,7 +13,7 @@ import { SalesDialog } from "./components/SalesDialog";
 import { BulkUploadDialog } from "./components/BulkUploadDialog";
 import { SalesTypeDialog } from "./components/SalesTypeDialog";
 import { RepairDialog } from "./components/RepairDialog";
-import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Badge } from "./components/ui/badge";
@@ -44,7 +45,8 @@ import {
   Eye,
   Calculator,
   Moon,
-  Sun
+  Sun,
+  LogOut
 } from "lucide-react";
 
 // Success sound function using Web Audio API
@@ -114,6 +116,13 @@ const playMenuSound = () => {
 };
 
 function App() {
+  // Authentication state
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    // Check if user is remembered
+    const remembered = localStorage.getItem('technocep_auth');
+    return remembered === 'true';
+  });
+
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -139,6 +148,11 @@ function App() {
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [stockValueDialogOpen, setStockValueDialogOpen] = useState(false);
   const [usdRate, setUsdRate] = useState<number>(0);
+  const [currency, setCurrency] = useState<"TRY" | "USD">(() => {
+    // Check localStorage for saved currency preference
+    const savedCurrency = localStorage.getItem('currency');
+    return (savedCurrency === 'USD' ? 'USD' : 'TRY') as "TRY" | "USD";
+  });
   const [isDarkMode, setIsDarkMode] = useState(() => {
     // Check localStorage for saved theme preference
     const savedTheme = localStorage.getItem('theme');
@@ -213,12 +227,16 @@ function App() {
 
   const fetchUsdRate = async () => {
     try {
-      const response = await fetch("https://api.exchangerate-api.com/v4/latest/TRY");
+      const response = await fetch("https://api.exchangerate-api.com/v4/latest/USD");
       const data = await response.json();
-      setUsdRate(data.rates.USD);
+      const tryRate = data.rates.TRY;
+      setUsdRate(tryRate); // 1 USD = X TRY
+      console.log("USD/TRY Kuru:", tryRate);
     } catch (error) {
       console.error("Error fetching USD rate:", error);
-      toast.error("USD kuru alınamadı");
+      // Fallback rate
+      setUsdRate(35); // Yaklaşık değer
+      toast.error("USD kuru alınamadı, varsayılan kur kullanılıyor");
     }
   };
 
@@ -387,6 +405,26 @@ function App() {
       newExpanded.add(categoryId);
     }
     setExpandedCategories(newExpanded);
+  };
+
+  // Toggle currency
+  const toggleCurrency = () => {
+    const newCurrency = currency === "TRY" ? "USD" : "TRY";
+    setCurrency(newCurrency);
+    localStorage.setItem('currency', newCurrency);
+    toast.success(`Para birimi ${newCurrency === "TRY" ? "₺ TL" : "$ USD"} olarak değiştirildi`);
+  };
+
+  // Format price based on currency
+  const formatPrice = (price: number) => {
+    if (currency === "USD") {
+      if (usdRate <= 0) {
+        return `$--.--`; // Dolar kuru yüklenene kadar
+      }
+      const usdValue = price / usdRate;
+      return `$${usdValue.toFixed(2)}`;
+    }
+    return `₺${price.toFixed(2)}`;
   };
 
   // Excel Export
@@ -725,8 +763,36 @@ function App() {
     }
   };
 
+  // Handle login
+  const handleLogin = (rememberMe: boolean) => {
+    setIsAuthenticated(true);
+    if (rememberMe) {
+      localStorage.setItem('technocep_auth', 'true');
+    } else {
+      sessionStorage.setItem('technocep_session', 'true');
+    }
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem('technocep_auth');
+    sessionStorage.removeItem('technocep_session');
+    toast.success("Çıkış yapıldı");
+  };
+
   const lowStockProducts = products.filter((p) => p.stock <= p.minStock);
   const totalInventoryValue = products.reduce((sum, p) => sum + (p.stock * p.purchasePrice), 0);
+
+  // Show login screen if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <>
+        <Toaster position="top-right" richColors closeButton />
+        <LoginScreen onLogin={handleLogin} />
+      </>
+    );
+  }
 
   if (loading) {
     return (
@@ -754,18 +820,39 @@ function App() {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Techno.Cep</h1>
                 <p className="text-sm text-muted-foreground">Bir işletmeden daha fazlası</p>
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className="h-9 w-9 rounded-full border-2 hover:bg-muted"
-              >
-                {isDarkMode ? (
-                  <Sun className="w-4 h-4 text-yellow-500" />
-                ) : (
-                  <Moon className="w-4 h-4 text-blue-600" />
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={toggleCurrency}
+                  className="h-9 w-9 rounded-full border-2 hover:bg-green-50 dark:hover:bg-green-950 hover:border-green-300 dark:hover:border-green-700"
+                  title={`Para birimi: ${currency === "TRY" ? "₺ TL" : "$ USD"}`}
+                >
+                  <DollarSign className={`w-4 h-4 ${currency === "USD" ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`} />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setIsDarkMode(!isDarkMode)}
+                  className="h-9 w-9 rounded-full border-2 hover:bg-muted"
+                  title="Tema değiştir"
+                >
+                  {isDarkMode ? (
+                    <Sun className="w-4 h-4 text-yellow-500" />
+                  ) : (
+                    <Moon className="w-4 h-4 text-blue-600" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleLogout}
+                  className="h-9 w-9 rounded-full border-2 hover:bg-red-50 dark:hover:bg-red-950 hover:border-red-300 dark:hover:border-red-700"
+                  title="Çıkış yap"
+                >
+                  <LogOut className="w-4 h-4 text-red-600 dark:text-red-400" />
+                </Button>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => setCategoryDialogOpen(true)} variant="outline" size="sm" className="border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-950">
@@ -1042,7 +1129,7 @@ function App() {
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <p className="text-sm text-green-700 dark:text-green-300 mb-1">Stok Değeri (Alış)</p>
-                          <p className="text-2xl font-semibold text-green-900 dark:text-green-100">₺{totalInventoryValue.toLocaleString('tr-TR')}</p>
+                          <p className="text-2xl font-semibold text-green-900 dark:text-green-100">{formatPrice(totalInventoryValue)}</p>
                         </div>
                         <div className="flex flex-col gap-2">
                           <Button
@@ -1075,13 +1162,13 @@ function App() {
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm text-purple-700 dark:text-purple-300">Dolar Kuru (TRY → USD)</p>
+                          <p className="text-sm text-purple-700 dark:text-purple-300">Güncel Dolar Kuru</p>
                           <p className="text-2xl font-semibold text-purple-900 dark:text-purple-100">
-                            {usdRate > 0 ? `$${(1 / usdRate).toFixed(2)}` : "Yükleniyor..."}
+                            {usdRate > 0 ? `₺${usdRate.toFixed(2)}` : "Yükleniyor..."}
                           </p>
                           {usdRate > 0 && (
                             <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                              1 USD = ₺{(1 / usdRate).toFixed(2)}
+                              $1 USD = ₺{usdRate.toFixed(2)} TRY
                             </p>
                           )}
                         </div>
@@ -1197,11 +1284,11 @@ function App() {
                                     {product.stock}
                                   </Badge>
                                 </td>
-                                <td className="text-right p-3">₺{purchasePrice.toFixed(2)}</td>
-                                <td className="text-right p-3 font-medium">₺{salePrice.toFixed(2)}</td>
+                                <td className="text-right p-3">{formatPrice(purchasePrice)}</td>
+                                <td className="text-right p-3 font-medium">{formatPrice(salePrice)}</td>
                                 <td className="text-right p-3">
                                   <div className="text-green-600 dark:text-green-400">
-                                    ₺{profit.toFixed(2)}
+                                    {formatPrice(profit)}
                                     <span className="text-xs ml-1">(%{margin})</span>
                                   </div>
                                 </td>
@@ -1289,6 +1376,9 @@ function App() {
                   onUpdateSale={handleUpdateSale}
                   onUpdateRepair={handleUpdateRepair}
                   onDeleteRepair={handleDeleteRepair}
+                  currency={currency}
+                  usdRate={usdRate}
+                  formatPrice={formatPrice}
                 />
               </motion.div>
             ) : activeView === "repairs" ? (
@@ -1305,6 +1395,9 @@ function App() {
                 <RepairsView 
                   repairs={repairs}
                   onUpdateStatus={handleUpdateRepairStatus}
+                  currency={currency}
+                  usdRate={usdRate}
+                  formatPrice={formatPrice}
                 />
               </motion.div>
             ) : activeView === "caris" ? (
