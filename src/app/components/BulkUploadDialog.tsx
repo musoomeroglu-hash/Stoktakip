@@ -54,6 +54,13 @@ export function BulkUploadDialog({ open, onOpenChange, categories, onBulkAdd }: 
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Check file type
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      toast.error("Lütfen geçerli bir Excel dosyası seçin (.xlsx veya .xls)");
+      event.target.value = "";
+      return;
+    }
+
     setUploading(true);
     const reader = new FileReader();
 
@@ -74,9 +81,30 @@ export function BulkUploadDialog({ open, onOpenChange, categories, onBulkAdd }: 
           "Açıklama"?: string;
         }>(worksheet);
 
-        const productsToAdd: Omit<Product, "id">[] = [];
+        if (jsonData.length === 0) {
+          toast.error("Excel dosyası boş veya geçersiz format");
+          setUploading(false);
+          event.target.value = "";
+          return;
+        }
 
-        for (const row of jsonData) {
+        const productsToAdd: Omit<Product, "id">[] = [];
+        const errors: string[] = [];
+
+        for (let i = 0; i < jsonData.length; i++) {
+          const row = jsonData[i];
+          const rowNum = i + 2; // Excel'de satır numarası (başlık 1, veri 2'den başlar)
+
+          // Zorunlu alan kontrolü
+          if (!row["Ürün Adı"]) {
+            errors.push(`Satır ${rowNum}: Ürün adı boş olamaz`);
+            continue;
+          }
+          if (!row["Kategori"]) {
+            errors.push(`Satır ${rowNum}: Kategori boş olamaz`);
+            continue;
+          }
+
           // Kategori adını parse et (örn: "Aksesuarlar → Kulaklık")
           const categoryParts = row["Kategori"].split("→").map(s => s.trim());
           
@@ -88,10 +116,14 @@ export function BulkUploadDialog({ open, onOpenChange, categories, onBulkAdd }: 
               categories.find(p => p.id === c.parentId)?.name === categoryParts[0]
             );
             categoryId = subCategory?.id || "";
+          } else if (categoryParts.length === 1) {
+            // Tek kategori adı verilmişse (alt kategori olarak ara)
+            const subCategory = categories.find(c => c.name === categoryParts[0] && c.parentId);
+            categoryId = subCategory?.id || "";
           }
 
           if (!categoryId) {
-            toast.error(`Kategori bulunamadı: ${row["Kategori"]}`);
+            errors.push(`Satır ${rowNum}: Kategori bulunamadı: "${row["Kategori"]}"`);
             continue;
           }
 
@@ -99,30 +131,46 @@ export function BulkUploadDialog({ open, onOpenChange, categories, onBulkAdd }: 
             name: row["Ürün Adı"],
             categoryId,
             barcode: row["Barkod"] || "",
-            stock: row["Stok"],
-            minStock: row["Min Stok"],
-            purchasePrice: row["Alış Fiyatı"],
-            salePrice: row["Satış Fiyatı"],
+            stock: Number(row["Stok"]) || 0,
+            minStock: Number(row["Min Stok"]) || 0,
+            purchasePrice: Number(row["Alış Fiyatı"]) || 0,
+            salePrice: Number(row["Satış Fiyatı"]) || 0,
             description: row["Açıklama"] || "",
             createdAt: new Date().toISOString(),
           });
         }
 
+        // Hataları göster
+        if (errors.length > 0) {
+          const maxErrors = 5;
+          const errorMsg = errors.slice(0, maxErrors).join("\n");
+          const moreErrors = errors.length > maxErrors ? `\n... ve ${errors.length - maxErrors} hata daha` : "";
+          toast.error(`${errors.length} hata bulundu:\n${errorMsg}${moreErrors}`, { duration: 6000 });
+        }
+
         if (productsToAdd.length > 0) {
           await onBulkAdd(productsToAdd);
-          toast.success(`${productsToAdd.length} ürün eklendi`);
+          toast.success(`${productsToAdd.length} ürün başarıyla eklendi!`);
           onOpenChange(false);
+        } else if (errors.length === 0) {
+          toast.error("Eklenecek geçerli ürün bulunamadı");
         }
       } catch (error) {
         console.error("Excel yükleme hatası:", error);
-        toast.error("Excel dosyası okunamadı");
+        toast.error("Excel dosyası okunamadı. Lütfen dosya formatını kontrol edin.");
       } finally {
         setUploading(false);
+        event.target.value = "";
       }
     };
 
+    reader.onerror = () => {
+      toast.error("Dosya okunamadı");
+      setUploading(false);
+      event.target.value = "";
+    };
+
     reader.readAsArrayBuffer(file);
-    event.target.value = "";
   };
 
   return (
