@@ -42,7 +42,9 @@ import {
   TrendingUp,
   DollarSign,
   Eye,
-  Calculator
+  Calculator,
+  Moon,
+  Sun
 } from "lucide-react";
 
 // Success sound function using Web Audio API
@@ -137,6 +139,26 @@ function App() {
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [stockValueDialogOpen, setStockValueDialogOpen] = useState(false);
   const [usdRate, setUsdRate] = useState<number>(0);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    // Check localStorage for saved theme preference
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      return savedTheme === 'dark';
+    }
+    // Check system preference
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  // Apply dark mode class to document
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
 
   useEffect(() => {
     loadData();
@@ -544,11 +566,31 @@ function App() {
   // Handle repair delete
   const handleDeleteRepair = async (id: string) => {
     try {
+      // Check if there's a sale associated with this repair
+      const repairSale = sales.find(s => 
+        s.items.some(item => item.productId === `repair-${id}`)
+      );
+      
+      // If there's an associated sale, delete it first
+      if (repairSale && repairSale.id) {
+        await api.deleteSale(repairSale.id);
+        setSales(sales.filter((s) => s.id !== repairSale.id));
+      }
+      
+      // Then delete the repair
       await api.deleteRepair(id);
       setRepairs(repairs.filter((r) => r.id !== id));
       toast.success("Tamir silindi");
     } catch (error) {
       // If API fails, delete locally (backend endpoint not implemented yet)
+      const repairSale = sales.find(s => 
+        s.items.some(item => item.productId === `repair-${id}`)
+      );
+      
+      if (repairSale && repairSale.id) {
+        setSales(sales.filter((s) => s.id !== repairSale.id));
+      }
+      
       setRepairs(repairs.filter((r) => r.id !== id));
       toast.success("Tamir silindi");
     }
@@ -707,9 +749,23 @@ function App() {
       <header className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Techno.Cep</h1>
-              <p className="text-sm text-muted-foreground">Bir işletmeden daha fazlası</p>
+            <div className="flex items-center gap-3">
+              <div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Techno.Cep</h1>
+                <p className="text-sm text-muted-foreground">Bir işletmeden daha fazlası</p>
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="h-9 w-9 rounded-full border-2 hover:bg-muted"
+              >
+                {isDarkMode ? (
+                  <Sun className="w-4 h-4 text-yellow-500" />
+                ) : (
+                  <Moon className="w-4 h-4 text-blue-600" />
+                )}
+              </Button>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => setCategoryDialogOpen(true)} variant="outline" size="sm" className="border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-950">

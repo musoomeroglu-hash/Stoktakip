@@ -709,6 +709,12 @@ export function SalesManagementView({
                   .slice(0, 10)
                   .map((item, index) => {
                     const isSale = 'items' in item;
+                    
+                    // Skip repair sales since we already show repair records
+                    if (isSale && item.items.some(saleItem => saleItem.productId.startsWith('repair-'))) {
+                      return null;
+                    }
+                    
                     return (
                       <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                         <div className="flex items-center gap-3">
@@ -755,7 +761,9 @@ export function SalesManagementView({
                         </div>
                       </div>
                     );
-                  })}
+                  })
+                  .filter(item => item !== null) // Filter out null values
+                }
                 {productSaleStats.items.length === 0 && repairStats.items.length === 0 && (
                   <p className="text-center text-muted-foreground py-8">Henüz işlem yok</p>
                 )}
