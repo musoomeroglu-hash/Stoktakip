@@ -9,6 +9,7 @@ import { CalculatorView } from "./components/CalculatorView";
 import { CariView } from "./components/CariView";
 import { CategoryDialog } from "./components/CategoryDialog";
 import { ProductDialog } from "./components/ProductDialog";
+import { ProductDetailDialog } from "./components/ProductDetailDialog";
 import { SalesDialog } from "./components/SalesDialog";
 import { BulkUploadDialog } from "./components/BulkUploadDialog";
 import { SalesTypeDialog } from "./components/SalesTypeDialog";
@@ -46,7 +47,8 @@ import {
   Calculator,
   Moon,
   Sun,
-  LogOut
+  LogOut,
+  ArrowUpDown
 } from "lucide-react";
 
 // Success sound function using Web Audio API
@@ -147,6 +149,9 @@ function App() {
   const [repairOpen, setRepairOpen] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [stockValueDialogOpen, setStockValueDialogOpen] = useState(false);
+  const [productDetailOpen, setProductDetailOpen] = useState(false);
+  const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
+  const [sortBy, setSortBy] = useState<"name" | "price">("name");
   const [usdRate, setUsdRate] = useState<number>(0);
   const [currency, setCurrency] = useState<"TRY" | "USD">(() => {
     // Check localStorage for saved currency preference
@@ -377,13 +382,22 @@ function App() {
     }
   };
 
-  // Filtering
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.barcode?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategoryId ? product.categoryId === selectedCategoryId : true;
-    return matchesSearch && matchesCategory;
-  });
+  // Filtering and Sorting
+  const filteredProducts = products
+    .filter((product) => {
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.barcode?.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = selectedCategoryId ? product.categoryId === selectedCategoryId : true;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => {
+      if (sortBy === "name") {
+        return a.name.localeCompare(b.name, 'tr');
+      } else {
+        // Sort by sale price
+        return b.salePrice - a.salePrice;
+      }
+    });
 
   const getCategoryName = (categoryId: string) => {
     const category = categories.find((c) => c.id === categoryId);
@@ -1195,7 +1209,7 @@ function App() {
                   </Card>
                 </div>
 
-                {/* Search */}
+                {/* Search and Sort */}
                 <div className="flex gap-4">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -1206,6 +1220,22 @@ function App() {
                       className="pl-10"
                     />
                   </div>
+                  <Button
+                    variant={sortBy === "name" ? "default" : "outline"}
+                    onClick={() => setSortBy("name")}
+                    className="gap-2"
+                  >
+                    <ArrowUpDown className="w-4 h-4" />
+                    İsme Göre
+                  </Button>
+                  <Button
+                    variant={sortBy === "price" ? "default" : "outline"}
+                    onClick={() => setSortBy("price")}
+                    className="gap-2"
+                  >
+                    <ArrowUpDown className="w-4 h-4" />
+                    Fiyata Göre
+                  </Button>
                 </div>
 
                 {/* Products Table */}
@@ -1280,8 +1310,18 @@ function App() {
                               : "bg-blue-50/30 dark:bg-blue-950/20";
 
                             return (
-                              <tr key={product.id} className={`border-b ${rowColor} hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition-colors`}>
-                                <td className="p-3 text-center">
+                              <tr 
+                                key={product.id} 
+                                className={`border-b ${rowColor} hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition-colors cursor-pointer`}
+                                onClick={(e) => {
+                                  // Don't open detail dialog if clicking on checkbox or buttons
+                                  if (!(e.target as HTMLElement).closest('input, button')) {
+                                    setSelectedProductForDetail(product);
+                                    setProductDetailOpen(true);
+                                  }
+                                }}
+                              >
+                                <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
                                   <Checkbox
                                     checked={selectedProducts.has(product.id)}
                                     onCheckedChange={() => toggleProductSelection(product.id)}
@@ -1309,7 +1349,7 @@ function App() {
                                     <span className="text-xs ml-1">(%{margin})</span>
                                   </div>
                                 </td>
-                                <td className="p-3">
+                                <td className="p-3" onClick={(e) => e.stopPropagation()}>
                                   <div className="flex justify-center gap-1">
                                     <Button
                                       variant="ghost"
@@ -1531,6 +1571,14 @@ function App() {
         onOpenChange={setStockValueDialogOpen}
         products={products}
         categories={categories}
+      />
+
+      <ProductDetailDialog
+        open={productDetailOpen}
+        onOpenChange={setProductDetailOpen}
+        product={selectedProductForDetail}
+        categories={categories}
+        formatPrice={formatPrice}
       />
     </div>
   );

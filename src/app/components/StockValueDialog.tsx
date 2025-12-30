@@ -46,7 +46,7 @@ export function StockValueDialog({ open, onOpenChange, products, categories }: S
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Stok Değeri Analizi</DialogTitle>
           <DialogDescription>
@@ -56,22 +56,22 @@ export function StockValueDialog({ open, onOpenChange, products, categories }: S
         
         <div className="space-y-6 py-4">
           {/* Overall Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30">
-              <p className="text-sm text-muted-foreground mb-1">Alış Fiyatı Toplamı</p>
-              <p className="text-2xl font-bold text-blue-600">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-6 rounded-lg bg-blue-50 dark:bg-blue-950/30">
+              <p className="text-sm text-muted-foreground mb-2">Alış Fiyatı Toplamı</p>
+              <p className="text-3xl font-bold text-blue-600">
                 ₺{totalPurchaseValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950/30">
-              <p className="text-sm text-muted-foreground mb-1">Satış Fiyatı Toplamı</p>
-              <p className="text-2xl font-bold text-green-600">
+            <div className="p-6 rounded-lg bg-green-50 dark:bg-green-950/30">
+              <p className="text-sm text-muted-foreground mb-2">Satış Fiyatı Toplamı</p>
+              <p className="text-3xl font-bold text-green-600">
                 ₺{totalSaleValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
               </p>
             </div>
-            <div className="p-4 rounded-lg bg-purple-50 dark:bg-purple-950/30">
-              <p className="text-sm text-muted-foreground mb-1">Potansiyel Kâr</p>
-              <p className="text-2xl font-bold text-purple-600">
+            <div className="p-6 rounded-lg bg-purple-50 dark:bg-purple-950/30">
+              <p className="text-sm text-muted-foreground mb-2">Potansiyel Kâr</p>
+              <p className="text-3xl font-bold text-purple-600">
                 ₺{potentialProfit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
               </p>
             </div>
@@ -79,32 +79,32 @@ export function StockValueDialog({ open, onOpenChange, products, categories }: S
 
           {/* Category Breakdown */}
           <div>
-            <h3 className="font-semibold mb-3">Kategori Bazlı Dağılım</h3>
-            <div className="space-y-2">
+            <h3 className="font-semibold mb-4 text-lg">Kategori Bazlı Dağılım</h3>
+            <div className="space-y-3">
               {sortedCategories.map((cat, index) => {
                 const profit = cat.saleValue - cat.purchaseValue;
                 const margin = cat.saleValue > 0 ? (profit / cat.saleValue * 100) : 0;
                 
                 return (
-                  <div key={index} className="p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium">{cat.name}</h4>
-                      <span className="text-sm text-muted-foreground">{cat.count} ürün</span>
+                  <div key={index} className="p-5 border rounded-lg hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="font-medium text-lg">{cat.name}</h4>
+                      <span className="text-sm text-muted-foreground font-medium">{cat.count} ürün</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-3 gap-6">
                       <div>
-                        <p className="text-muted-foreground">Alış Değeri</p>
-                        <p className="font-semibold">₺{cat.purchaseValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
+                        <p className="text-sm text-muted-foreground mb-1">Alış Değeri</p>
+                        <p className="font-semibold text-lg">₺{cat.purchaseValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Satış Değeri</p>
-                        <p className="font-semibold text-green-600">₺{cat.saleValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
+                        <p className="text-sm text-muted-foreground mb-1">Satış Değeri</p>
+                        <p className="font-semibold text-lg text-green-600">₺{cat.saleValue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
                       </div>
                       <div>
-                        <p className="text-muted-foreground">Potansiyel Kâr</p>
-                        <p className="font-semibold text-purple-600">
+                        <p className="text-sm text-muted-foreground mb-1">Potansiyel Kâr</p>
+                        <p className="font-semibold text-lg text-purple-600">
                           ₺{profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                          <span className="text-xs ml-1">(%{margin.toFixed(1)})</span>
+                          <span className="text-sm ml-2">(%{margin.toFixed(1)})</span>
                         </p>
                       </div>
                     </div>
@@ -115,9 +115,9 @@ export function StockValueDialog({ open, onOpenChange, products, categories }: S
           </div>
 
           {/* Summary */}
-          <div className="p-4 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
+          <div className="p-6 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
             <p className="text-sm text-muted-foreground mb-2">Ortalama Kâr Marjı</p>
-            <p className="text-3xl font-bold text-purple-600">
+            <p className="text-4xl font-bold text-purple-600">
               {totalSaleValue > 0 ? ((potentialProfit / totalSaleValue) * 100).toFixed(1) : 0}%
             </p>
           </div>
