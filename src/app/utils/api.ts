@@ -158,6 +158,11 @@ export const api = {
     return result.data;
   },
 
+  async searchProducts(query: string): Promise<Product[]> {
+    const result = await fetchAPI(`/products/search?q=${encodeURIComponent(query)}`);
+    return result.data || [];
+  },
+
   // Sales
   async getSales(): Promise<Sale[]> {
     const result = await fetchAPI("/sales");

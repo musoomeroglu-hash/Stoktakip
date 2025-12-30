@@ -7,6 +7,7 @@ import { CategoryManagementDialog } from "./components/CategoryManagementDialog"
 import { StockValueDialog } from "./components/StockValueDialog";
 import { CalculatorView } from "./components/CalculatorView";
 import { CariView } from "./components/CariView";
+import { WhatsAppBotCard } from "./components/WhatsAppBotCard";
 import { CategoryDialog } from "./components/CategoryDialog";
 import { ProductDialog } from "./components/ProductDialog";
 import { ProductDetailDialog } from "./components/ProductDetailDialog";
@@ -151,7 +152,7 @@ function App() {
   const [stockValueDialogOpen, setStockValueDialogOpen] = useState(false);
   const [productDetailOpen, setProductDetailOpen] = useState(false);
   const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
-  const [sortBy, setSortBy] = useState<"name" | "price">("name");
+  const [sortBy, setSortBy] = useState<"name" | "price" | "stock">("name");
   const [usdRate, setUsdRate] = useState<number>(0);
   const [currency, setCurrency] = useState<"TRY" | "USD">(() => {
     // Check localStorage for saved currency preference
@@ -393,6 +394,9 @@ function App() {
     .sort((a, b) => {
       if (sortBy === "name") {
         return a.name.localeCompare(b.name, 'tr');
+      } else if (sortBy === "stock") {
+        // Sort by stock (ascending - lowest to highest)
+        return a.stock - b.stock;
       } else {
         // Sort by sale price
         return b.salePrice - a.salePrice;
@@ -626,42 +630,8 @@ function App() {
       setRepairs(repairs.map((r) => (r.id === id ? updated : r)));
       toast.success("Tamir güncellendi");
     } catch (error) {
-      // If API fails, update locally (backend endpoint not implemented yet)
-      setRepairs(repairs.map((r) => (r.id === id ? { ...r, ...data } : r)));
-      toast.success("Tamir güncellendi");
-    }
-  };
-
-  // Handle repair delete
-  const handleDeleteRepair = async (id: string) => {
-    try {
-      // Check if there's a sale associated with this repair
-      const repairSale = sales.find(s => 
-        s.items.some(item => item.productId === `repair-${id}`)
-      );
-      
-      // If there's an associated sale, delete it first
-      if (repairSale && repairSale.id) {
-        await api.deleteSale(repairSale.id);
-        setSales(sales.filter((s) => s.id !== repairSale.id));
-      }
-      
-      // Then delete the repair
-      await api.deleteRepair(id);
-      setRepairs(repairs.filter((r) => r.id !== id));
-      toast.success("Tamir silindi");
-    } catch (error) {
-      // If API fails, delete locally (backend endpoint not implemented yet)
-      const repairSale = sales.find(s => 
-        s.items.some(item => item.productId === `repair-${id}`)
-      );
-      
-      if (repairSale && repairSale.id) {
-        setSales(sales.filter((s) => s.id !== repairSale.id));
-      }
-      
-      setRepairs(repairs.filter((r) => r.id !== id));
-      toast.success("Tamir silindi");
+      console.error("Error updating repair:", error);
+      toast.error("Tamir güncellenemedi");
     }
   };
 
@@ -815,6 +785,66 @@ function App() {
   const lowStockProducts = products.filter((p) => p.stock <= p.minStock);
   const totalInventoryValue = products.reduce((sum, p) => sum + (p.stock * p.purchasePrice), 0);
 
+  // Function to get stock color based on stock level
+  const getStockColor = (stock: number) => {
+    if (sortBy !== "stock" || filteredProducts.length === 0) return "";
+    
+    // Find min and max stock values for gradient
+    const stockValues = filteredProducts.map(p => p.stock);
+    const minStock = Math.min(...stockValues);
+    const maxStock = Math.max(...stockValues);
+    
+    // Avoid division by zero
+    if (minStock === maxStock) {
+      return "bg-yellow-100 dark:bg-yellow-900/30";
+    }
+    
+    // Normalize stock value between 0 and 1
+    const normalized = (stock - minStock) / (maxStock - minStock);
+    
+    // Create color gradient from red (low) to light green (high)
+    if (normalized < 0.2) {
+      return "bg-red-100 dark:bg-red-900/40"; // Darkest red
+    } else if (normalized < 0.4) {
+      return "bg-orange-100 dark:bg-orange-900/40";
+    } else if (normalized < 0.6) {
+      return "bg-yellow-100 dark:bg-yellow-900/40";
+    } else if (normalized < 0.8) {
+      return "bg-lime-100 dark:bg-lime-900/40";
+    } else {
+      return "bg-green-50 dark:bg-green-900/20"; // Lightest green
+    }
+  };
+
+  // Function to get stock badge color
+  const getStockBadgeColor = (stock: number, isLowStock: boolean): "destructive" | "secondary" | "outline" => {
+    if (sortBy !== "stock" || filteredProducts.length === 0) {
+      return isLowStock ? "destructive" : "secondary";
+    }
+    
+    // Find min and max stock values for gradient
+    const stockValues = filteredProducts.map(p => p.stock);
+    const minStock = Math.min(...stockValues);
+    const maxStock = Math.max(...stockValues);
+    
+    // Avoid division by zero
+    if (minStock === maxStock) {
+      return "secondary";
+    }
+    
+    // Normalize stock value between 0 and 1
+    const normalized = (stock - minStock) / (maxStock - minStock);
+    
+    // Return appropriate badge variant based on stock level
+    if (normalized < 0.2) {
+      return "destructive"; // Red
+    } else if (normalized < 0.6) {
+      return "outline"; // Yellow/Orange
+    } else {
+      return "secondary"; // Green
+    }
+  };
+
   // Show login screen if not authenticated
   if (!isAuthenticated) {
     return (
@@ -944,7 +974,7 @@ function App() {
               className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
                 selectedCategoryId === null && activeView === "products" 
                   ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md" 
-                  : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent"
+                  : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_15px_rgba(96,165,250,0.4)]"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -994,7 +1024,7 @@ function App() {
                       } ${
                         selectedCategoryId === mainCat.id 
                           ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md" 
-                          : "hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:border-indigo-200 dark:hover:border-indigo-800 border border-transparent"
+                          : "hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:border-indigo-200 dark:hover:border-indigo-800 border border-transparent hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] dark:hover:shadow-[0_0_15px_rgba(129,140,248,0.4)]"
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -1025,7 +1055,7 @@ function App() {
                             className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
                               selectedCategoryId === subCat.id 
                                 ? "bg-gradient-to-r from-violet-500 to-violet-600 text-white shadow-md" 
-                                : "hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:border-violet-200 dark:hover:border-violet-800 border border-transparent"
+                                : "hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:border-violet-200 dark:hover:border-violet-800 border border-transparent hover:shadow-[0_0_15px_rgba(139,92,246,0.3)] dark:hover:shadow-[0_0_15px_rgba(167,139,250,0.4)]"
                             }`}
                           >
                             <div className="flex items-center justify-between">
@@ -1052,7 +1082,7 @@ function App() {
               className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
                 activeView === "salesManagement" 
                   ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md" 
-                  : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent"
+                  : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent hover:shadow-[0_0_15px_rgba(124,58,237,0.3)] dark:hover:shadow-[0_0_15px_rgba(147,51,234,0.4)]"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -1064,7 +1094,7 @@ function App() {
             {/* Kategori Yönetimi */}
             <button
               onClick={() => setCategoryManagementOpen(true)}
-              className="w-full text-left px-3 py-2 rounded-lg transition-all duration-300 hover:bg-slate-100 dark:hover:bg-slate-900/30 hover:border-slate-300 dark:hover:border-slate-700 border border-transparent"
+              className="w-full text-left px-3 py-2 rounded-lg transition-all duration-300 hover:bg-slate-100 dark:hover:bg-slate-900/30 hover:border-slate-300 dark:hover:border-slate-700 border border-transparent hover:shadow-[0_0_15px_rgba(148,163,184,0.3)] dark:hover:shadow-[0_0_15px_rgba(148,163,184,0.4)]"
             >
               <div className="flex items-center gap-2">
                 <Settings className="w-4 h-4 text-slate-600 dark:text-slate-400" />
@@ -1081,7 +1111,7 @@ function App() {
               className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
                 activeView === "repairs" 
                   ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md" 
-                  : "hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-200 dark:hover:border-orange-800 border border-transparent"
+                  : "hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-200 dark:hover:border-orange-800 border border-transparent hover:shadow-[0_0_15px_rgba(249,115,22,0.3)] dark:hover:shadow-[0_0_15px_rgba(251,146,60,0.4)]"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -1100,7 +1130,7 @@ function App() {
               className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
                 activeView === "caris" 
                   ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-md" 
-                  : "hover:bg-pink-50 dark:hover:bg-pink-950/30 hover:border-pink-200 dark:hover:border-pink-800 border border-transparent"
+                  : "hover:bg-pink-50 dark:hover:bg-pink-950/30 hover:border-pink-200 dark:hover:border-pink-800 border border-transparent hover:shadow-[0_0_15px_rgba(236,72,153,0.3)] dark:hover:shadow-[0_0_15px_rgba(244,114,182,0.4)]"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -1118,7 +1148,7 @@ function App() {
               className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
                 activeView === "calculator" 
                   ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md" 
-                  : "hover:bg-green-50 dark:hover:bg-green-950/30 hover:border-green-200 dark:hover:border-green-800 border border-transparent"
+                  : "hover:bg-green-50 dark:hover:bg-green-950/30 hover:border-green-200 dark:hover:border-green-800 border border-transparent hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] dark:hover:shadow-[0_0_15px_rgba(74,222,128,0.4)]"
               }`}
             >
               <div className="flex items-center gap-2">
@@ -1177,7 +1207,15 @@ function App() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950 dark:to-orange-900/50 border-orange-200 dark:border-orange-800">
+                  <Card 
+                    className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950 dark:to-orange-900/50 border-orange-200 dark:border-orange-800 cursor-pointer hover:shadow-lg transition-all"
+                    onClick={() => {
+                      setSortBy("stock");
+                      setSelectedCategoryId(null);
+                      setActiveView("products");
+                      toast.info("Ürünler stok miktarına göre sıralandı");
+                    }}
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between">
                         <div>
@@ -1235,6 +1273,14 @@ function App() {
                   >
                     <ArrowUpDown className="w-4 h-4" />
                     Fiyata Göre
+                  </Button>
+                  <Button
+                    variant={sortBy === "stock" ? "default" : "outline"}
+                    onClick={() => setSortBy("stock")}
+                    className="gap-2"
+                  >
+                    <ArrowUpDown className="w-4 h-4" />
+                    Stoğa Göre
                   </Button>
                 </div>
 
@@ -1304,15 +1350,17 @@ function App() {
                             const margin = salePrice > 0 ? (profit / salePrice * 100).toFixed(1) : "0";
                             const isLowStock = product.stock <= product.minStock;
 
-                            // Alternating row colors
-                            const rowColor = index % 2 === 0 
-                              ? "bg-white/50 dark:bg-gray-900/50" 
-                              : "bg-blue-50/30 dark:bg-blue-950/20";
+                            // Alternating row colors or stock-based gradient
+                            const rowColor = sortBy === "stock" 
+                              ? getStockColor(product.stock)
+                              : (index % 2 === 0 
+                                  ? "bg-white/50 dark:bg-gray-900/50" 
+                                  : "bg-blue-50/30 dark:bg-blue-950/20");
 
                             return (
                               <tr 
                                 key={product.id} 
-                                className={`border-b ${rowColor} hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition-colors cursor-pointer`}
+                                className={`border-b ${rowColor} hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition-all duration-300 cursor-pointer hover:shadow-[0_0_20px_rgba(168,85,247,0.25)] dark:hover:shadow-[0_0_20px_rgba(192,132,252,0.35)]`}
                                 onClick={(e) => {
                                   // Don't open detail dialog if clicking on checkbox or buttons
                                   if (!(e.target as HTMLElement).closest('input, button')) {
@@ -1337,7 +1385,7 @@ function App() {
                                 </td>
                                 <td className="p-3 text-sm">{getCategoryName(product.categoryId)}</td>
                                 <td className="p-3 text-center">
-                                  <Badge variant={isLowStock ? "destructive" : "secondary"}>
+                                  <Badge variant={getStockBadgeColor(product.stock, isLowStock)}>
                                     {product.stock}
                                   </Badge>
                                 </td>
@@ -1432,7 +1480,6 @@ function App() {
                   onDeleteSale={handleDeleteSale}
                   onUpdateSale={handleUpdateSale}
                   onUpdateRepair={handleUpdateRepair}
-                  onDeleteRepair={handleDeleteRepair}
                   currency={currency}
                   usdRate={usdRate}
                   formatPrice={formatPrice}
@@ -1452,6 +1499,7 @@ function App() {
                 <RepairsView 
                   repairs={repairs}
                   onUpdateStatus={handleUpdateRepairStatus}
+                  onUpdateRepair={handleUpdateRepair}
                   currency={currency}
                   usdRate={usdRate}
                   formatPrice={formatPrice}
@@ -1488,6 +1536,21 @@ function App() {
               >
                 <h2 className="text-2xl font-bold">Hesap Makinesi</h2>
                 <CalculatorView usdRate={usdRate} />
+                
+                {/* WhatsApp Bot Kartı */}
+                <div className="mt-8">
+                  <WhatsAppBotCard 
+                    onSearchProduct={async (query: string) => {
+                      try {
+                        const results = await api.searchProducts(query);
+                        return results;
+                      } catch (error) {
+                        console.error('Ürün arama hatası:', error);
+                        return [];
+                      }
+                    }}
+                  />
+                </div>
               </motion.div>
             ) : (
               // Satış Paneli Görünümü
@@ -1505,7 +1568,6 @@ function App() {
                   categories={categories}
                   onDeleteSale={handleDeleteSale}
                   onUpdateRepair={handleUpdateRepair}
-                  onDeleteRepair={handleDeleteRepair}
                 />
               </motion.div>
             )}

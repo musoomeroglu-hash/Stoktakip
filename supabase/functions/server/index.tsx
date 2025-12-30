@@ -135,6 +135,34 @@ app.post("/make-server-929c4905/products/bulk", async (c) => {
   }
 });
 
+// Search products
+app.get("/make-server-929c4905/products/search", async (c) => {
+  try {
+    const query = c.req.query("q")?.toLowerCase() || "";
+    
+    if (!query) {
+      return c.json({ success: false, error: "Query parameter 'q' is required" }, 400);
+    }
+    
+    const allProducts = await kv.getByPrefix("product:");
+    
+    // Filter products by name (case-insensitive search)
+    const results = allProducts.filter((product: any) => 
+      product.name?.toLowerCase().includes(query)
+    );
+    
+    return c.json({ 
+      success: true, 
+      data: results,
+      count: results.length,
+      query: query
+    });
+  } catch (error) {
+    console.error("Error searching products:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
 // Sales
 app.get("/make-server-929c4905/sales", async (c) => {
   try {
@@ -292,6 +320,45 @@ app.put("/make-server-929c4905/repairs/:id/status", async (c) => {
     return c.json({ success: true, data: updatedRepair });
   } catch (error) {
     console.error("Error updating repair status:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// Update repair (full update)
+app.put("/make-server-929c4905/repairs/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const repairData = await c.req.json();
+    
+    // Get existing repair
+    const repair = await kv.get(`repair:${id}`);
+    if (!repair) {
+      return c.json({ success: false, error: "Repair not found" }, 404);
+    }
+    
+    // Merge with existing data
+    const updatedRepair = {
+      ...repair,
+      ...repairData,
+      id, // Preserve ID
+    };
+    
+    await kv.set(`repair:${id}`, updatedRepair);
+    return c.json({ success: true, data: updatedRepair });
+  } catch (error) {
+    console.error("Error updating repair:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// Delete repair
+app.delete("/make-server-929c4905/repairs/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    await kv.del(`repair:${id}`);
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting repair:", error);
     return c.json({ success: false, error: String(error) }, 500);
   }
 });

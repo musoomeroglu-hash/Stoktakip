@@ -1,20 +1,42 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Wrench, Phone, Calendar, DollarSign, Package, CheckCircle, Truck } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Textarea } from "./ui/textarea";
+import { Wrench, Phone, Calendar, DollarSign, Package, CheckCircle, Truck, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
+import { toast } from "sonner";
+import { useState } from "react";
 import type { RepairRecord } from "../utils/api";
 
 interface RepairsViewProps {
   repairs: RepairRecord[];
   onUpdateStatus: (id: string, status: "in_progress" | "completed" | "delivered") => void;
+  onUpdateRepair?: (id: string, data: Partial<RepairRecord>) => void;
   currency: "TRY" | "USD";
   usdRate: number;
   formatPrice: (price: number) => string;
 }
 
-export function RepairsView({ repairs, onUpdateStatus, currency, usdRate, formatPrice }: RepairsViewProps) {
+export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, currency, usdRate, formatPrice }: RepairsViewProps) {
+  const [editingRepair, setEditingRepair] = useState<RepairRecord | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    customerName: "",
+    customerPhone: "",
+    deviceInfo: "",
+    imei: "",
+    problemDescription: "",
+    repairCost: 0,
+    partsCost: 0,
+    status: "in_progress" as "in_progress" | "completed" | "delivered",
+  });
+
   // Grouping repairs by status
   const inProgressRepairs = repairs.filter(r => r.status === "in_progress");
   const completedRepairs = repairs.filter(r => r.status === "completed");
@@ -23,6 +45,37 @@ export function RepairsView({ repairs, onUpdateStatus, currency, usdRate, format
   // Summary statistics
   const totalRevenue = deliveredRepairs.reduce((sum, r) => sum + r.repairCost, 0);
   const totalProfit = deliveredRepairs.reduce((sum, r) => sum + r.profit, 0);
+
+  // Handle edit repair
+  const handleEditRepair = (repair: RepairRecord) => {
+    setEditingRepair(repair);
+    setEditForm({
+      customerName: repair.customerName,
+      customerPhone: repair.customerPhone,
+      deviceInfo: repair.deviceInfo,
+      imei: repair.imei || "",
+      problemDescription: repair.problemDescription,
+      repairCost: repair.repairCost,
+      partsCost: repair.partsCost,
+      status: repair.status,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingRepair || !onUpdateRepair) return;
+
+    const profit = editForm.repairCost - editForm.partsCost;
+    
+    onUpdateRepair(editingRepair.id!, {
+      ...editForm,
+      profit,
+    });
+
+    setEditDialogOpen(false);
+    setEditingRepair(null);
+    toast.success("Tamir kaydı güncellendi");
+  };
 
   return (
     <div className="space-y-6">
@@ -89,7 +142,13 @@ export function RepairsView({ repairs, onUpdateStatus, currency, usdRate, format
           </CardHeader>
           <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
             {inProgressRepairs.map((repair) => (
-              <RepairCard key={repair.id} repair={repair} onUpdateStatus={onUpdateStatus} formatPrice={formatPrice} />
+              <RepairCard 
+                key={repair.id} 
+                repair={repair} 
+                onUpdateStatus={onUpdateStatus} 
+                onEdit={handleEditRepair}
+                formatPrice={formatPrice} 
+              />
             ))}
             {inProgressRepairs.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
@@ -109,7 +168,13 @@ export function RepairsView({ repairs, onUpdateStatus, currency, usdRate, format
           </CardHeader>
           <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
             {completedRepairs.map((repair) => (
-              <RepairCard key={repair.id} repair={repair} onUpdateStatus={onUpdateStatus} formatPrice={formatPrice} />
+              <RepairCard 
+                key={repair.id} 
+                repair={repair} 
+                onUpdateStatus={onUpdateStatus} 
+                onEdit={handleEditRepair}
+                formatPrice={formatPrice} 
+              />
             ))}
             {completedRepairs.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
@@ -129,7 +194,13 @@ export function RepairsView({ repairs, onUpdateStatus, currency, usdRate, format
           </CardHeader>
           <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
             {deliveredRepairs.map((repair) => (
-              <RepairCard key={repair.id} repair={repair} onUpdateStatus={onUpdateStatus} formatPrice={formatPrice} />
+              <RepairCard 
+                key={repair.id} 
+                repair={repair} 
+                onUpdateStatus={onUpdateStatus} 
+                onEdit={handleEditRepair}
+                formatPrice={formatPrice} 
+              />
             ))}
             {deliveredRepairs.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
@@ -139,6 +210,104 @@ export function RepairsView({ repairs, onUpdateStatus, currency, usdRate, format
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Repair Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Tamir Kaydını Düzenle</DialogTitle>
+            <DialogDescription>
+              Tamir bilgilerini güncelleyin
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-customer-name">Müşteri Adı</Label>
+                <Input
+                  id="edit-customer-name"
+                  value={editForm.customerName}
+                  onChange={(e) => setEditForm({ ...editForm, customerName: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-customer-phone">Telefon</Label>
+                <Input
+                  id="edit-customer-phone"
+                  value={editForm.customerPhone}
+                  onChange={(e) => setEditForm({ ...editForm, customerPhone: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-device-info">Cihaz Bilgisi</Label>
+              <Input
+                id="edit-device-info"
+                value={editForm.deviceInfo}
+                onChange={(e) => setEditForm({ ...editForm, deviceInfo: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-imei">IMEI</Label>
+              <Input
+                id="edit-imei"
+                value={editForm.imei}
+                onChange={(e) => setEditForm({ ...editForm, imei: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-problem">Arıza Açıklaması</Label>
+              <Textarea
+                id="edit-problem"
+                value={editForm.problemDescription}
+                onChange={(e) => setEditForm({ ...editForm, problemDescription: e.target.value })}
+                rows={3}
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-repair-cost">Tamir Ücreti (₺)</Label>
+                <Input
+                  id="edit-repair-cost"
+                  type="number"
+                  step="0.01"
+                  value={editForm.repairCost}
+                  onChange={(e) => setEditForm({ ...editForm, repairCost: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-parts-cost">Malzeme Maliyeti (₺)</Label>
+                <Input
+                  id="edit-parts-cost"
+                  type="number"
+                  step="0.01"
+                  value={editForm.partsCost}
+                  onChange={(e) => setEditForm({ ...editForm, partsCost: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+
+            <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
+              <p className="text-sm text-muted-foreground">Kâr</p>
+              <p className="text-2xl font-bold text-green-600">
+                ₺{(editForm.repairCost - editForm.partsCost).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              İptal
+            </Button>
+            <Button onClick={handleSaveEdit}>
+              Kaydet
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -146,10 +315,12 @@ export function RepairsView({ repairs, onUpdateStatus, currency, usdRate, format
 function RepairCard({ 
   repair, 
   onUpdateStatus,
+  onEdit,
   formatPrice
 }: { 
   repair: RepairRecord; 
   onUpdateStatus: (id: string, status: "in_progress" | "completed" | "delivered") => void;
+  onEdit: (repair: RepairRecord) => void;
   formatPrice: (price: number) => string;
 }) {
   const nextStatus = getNextStatus(repair.status);
@@ -166,6 +337,16 @@ function RepairCard({
               <span className="text-sm text-muted-foreground">{repair.customerName}</span>
               {getStatusBadge(repair.status)}
             </div>
+          </div>
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onEdit(repair)}
+              className="h-8 w-8"
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
           </div>
         </div>
 

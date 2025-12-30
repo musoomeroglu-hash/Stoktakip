@@ -20,7 +20,6 @@ interface SalesManagementViewProps {
   onDeleteSale: (id: string) => void;
   onUpdateSale: (id: string, sale: Sale) => void;
   onUpdateRepair: (id: string, data: Partial<RepairRecord>) => void;
-  onDeleteRepair: (id: string) => void;
   currency: "TRY" | "USD";
   usdRate: number;
   formatPrice: (price: number) => string;
@@ -36,7 +35,6 @@ export function SalesManagementView({
   onDeleteSale,
   onUpdateSale,
   onUpdateRepair,
-  onDeleteRepair,
   currency,
   usdRate,
   formatPrice,
@@ -145,13 +143,6 @@ export function SalesManagementView({
     setEditRepairDialogOpen(false);
     setEditingRepair(null);
     toast.success("Tamir kaydı güncellendi");
-  };
-
-  const handleDeleteRepair = (id: string) => {
-    if (window.confirm("Bu tamir kaydını silmek istediğinize emin misiniz?")) {
-      onDeleteRepair(id);
-      toast.success("Tamir kaydı silindi");
-    }
   };
 
   // Handle edit sale
@@ -346,14 +337,7 @@ export function SalesManagementView({
                               })}
                             </p>
                           </div>
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEditRepair(repair)}>
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteRepair(repair.id!)}>
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
-                          </div>
+                          {/* Düzenleme ve silme butonları kaldırıldı - Tamir Kayıtları'ndan yönetin */}
                         </div>
                       </CardContent>
                     </Card>
@@ -764,14 +748,16 @@ export function SalesManagementView({
                               +{formatPriceLocale(isSale ? item.totalProfit : item.profit)}
                             </p>
                           </div>
-                          <div className="flex gap-1">
-                            <Button variant="ghost" size="icon" onClick={() => isSale ? handleEditSale(item) : handleEditRepair(item)}>
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => isSale ? handleDeleteSale(item.id!) : handleDeleteRepair(item.id!)}>
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
-                          </div>
+                          {isSale && (
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => handleEditSale(item)}>
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteSale(item.id!)}>
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     );

@@ -297,6 +297,45 @@ app.put("/make-server-929c4905/repairs/:id/status", async (c) => {
   }
 });
 
+// Update repair (full update)
+app.put("/make-server-929c4905/repairs/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const repairData = await c.req.json();
+    
+    // Get existing repair
+    const repair = await kv.get(`repair:${id}`);
+    if (!repair) {
+      return c.json({ success: false, error: "Repair not found" }, 404);
+    }
+    
+    // Merge with existing data
+    const updatedRepair = {
+      ...repair,
+      ...repairData,
+      id, // Preserve ID
+    };
+    
+    await kv.set(`repair:${id}`, updatedRepair);
+    return c.json({ success: true, data: updatedRepair });
+  } catch (error) {
+    console.error("Error updating repair:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// Delete repair
+app.delete("/make-server-929c4905/repairs/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    await kv.del(`repair:${id}`);
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting repair:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
 // Customers
 app.get("/make-server-929c4905/customers", async (c) => {
   try {

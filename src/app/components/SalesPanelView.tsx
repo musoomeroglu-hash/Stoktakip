@@ -19,7 +19,6 @@ interface SalesPanelViewProps {
   categories: Category[];
   onDeleteSale: (id: string) => void;
   onUpdateRepair: (id: string, data: Partial<RepairRecord>) => void;
-  onDeleteRepair: (id: string) => void;
 }
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#f43f5e'];
@@ -30,7 +29,6 @@ export function SalesPanelView({
   categories,
   onDeleteSale,
   onUpdateRepair,
-  onDeleteRepair,
 }: SalesPanelViewProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [editingRepair, setEditingRepair] = useState<RepairRecord | null>(null);
@@ -126,13 +124,6 @@ export function SalesPanelView({
     setEditDialogOpen(false);
     setEditingRepair(null);
     toast.success("Tamir kaydı güncellendi");
-  };
-
-  const handleDeleteRepair = (id: string) => {
-    if (window.confirm("Bu tamir kaydını silmek istediğinize emin misiniz?")) {
-      onDeleteRepair(id);
-      toast.success("Tamir kaydı silindi");
-    }
   };
 
   // All categories for filter
@@ -289,22 +280,7 @@ export function SalesPanelView({
                                 })}
                               </p>
                             </div>
-                            <div className="flex gap-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditRepair(repair)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteRepair(repair.id!)}
-                              >
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                              </Button>
-                            </div>
+                            {/* Edit ve Delete butonları kaldırıldı - Tamir Kayıtları'ndan yönetin */}
                           </div>
                         </CardContent>
                       </Card>
