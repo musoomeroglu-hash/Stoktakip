@@ -3,7 +3,10 @@ import { projectId, publicAnonKey } from "../../../utils/supabase/info";
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-929c4905`;
 
 async function fetchAPI(endpoint: string, options: RequestInit = {}) {
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const url = `${API_URL}${endpoint}`;
+  console.log('API Request:', url);
+  
+  const response = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -14,7 +17,13 @@ async function fetchAPI(endpoint: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(error || "API request failed");
+    console.error('API Error:', {
+      url,
+      status: response.status,
+      statusText: response.statusText,
+      error
+    });
+    throw new Error(`${response.status} ${response.statusText}: ${error || "API request failed"}`);
   }
 
   return response.json();
@@ -281,5 +290,46 @@ export const api = {
   async getCustomerTransactions(): Promise<CustomerTransaction[]> {
     const result = await fetchAPI("/customer-transactions");
     return result.data || [];
+  },
+
+  // WhatsApp Bot
+  async initWhatsAppSession(): Promise<{ sessionId: string }> {
+    const result = await fetchAPI("/whatsapp/init", {
+      method: "POST",
+    });
+    return result.data;
+  },
+
+  async authenticateWhatsApp(sessionId: string, phoneNumber: string): Promise<any> {
+    const result = await fetchAPI("/whatsapp/authenticate", {
+      method: "POST",
+      body: JSON.stringify({ sessionId, phoneNumber }),
+    });
+    return result.data;
+  },
+
+  async getWhatsAppSession(sessionId: string): Promise<any> {
+    const result = await fetchAPI(`/whatsapp/session/${sessionId}`);
+    return result.data;
+  },
+
+  async disconnectWhatsApp(sessionId: string): Promise<void> {
+    await fetchAPI("/whatsapp/disconnect", {
+      method: "POST",
+      body: JSON.stringify({ sessionId }),
+    });
+  },
+
+  async sendWhatsAppMessage(sessionId: string, from: string, message: string): Promise<{ message: string; resultsCount: number }> {
+    const result = await fetchAPI("/whatsapp/webhook", {
+      method: "POST",
+      body: JSON.stringify({ sessionId, from, message }),
+    });
+    return result.data;
+  },
+
+  async getWhatsAppStats(sessionId: string): Promise<{ totalSearches: number; totalResults: number; recentSearches: any[] }> {
+    const result = await fetchAPI(`/whatsapp/stats/${sessionId}`);
+    return result.data;
   },
 };

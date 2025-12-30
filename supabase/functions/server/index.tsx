@@ -468,4 +468,194 @@ app.post("/make-server-929c4905/customer-transactions", async (c) => {
   }
 });
 
+// WhatsApp Bot Endpoints
+app.post("/make-server-929c4905/whatsapp/init", async (c) => {
+  try {
+    const sessionId = Date.now().toString();
+    
+    // Create session
+    const session = {
+      id: sessionId,
+      status: "pending",
+      qrCode: null,
+      phoneNumber: null,
+      createdAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 60000).toISOString(), // 1 minute
+    };
+    
+    await kv.set(`whatsapp_session:${sessionId}`, session);
+    
+    return c.json({ 
+      success: true, 
+      data: { sessionId } 
+    });
+  } catch (error) {
+    console.error("Error initializing WhatsApp session:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.post("/make-server-929c4905/whatsapp/authenticate", async (c) => {
+  try {
+    const { sessionId, phoneNumber } = await c.req.json();
+    
+    if (!phoneNumber || !/^\+?[1-9]\d{10,14}$/.test(phoneNumber.replace(/\s/g, ''))) {
+      return c.json({ 
+        success: false, 
+        error: "Geçersiz telefon numarası. Format: +90XXXXXXXXXX" 
+      }, 400);
+    }
+    
+    const session = await kv.get(`whatsapp_session:${sessionId}`);
+    if (!session) {
+      return c.json({ success: false, error: "Session bulunamadı" }, 404);
+    }
+    
+    // Update session
+    session.status = "connected";
+    session.phoneNumber = phoneNumber;
+    session.connectedAt = new Date().toISOString();
+    
+    await kv.set(`whatsapp_session:${sessionId}`, session);
+    
+    return c.json({ 
+      success: true, 
+      data: session 
+    });
+  } catch (error) {
+    console.error("Error authenticating WhatsApp:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.get("/make-server-929c4905/whatsapp/session/:sessionId", async (c) => {
+  try {
+    const sessionId = c.req.param("sessionId");
+    const session = await kv.get(`whatsapp_session:${sessionId}`);
+    
+    if (!session) {
+      return c.json({ success: false, error: "Session bulunamadı" }, 404);
+    }
+    
+    return c.json({ success: true, data: session });
+  } catch (error) {
+    console.error("Error fetching WhatsApp session:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.post("/make-server-929c4905/whatsapp/disconnect", async (c) => {
+  try {
+    const { sessionId } = await c.req.json();
+    
+    const session = await kv.get(`whatsapp_session:${sessionId}`);
+    if (session) {
+      session.status = "disconnected";
+      session.disconnectedAt = new Date().toISOString();
+      await kv.set(`whatsapp_session:${sessionId}`, session);
+    }
+    
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error disconnecting WhatsApp:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// WhatsApp Webhook - Receive messages
+app.post("/make-server-929c4905/whatsapp/webhook", async (c) => {
+  try {
+    const { sessionId, from, message } = await c.req.json();
+    
+    // Get session
+    const session = await kv.get(`whatsapp_session:${sessionId}`);
+    if (!session || session.status !== "connected") {
+      return c.json({ success: false, error: "Session aktif değil" }, 400);
+    }
+    
+    // Search products based on message
+    const query = message.toLowerCase().trim();
+    const allProducts = await kv.getByPrefix("product:");
+    const results = allProducts.filter((product: any) => 
+      product.name?.toLowerCase().includes(query) ||
+      product.barcode?.toLowerCase().includes(query) ||
+      product.description?.toLowerCase().includes(query)
+    );
+    
+    // Build response message
+    let responseMessage = "";
+    if (results.length === 0) {
+      responseMessage = `❌ "${message}" için ürün bulunamadı.\n\n💡 İpucu: Daha genel arama yapmayı deneyin.`;
+    } else {
+      responseMessage = `🔎 *${results.length} ürün bulundu:*\n\n`;
+      
+      results.slice(0, 10).forEach((product: any, index: number) => {
+        responseMessage += `${index + 1}. *${product.name}*\n`;
+        responseMessage += `   💰 Satış: ₺${product.salePrice?.toLocaleString('tr-TR') || '0'}\n`;
+        if (product.purchasePrice) {
+          responseMessage += `   🏷️ Alış: ₺${product.purchasePrice?.toLocaleString('tr-TR')}\n`;
+        }
+        if (product.stock !== undefined) {
+          const stockEmoji = product.stock > 10 ? '✅' : product.stock > 0 ? '⚠️' : '❌';
+          responseMessage += `   ${stockEmoji} Stok: ${product.stock}\n`;
+        }
+        if (product.barcode) {
+          responseMessage += `   📊 Barkod: ${product.barcode}\n`;
+        }
+        responseMessage += `\n`;
+      });
+      
+      if (results.length > 10) {
+        responseMessage += `... ve ${results.length - 10} ürün daha\n\n`;
+      }
+      
+      responseMessage += `_Techno.Cep Stok Sistemi_\n`;
+      responseMessage += `📅 ${new Date().toLocaleDateString('tr-TR')} ${new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`;
+    }
+    
+    // Log the interaction
+    const logId = Date.now().toString();
+    await kv.set(`whatsapp_log:${logId}`, {
+      id: logId,
+      sessionId,
+      from,
+      query: message,
+      resultsCount: results.length,
+      sentAt: new Date().toISOString(),
+    });
+    
+    return c.json({ 
+      success: true, 
+      data: { 
+        message: responseMessage,
+        resultsCount: results.length 
+      } 
+    });
+  } catch (error) {
+    console.error("Error processing WhatsApp webhook:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// WhatsApp Stats
+app.get("/make-server-929c4905/whatsapp/stats/:sessionId", async (c) => {
+  try {
+    const sessionId = c.req.param("sessionId");
+    const allLogs = await kv.getByPrefix("whatsapp_log:");
+    const sessionLogs = allLogs.filter((log: any) => log.sessionId === sessionId);
+    
+    return c.json({
+      success: true,
+      data: {
+        totalSearches: sessionLogs.length,
+        totalResults: sessionLogs.reduce((sum: number, log: any) => sum + (log.resultsCount || 0), 0),
+        recentSearches: sessionLogs.slice(-10).reverse(),
+      }
+    });
+  } catch (error) {
+    console.error("Error fetching WhatsApp stats:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
 Deno.serve(app.fetch);

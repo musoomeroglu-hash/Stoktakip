@@ -7,7 +7,8 @@ import { CategoryManagementDialog } from "./components/CategoryManagementDialog"
 import { StockValueDialog } from "./components/StockValueDialog";
 import { CalculatorView } from "./components/CalculatorView";
 import { CariView } from "./components/CariView";
-import { WhatsAppBotCard } from "./components/WhatsAppBotCard";
+import { CustomerRequestsView } from "./components/CustomerRequestsView";
+import { WhatsAppBotPro } from "./components/WhatsAppBotPro";
 import { CategoryDialog } from "./components/CategoryDialog";
 import { ProductDialog } from "./components/ProductDialog";
 import { ProductDetailDialog } from "./components/ProductDetailDialog";
@@ -46,6 +47,7 @@ import {
   DollarSign,
   Eye,
   Calculator,
+  ClipboardList,
   Moon,
   Sun,
   LogOut,
@@ -142,7 +144,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly" | "all">("daily");
-  const [activeView, setActiveView] = useState<"products" | "salesManagement" | "repairs" | "caris" | "calculator">("salesManagement");
+  const [activeView, setActiveView] = useState<"products" | "salesManagement" | "repairs" | "caris" | "calculator" | "requests">("salesManagement");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
@@ -1156,6 +1158,24 @@ function App() {
                 <span>Hesap Makinesi</span>
               </div>
             </button>
+
+            {/* İstek & Siparişler */}
+            <button
+              onClick={() => {
+                playMenuSound();
+                setActiveView("requests");
+              }}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
+                activeView === "requests" 
+                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md" 
+                  : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_15px_rgba(96,165,250,0.4)]"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <ClipboardList className="w-4 h-4" />
+                <span>İstek & Siparişler</span>
+              </div>
+            </button>
           </div>
         </aside>
 
@@ -1537,20 +1557,23 @@ function App() {
                 <h2 className="text-2xl font-bold">Hesap Makinesi</h2>
                 <CalculatorView usdRate={usdRate} />
                 
-                {/* WhatsApp Bot Kartı */}
+                {/* WhatsApp Bot - Professional QR Code Edition */}
                 <div className="mt-8">
-                  <WhatsAppBotCard 
-                    onSearchProduct={async (query: string) => {
-                      try {
-                        const results = await api.searchProducts(query);
-                        return results;
-                      } catch (error) {
-                        console.error('Ürün arama hatası:', error);
-                        return [];
-                      }
-                    }}
-                  />
+                  <WhatsAppBotPro />
                 </div>
+              </motion.div>
+            ) : activeView === "requests" ? (
+              // İstek & Siparişler Görünümü
+              <motion.div
+                key="requests"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="space-y-6"
+              >
+                <h2 className="text-2xl font-bold">İstek & Siparişler</h2>
+                <CustomerRequestsView />
               </motion.div>
             ) : (
               // Satış Paneli Görünümü
