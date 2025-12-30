@@ -4,7 +4,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, R
 import { TrendingUp, DollarSign, ShoppingBag, Percent, Trash2, Edit, HandCoins } from "lucide-react";
 import { format, startOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
 import { Button } from "./ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "./ui/alert-dialog";
@@ -409,6 +409,9 @@ export function ReportsView({ sales, period, customerTransactions, onDeleteSale,
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Satışı Düzenle</DialogTitle>
+            <DialogDescription>
+              Satış bilgilerini güncelleyin
+            </DialogDescription>
           </DialogHeader>
           <CardContent>
             <div className="space-y-4">

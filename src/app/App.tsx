@@ -21,7 +21,7 @@ import { Checkbox } from "./components/ui/checkbox";
 import { toast, Toaster } from "sonner";
 import * as XLSX from "xlsx";
 import { api } from "./utils/api";
-import type { Category, Product, Sale, SaleItem, RepairRecord, Customer, CustomerTransaction } from "./utils/types";
+import type { Category, Product, Sale, SaleItem, RepairRecord, Customer, CustomerTransaction } from "./utils/api";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Package, 
@@ -475,10 +475,24 @@ function App() {
           "Satış Fiyatı": number;
         }>(worksheet);
 
+        // Filter out empty rows
+        const validRows = jsonData.filter(row => 
+          row["Ürün Adı"] && 
+          row["Ürün Adı"].toString().trim() !== "" &&
+          row["Kategori"] && 
+          row["Kategori"].toString().trim() !== "" &&
+          typeof row["Stok"] === "number" &&
+          typeof row["Alış Fiyatı"] === "number" &&
+          typeof row["Satış Fiyatı"] === "number"
+        );
+
+        console.log(`Excel'den okunan toplam satır: ${jsonData.length}`);
+        console.log(`Geçerli satır sayısı: ${validRows.length}`);
+
         let updatedCount = 0;
         let errorCount = 0;
 
-        for (const row of jsonData) {
+        for (const row of validRows) {
           try {
             // Find existing product by name or barcode
             const existingProduct = products.find(
@@ -511,6 +525,9 @@ function App() {
         }
         if (errorCount > 0) {
           toast.error(`${errorCount} ürün güncellenemedi`);
+        }
+        if (validRows.length === 0) {
+          toast.error("Excel'de geçerli ürün bulunamadı");
         }
       } catch (error) {
         console.error("Excel import error:", error);

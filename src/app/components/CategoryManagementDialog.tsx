@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { FolderTree, Trash2 } from "lucide-react";
@@ -26,6 +26,9 @@ export function CategoryManagementDialog({
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Kategori Yönetimi</DialogTitle>
+          <DialogDescription>
+            Kategorilerinizi görüntüleyin ve yönetin
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2 mt-4">

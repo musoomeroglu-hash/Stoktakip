@@ -158,7 +158,18 @@ export function BulkUploadDialog({ open, onOpenChange, categories, onBulkAdd }: 
           "Açıklama"?: string;
         }>(worksheet);
 
-        if (jsonData.length === 0) {
+        // Filter out empty rows - boş satırları filtrele
+        const validData = jsonData.filter(row => 
+          row["Ürün Adı"] && 
+          row["Ürün Adı"].toString().trim() !== "" &&
+          row["Kategori"] && 
+          row["Kategori"].toString().trim() !== ""
+        );
+
+        console.log(`Excel'den okunan toplam satır: ${jsonData.length}`);
+        console.log(`Geçerli satır sayısı: ${validData.length}`);
+
+        if (validData.length === 0) {
           toast.error("Excel dosyası boş veya geçersiz format");
           setUploading(false);
           event.target.value = "";
@@ -168,19 +179,9 @@ export function BulkUploadDialog({ open, onOpenChange, categories, onBulkAdd }: 
         const productsToAdd: Omit<Product, "id">[] = [];
         const errors: string[] = [];
 
-        for (let i = 0; i < jsonData.length; i++) {
-          const row = jsonData[i];
+        for (let i = 0; i < validData.length; i++) {
+          const row = validData[i];
           const rowNum = i + 2; // Excel'de satır numarası (başlık 1, veri 2'den başlar)
-
-          // Zorunlu alan kontrolü
-          if (!row["Ürün Adı"]) {
-            errors.push(`Satır ${rowNum}: Ürün adı boş olamaz`);
-            continue;
-          }
-          if (!row["Kategori"]) {
-            errors.push(`Satır ${rowNum}: Kategori boş olamaz`);
-            continue;
-          }
 
           // Kategori adını parse et (→, ->, - ayraçlarını destekle)
           const categoryInput = row["Kategori"].toString().trim();

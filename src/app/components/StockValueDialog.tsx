@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
 import type { Product, Category } from "../utils/api";
 
 interface StockValueDialogProps {
@@ -49,6 +49,9 @@ export function StockValueDialog({ open, onOpenChange, products, categories }: S
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Stok Değeri Analizi</DialogTitle>
+          <DialogDescription>
+            Kategorilere göre stok değeri dağılımı
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
