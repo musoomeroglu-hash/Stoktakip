@@ -8,6 +8,7 @@ import { StockValueDialog } from "./components/StockValueDialog";
 import { CalculatorView } from "./components/CalculatorView";
 import { CariView } from "./components/CariView";
 import { CustomerRequestsView } from "./components/CustomerRequestsView";
+import { ExpensesView } from "./components/ExpensesView";
 import { WhatsAppBotPro } from "./components/WhatsAppBotPro";
 import { CategoryDialog } from "./components/CategoryDialog";
 import { ProductDialog } from "./components/ProductDialog";
@@ -48,6 +49,7 @@ import {
   Eye,
   Calculator,
   ClipboardList,
+  Receipt,
   Moon,
   Sun,
   LogOut,
@@ -144,7 +146,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly" | "all">("daily");
-  const [activeView, setActiveView] = useState<"products" | "salesManagement" | "repairs" | "caris" | "calculator" | "requests">("salesManagement");
+  const [activeView, setActiveView] = useState<"products" | "salesManagement" | "repairs" | "caris" | "calculator" | "requests" | "expenses">("salesManagement");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
@@ -871,7 +873,7 @@ function App() {
   const mainCategories = categories.filter(c => !c.parentId);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       <Toaster position="top-right" />
 
       {/* Header */}
@@ -1174,6 +1176,24 @@ function App() {
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-4 h-4" />
                 <span>İstek & Siparişler</span>
+              </div>
+            </button>
+
+            {/* Giderler */}
+            <button
+              onClick={() => {
+                playMenuSound();
+                setActiveView("expenses");
+              }}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
+                activeView === "expenses" 
+                  ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md" 
+                  : "hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-200 dark:hover:border-orange-800 border border-transparent hover:shadow-[0_0_15px_rgba(249,115,22,0.3)] dark:hover:shadow-[0_0_15px_rgba(251,146,60,0.4)]"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Receipt className="w-4 h-4" />
+                <span>Giderler</span>
               </div>
             </button>
           </div>
@@ -1574,6 +1594,25 @@ function App() {
               >
                 <h2 className="text-2xl font-bold">İstek & Siparişler</h2>
                 <CustomerRequestsView />
+              </motion.div>
+            ) : activeView === "expenses" ? (
+              // Giderler Görünümü
+              <motion.div
+                key="expenses"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="space-y-6"
+              >
+                <h2 className="text-2xl font-bold">Giderler</h2>
+                <ExpensesView 
+                  totalProfit={
+                    sales.reduce((sum, s) => sum + s.totalProfit, 0) + 
+                    repairs.filter(r => r.status === "completed" || r.status === "delivered")
+                      .reduce((sum, r) => sum + (r.repairCost - r.partsCost), 0)
+                  }
+                />
               </motion.div>
             ) : (
               // Satış Paneli Görünümü
