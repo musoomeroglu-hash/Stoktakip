@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Badge } from "./ui/badge";
@@ -8,7 +8,7 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { Wrench, ShoppingCart, TrendingUp, DollarSign, Edit, Trash2, User, BarChart3 } from "lucide-react";
+import { Wrench, ShoppingCart, TrendingUp, DollarSign, Edit, Trash2, User, BarChart3, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import type { Sale, RepairRecord, Customer, CustomerTransaction, SaleItem } from "../utils/api";
 
@@ -39,6 +39,49 @@ export function SalesManagementView({
   usdRate,
   formatPrice,
 }: SalesManagementViewProps) {
+  // Date range states
+  const [startDate, setStartDate] = useState<string>(() => {
+    // Default: ayın ilk günü
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  });
+  
+  const [endDate, setEndDate] = useState<string>(() => {
+    // Default: bugün
+    return new Date().toISOString().split('T')[0];
+  });
+
+  // Helper function to check if date is in range
+  const isDateInRange = (dateStr: string | undefined) => {
+    if (!dateStr) return false;
+    const date = new Date(dateStr);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999); // End of day
+    return date >= start && date <= end;
+  };
+
+  // Quick date range setters
+  const setCurrentMonth = () => {
+    const now = new Date();
+    setStartDate(new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]);
+    setEndDate(new Date().toISOString().split('T')[0]);
+  };
+
+  const setPreviousMonth = () => {
+    const now = new Date();
+    const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDayPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    setStartDate(firstDayPrevMonth.toISOString().split('T')[0]);
+    setEndDate(lastDayPrevMonth.toISOString().split('T')[0]);
+  };
+
+  const setAllTime = () => {
+    // Set to very early date to include all records
+    setStartDate('2020-01-01');
+    setEndDate(new Date().toISOString().split('T')[0]);
+  };
+
   // Helper to format price with locale
   const formatPriceLocale = (price: number) => {
     if (currency === "USD" && usdRate > 0) {
@@ -77,22 +120,28 @@ export function SalesManagementView({
 
   // Calculate repair stats
   const repairStats = useMemo(() => {
-    const filtered = repairs.filter(r => r.status === "completed" || r.status === "delivered");
+    const filtered = repairs.filter(r => 
+      (r.status === "completed" || r.status === "delivered") &&
+      isDateInRange(r.createdAt)
+    );
     const totalRevenue = filtered.reduce((sum, r) => sum + r.repairCost, 0);
     const totalCost = filtered.reduce((sum, r) => sum + r.partsCost, 0);
     const totalProfit = totalRevenue - totalCost;
 
     return { count: filtered.length, revenue: totalRevenue, profit: totalProfit, items: filtered };
-  }, [repairs]);
+  }, [repairs, startDate, endDate]);
 
   // Calculate product sale stats
   const productSaleStats = useMemo(() => {
-    const filtered = sales.filter(s => !s.items.some(item => item.productId.startsWith('repair-')));
+    const filtered = sales.filter(s => 
+      !s.items.some(item => item.productId.startsWith('repair-')) &&
+      isDateInRange(s.date)
+    );
     const totalRevenue = filtered.reduce((sum, s) => sum + s.totalPrice, 0);
     const totalProfit = filtered.reduce((sum, s) => sum + s.totalProfit, 0);
 
     return { count: filtered.length, revenue: totalRevenue, profit: totalProfit, items: filtered };
-  }, [sales]);
+  }, [sales, startDate, endDate]);
 
   // Calculate cari stats
   const cariStats = useMemo(() => {
@@ -192,6 +241,72 @@ export function SalesManagementView({
         <h2 className="text-2xl font-bold">Satış & Raporlar</h2>
         <p className="text-sm text-muted-foreground">Tüm satış işlemleri ve raporlar</p>
       </div>
+
+      {/* Date Range Filter */}
+      <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border-indigo-200 dark:border-indigo-800">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+              <span className="font-semibold text-indigo-900 dark:text-indigo-100">Tarih Aralığı:</span>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-3 flex-1">
+              {/* Date Inputs */}
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-auto border-indigo-300 dark:border-indigo-700"
+                />
+                <span className="text-muted-foreground">-</span>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-auto border-indigo-300 dark:border-indigo-700"
+                />
+              </div>
+
+              {/* Quick Filters */}
+              <div className="flex gap-2">
+                <Button 
+                  onClick={setCurrentMonth} 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-white dark:bg-gray-800"
+                >
+                  Bu Ay
+                </Button>
+                <Button 
+                  onClick={setPreviousMonth} 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-white dark:bg-gray-800"
+                >
+                  Geçen Ay
+                </Button>
+                <Button 
+                  onClick={setAllTime} 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-white dark:bg-gray-800"
+                >
+                  Tüm Zamanlar
+                </Button>
+              </div>
+            </div>
+
+            {/* Selected Period Display */}
+            <div className="text-sm text-muted-foreground bg-white dark:bg-gray-800 px-3 py-2 rounded-md border">
+              📅 {new Date(startDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })} 
+              {' - '} 
+              {new Date(endDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Overall Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
