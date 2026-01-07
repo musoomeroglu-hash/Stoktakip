@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { LoginScreen } from "./components/LoginScreen";
 import { RepairsView } from "./components/RepairsView";
+import { PhoneSalesView } from "./components/PhoneSalesView";
 import { SalesPanelView } from "./components/SalesPanelView";
 import { SalesManagementView } from "./components/SalesManagementView";
 import { CategoryManagementDialog } from "./components/CategoryManagementDialog";
@@ -17,6 +18,7 @@ import { SalesDialog } from "./components/SalesDialog";
 import { BulkUploadDialog } from "./components/BulkUploadDialog";
 import { SalesTypeDialog } from "./components/SalesTypeDialog";
 import { RepairDialog } from "./components/RepairDialog";
+import { PhoneSaleDialog, PhoneSale } from "./components/PhoneSaleDialog";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -53,7 +55,8 @@ import {
   Moon,
   Sun,
   LogOut,
-  ArrowUpDown
+  ArrowUpDown,
+  Smartphone
 } from "lucide-react";
 
 // Success sound function using Web Audio API
@@ -134,6 +137,7 @@ function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [repairs, setRepairs] = useState<RepairRecord[]>([]);
+  const [phoneSales, setPhoneSales] = useState<PhoneSale[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerTransactions, setCustomerTransactions] = useState<CustomerTransaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,12 +150,13 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly" | "all">("daily");
-  const [activeView, setActiveView] = useState<"products" | "salesManagement" | "repairs" | "caris" | "calculator" | "requests" | "expenses">("salesManagement");
+  const [activeView, setActiveView] = useState<"products" | "salesManagement" | "repairs" | "phoneSales" | "caris" | "calculator" | "requests" | "expenses">("salesManagement");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const [salesTypeOpen, setSalesTypeOpen] = useState(false);
   const [repairOpen, setRepairOpen] = useState(false);
+  const [phoneSaleOpen, setPhoneSaleOpen] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [stockValueDialogOpen, setStockValueDialogOpen] = useState(false);
   const [productDetailOpen, setProductDetailOpen] = useState(false);
@@ -211,6 +216,12 @@ function App() {
       setRepairs(repairsData);
       setCustomers(customersData);
       setCustomerTransactions(customerTransactionsData);
+
+      // Load phone sales from LocalStorage
+      const savedPhoneSales = localStorage.getItem("phoneSales");
+      if (savedPhoneSales) {
+        setPhoneSales(JSON.parse(savedPhoneSales));
+      }
 
       // Initialize with sample data if empty
       if (categoriesData.length === 0) {
@@ -606,25 +617,36 @@ function App() {
           totalProfit: updated.profit,
           date: new Date().toISOString(),
         };
-        
-        const newSale = await api.addSale(sale);
-        setSales([newSale, ...sales]);
+
+        await api.addSale(sale);
+        const updatedSales = await api.getSales();
+        setSales(updatedSales);
       }
-      
-      // Refresh repairs
-      const updatedRepairs = await api.getRepairs();
+
+      const updatedRepairs = repairs.map((r) => (r.id === id ? updated : r));
       setRepairs(updatedRepairs);
       
-      // Play success sound if delivered
-      if (status === "delivered") {
-        playSuccessSound();
-      }
-      
-      toast.success(`Durum güncellendi: ${status === "completed" ? "Tamir Edildi" : "Teslim Edildi"}`);
+      toast.success("Tamir durumu güncellendi");
+      playSuccessSound();
     } catch (error) {
-      console.error("Error updating repair status:", error);
-      toast.error("Durum güncellenemedi");
+      console.error("Repair status update error:", error);
+      toast.error("Tamir durumu güncellenemedi");
     }
+  };
+
+  // Handle phone sale
+  const handleAddPhoneSale = (phoneSale: PhoneSale) => {
+    const updatedPhoneSales = [phoneSale, ...phoneSales];
+    setPhoneSales(updatedPhoneSales);
+    localStorage.setItem("phoneSales", JSON.stringify(updatedPhoneSales));
+    playSuccessSound();
+  };
+
+  const handleDeletePhoneSale = (id: string) => {
+    const updatedPhoneSales = phoneSales.filter((ps) => ps.id !== id);
+    setPhoneSales(updatedPhoneSales);
+    localStorage.setItem("phoneSales", JSON.stringify(updatedPhoneSales));
+    toast.success("Telefon satışı silindi");
   };
 
   // Handle repair update
@@ -640,11 +662,13 @@ function App() {
   };
 
   // Handle sales type selection
-  const handleSalesTypeSelect = (type: "sale" | "repair") => {
+  const handleSalesTypeSelect = (type: "sale" | "repair" | "phone") => {
     if (type === "sale") {
       setSalesDialogOpen(true);
-    } else {
+    } else if (type === "repair") {
       setRepairOpen(true);
+    } else if (type === "phone") {
+      setPhoneSaleOpen(true);
     }
   };
 
@@ -1125,6 +1149,25 @@ function App() {
               </div>
             </button>
 
+            {/* Telefon Satışları */}
+            <button
+              onClick={() => {
+                playMenuSound();
+                setActiveView("phoneSales");
+              }}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
+                activeView === "phoneSales" 
+                  ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md" 
+                  : "hover:bg-purple-50 dark:hover:bg-purple-950/30 hover:border-purple-200 dark:hover:border-purple-800 border border-transparent hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] dark:hover:shadow-[0_0_15px_rgba(192,132,252,0.4)]"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-4 h-4" />
+                <span>Telefon Satışları</span>
+                <Badge variant={activeView === "phoneSales" ? "secondary" : "outline"} className="ml-auto">{phoneSales.length}</Badge>
+              </div>
+            </button>
+
             {/* Cariler */}
             <button
               onClick={() => {
@@ -1515,11 +1558,13 @@ function App() {
                 <SalesManagementView 
                   sales={sales} 
                   repairs={repairs}
+                  phoneSales={phoneSales}
                   customers={customers}
                   customerTransactions={customerTransactions}
                   onDeleteSale={handleDeleteSale}
                   onUpdateSale={handleUpdateSale}
                   onUpdateRepair={handleUpdateRepair}
+                  onDeletePhoneSale={handleDeletePhoneSale}
                   currency={currency}
                   usdRate={usdRate}
                   formatPrice={formatPrice}
@@ -1543,6 +1588,22 @@ function App() {
                   currency={currency}
                   usdRate={usdRate}
                   formatPrice={formatPrice}
+                />
+              </motion.div>
+            ) : activeView === "phoneSales" ? (
+              // Telefon Satışları Görünümü
+              <motion.div
+                key="phoneSales"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="space-y-6"
+              >
+                <h2 className="text-2xl font-bold">Telefon Satışları</h2>
+                <PhoneSalesView 
+                  phoneSales={phoneSales}
+                  onDeletePhoneSale={handleDeletePhoneSale}
                 />
               </motion.div>
             ) : activeView === "caris" ? (
@@ -1688,6 +1749,12 @@ function App() {
         open={repairOpen}
         onOpenChange={setRepairOpen}
         onSave={handleAddRepair}
+      />
+
+      <PhoneSaleDialog
+        open={phoneSaleOpen}
+        onOpenChange={setPhoneSaleOpen}
+        onSave={handleAddPhoneSale}
       />
 
       <StockValueDialog

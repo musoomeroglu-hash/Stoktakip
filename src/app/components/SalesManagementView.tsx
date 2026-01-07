@@ -8,18 +8,21 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { Wrench, ShoppingCart, TrendingUp, DollarSign, Edit, Trash2, User, BarChart3, Calendar } from "lucide-react";
+import { Wrench, ShoppingCart, TrendingUp, DollarSign, Edit, Trash2, User, BarChart3, Calendar, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import type { Sale, RepairRecord, Customer, CustomerTransaction, SaleItem } from "../utils/api";
+import type { PhoneSale } from "./PhoneSaleDialog";
 
 interface SalesManagementViewProps {
   sales: Sale[];
   repairs: RepairRecord[];
+  phoneSales: PhoneSale[];
   customers: Customer[];
   customerTransactions: CustomerTransaction[];
   onDeleteSale: (id: string) => void;
   onUpdateSale: (id: string, sale: Sale) => void;
   onUpdateRepair: (id: string, data: Partial<RepairRecord>) => void;
+  onDeletePhoneSale: (id: string) => void;
   currency: "TRY" | "USD";
   usdRate: number;
   formatPrice: (price: number) => string;
@@ -30,11 +33,13 @@ const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'
 export function SalesManagementView({
   sales,
   repairs,
+  phoneSales,
   customers,
   customerTransactions,
   onDeleteSale,
   onUpdateSale,
   onUpdateRepair,
+  onDeletePhoneSale,
   currency,
   usdRate,
   formatPrice,
@@ -143,6 +148,16 @@ export function SalesManagementView({
     return { count: filtered.length, revenue: totalRevenue, profit: totalProfit, items: filtered };
   }, [sales, startDate, endDate]);
 
+  // Calculate phone sale stats
+  const phoneSaleStats = useMemo(() => {
+    const filtered = phoneSales.filter(ps => isDateInRange(ps.date));
+    const totalRevenue = filtered.reduce((sum, ps) => sum + ps.salePrice, 0);
+    const totalProfit = filtered.reduce((sum, ps) => sum + ps.profit, 0);
+    const totalCost = filtered.reduce((sum, ps) => sum + ps.purchasePrice, 0);
+
+    return { count: filtered.length, revenue: totalRevenue, profit: totalProfit, cost: totalCost, items: filtered };
+  }, [phoneSales, startDate, endDate]);
+
   // Calculate cari stats
   const cariStats = useMemo(() => {
     const totalDebt = customers.reduce((sum, c) => sum + c.debt, 0);
@@ -154,20 +169,21 @@ export function SalesManagementView({
 
   // Calculate profit/loss
   const profitLossStats = useMemo(() => {
-    const totalRevenue = productSaleStats.revenue + repairStats.revenue;
-    const totalProfit = productSaleStats.profit + repairStats.profit;
+    const totalRevenue = productSaleStats.revenue + repairStats.revenue + phoneSaleStats.revenue;
+    const totalProfit = productSaleStats.profit + repairStats.profit + phoneSaleStats.profit;
     const totalCost = totalRevenue - totalProfit;
 
     return { totalRevenue, totalProfit, totalCost };
-  }, [productSaleStats, repairStats]);
+  }, [productSaleStats, repairStats, phoneSaleStats]);
 
   // Pie chart data
   const pieChartData = useMemo(() => {
     return [
       { name: "Ürün Satışları", value: productSaleStats.profit, color: COLORS[0] },
       { name: "Tamir Kârı", value: repairStats.profit, color: COLORS[1] },
+      { name: "Telefon Satışları", value: phoneSaleStats.profit, color: COLORS[2] },
     ].filter(item => item.value > 0);
-  }, [productSaleStats.profit, repairStats.profit]);
+  }, [productSaleStats.profit, repairStats.profit, phoneSaleStats.profit]);
 
   // Handle edit repair
   const handleEditRepair = (repair: RepairRecord) => {
@@ -344,7 +360,7 @@ export function SalesManagementView({
               <div>
                 <p className="text-sm text-purple-700 dark:text-purple-300">Toplam İşlem</p>
                 <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">
-                  {productSaleStats.count + repairStats.count}
+                  {productSaleStats.count + repairStats.count + phoneSaleStats.count}
                 </p>
               </div>
               <ShoppingCart className="w-12 h-12 text-purple-500" />
@@ -625,6 +641,10 @@ export function SalesManagementView({
                           <span className="text-sm">Tamir Gelirleri</span>
                           <span className="font-semibold">{formatPriceLocale(repairStats.revenue)}</span>
                         </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Telefon Satışları</span>
+                          <span className="font-semibold">{formatPriceLocale(phoneSaleStats.revenue)}</span>
+                        </div>
                         <div className="flex justify-between border-t pt-2">
                           <span className="font-medium">Toplam Gelir</span>
                           <span className="font-bold text-blue-600">{formatPriceLocale(profitLossStats.totalRevenue)}</span>
@@ -644,6 +664,10 @@ export function SalesManagementView({
                         <div className="flex justify-between">
                           <span className="text-sm">Tamir Maliyetleri</span>
                           <span className="font-semibold">{formatPriceLocale(repairStats.revenue - repairStats.profit)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm">Telefon Maliyetleri</span>
+                          <span className="font-semibold">{formatPriceLocale(phoneSaleStats.cost)}</span>
                         </div>
                         <div className="flex justify-between border-t pt-2">
                           <span className="font-medium">Toplam Maliyet</span>
@@ -782,7 +806,7 @@ export function SalesManagementView({
                   </div>
                   <div className="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
                     <span className="text-sm font-medium">Toplam İşlem</span>
-                    <span className="font-semibold">{productSaleStats.count + repairStats.count} adet</span>
+                    <span className="font-semibold">{productSaleStats.count + repairStats.count + phoneSaleStats.count} adet</span>
                   </div>
                 </div>
 
@@ -817,11 +841,13 @@ export function SalesManagementView({
             </CardHeader>
             <CardContent className="p-6">
               <div className="space-y-3">
-                {[...productSaleStats.items.slice(0, 5), ...repairStats.items.slice(0, 5)]
+                {[...productSaleStats.items.slice(0, 5), ...repairStats.items.slice(0, 5), ...phoneSaleStats.items.slice(0, 5)]
                   .sort((a, b) => new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime())
                   .slice(0, 10)
                   .map((item, index) => {
                     const isSale = 'items' in item;
+                    const isPhoneSale = 'brand' in item || 'salePrice' in item;
+                    const isRepair = 'deviceInfo' in item;
                     
                     // Skip repair sales since we already show repair records
                     if (isSale && item.items.some(saleItem => saleItem.productId.startsWith('repair-'))) {
@@ -835,6 +861,10 @@ export function SalesManagementView({
                             <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
                               <ShoppingCart className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                             </div>
+                          ) : isPhoneSale ? (
+                            <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
+                              <Smartphone className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                            </div>
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center">
                               <Wrench className="w-5 h-5 text-orange-600 dark:text-orange-400" />
@@ -842,7 +872,12 @@ export function SalesManagementView({
                           )}
                           <div>
                             <p className="font-medium">
-                              {isSale ? `Satış - ${item.items[0]?.productName}` : `Tamir - ${item.deviceInfo}`}
+                              {isSale 
+                                ? `Satış - ${item.items[0]?.productName}` 
+                                : isPhoneSale 
+                                  ? `Telefon Satışı - ${item.brand} ${item.model}`
+                                  : `Tamir - ${item.deviceInfo}`
+                              }
                             </p>
                             <p className="text-sm text-muted-foreground">
                               {new Date(item.date || item.createdAt).toLocaleDateString('tr-TR', {
@@ -857,10 +892,20 @@ export function SalesManagementView({
                         <div className="flex items-center gap-2">
                           <div className="text-right">
                             <p className="font-semibold">
-                              {formatPriceLocale(isSale ? item.totalPrice : item.repairCost)}
+                              {formatPriceLocale(
+                                isSale 
+                                  ? item.totalPrice 
+                                  : isPhoneSale 
+                                    ? item.salePrice 
+                                    : item.repairCost
+                              )}
                             </p>
                             <p className="text-sm text-green-600">
-                              +{formatPriceLocale(isSale ? item.totalProfit : item.profit)}
+                              +{formatPriceLocale(
+                                isSale 
+                                  ? item.totalProfit 
+                                  : item.profit
+                              )}
                             </p>
                           </div>
                           {isSale && (
@@ -879,7 +924,7 @@ export function SalesManagementView({
                   })
                   .filter(item => item !== null) // Filter out null values
                 }
-                {productSaleStats.items.length === 0 && repairStats.items.length === 0 && (
+                {productSaleStats.items.length === 0 && repairStats.items.length === 0 && phoneSaleStats.items.length === 0 && (
                   <p className="text-center text-muted-foreground py-8">Henüz işlem yok</p>
                 )}
               </div>

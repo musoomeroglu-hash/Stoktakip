@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Receipt, Plus, X, TrendingDown, DollarSign, AlertTriangle } from "lucide-react";
+import { Receipt, Plus, X, TrendingDown, DollarSign, AlertTriangle, Calendar } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
@@ -28,6 +28,61 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
   // Form states
   const [expenseName, setExpenseName] = useState("");
   const [expenseAmount, setExpenseAmount] = useState("");
+
+  // Date range states
+  const [startDate, setStartDate] = useState<string>(() => {
+    // Default: ayın ilk günü
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+  });
+  
+  const [endDate, setEndDate] = useState<string>(() => {
+    // Default: bugün
+    return new Date().toISOString().split('T')[0];
+  });
+
+  // Helper function to check if date is in range
+  const isDateInRange = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999); // End of day
+    return date >= start && date <= end;
+  };
+
+  // Quick date range setters
+  const setToday = () => {
+    const today = new Date().toISOString().split('T')[0];
+    setStartDate(today);
+    setEndDate(today);
+  };
+
+  const setThisWeek = () => {
+    const now = new Date();
+    const firstDayOfWeek = new Date(now);
+    firstDayOfWeek.setDate(now.getDate() - now.getDay() + 1); // Pazartesi
+    setStartDate(firstDayOfWeek.toISOString().split('T')[0]);
+    setEndDate(new Date().toISOString().split('T')[0]);
+  };
+
+  const setCurrentMonth = () => {
+    const now = new Date();
+    setStartDate(new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]);
+    setEndDate(new Date().toISOString().split('T')[0]);
+  };
+
+  const setPreviousMonth = () => {
+    const now = new Date();
+    const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDayPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    setStartDate(firstDayPrevMonth.toISOString().split('T')[0]);
+    setEndDate(lastDayPrevMonth.toISOString().split('T')[0]);
+  };
+
+  const setAllTime = () => {
+    setStartDate('2020-01-01');
+    setEndDate(new Date().toISOString().split('T')[0]);
+  };
 
   // LocalStorage'dan verileri yükle
   useEffect(() => {
@@ -79,17 +134,26 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
     toast.success("Gider silindi");
   };
 
-  // Toplam gider
-  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  // Filtrelenmiş giderler
+  const filteredExpenses = useMemo(() => {
+    return expenses.filter(exp => isDateInRange(exp.createdAt));
+  }, [expenses, startDate, endDate]);
+
+  // Toplam gider (filtrelenmiş)
+  const totalExpenses = useMemo(() => {
+    return filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+  }, [filteredExpenses]);
 
   // Net kâr (Toplam Kâr - Toplam Gider)
   const netProfit = totalProfit - totalExpenses;
 
-  // Pasta grafiği için veri
-  const chartData = expenses.map(exp => ({
-    name: exp.name,
-    value: exp.amount
-  }));
+  // Pasta grafiği için veri (filtrelenmiş)
+  const chartData = useMemo(() => {
+    return filteredExpenses.map(exp => ({
+      name: exp.name,
+      value: exp.amount
+    }));
+  }, [filteredExpenses]);
 
   // Hızlı gider şablonları
   const quickExpenses = [
@@ -123,6 +187,88 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
             </Button>
           </CardTitle>
         </CardHeader>
+      </Card>
+
+      {/* Date Range Filter */}
+      <Card className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-2 border-orange-200 dark:border-orange-800">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+              <span className="font-semibold text-orange-900 dark:text-orange-100">Tarih Aralığı:</span>
+            </div>
+            
+            <div className="flex flex-wrap items-center gap-3 flex-1">
+              {/* Date Inputs */}
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-auto border-2 border-orange-300 dark:border-orange-700"
+                />
+                <span className="text-muted-foreground">-</span>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-auto border-2 border-orange-300 dark:border-orange-700"
+                />
+              </div>
+
+              {/* Quick Filters */}
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  onClick={setToday} 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-orange-200 dark:border-orange-700"
+                >
+                  Bugün
+                </Button>
+                <Button 
+                  onClick={setThisWeek} 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-orange-200 dark:border-orange-700"
+                >
+                  Bu Hafta
+                </Button>
+                <Button 
+                  onClick={setCurrentMonth} 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-orange-200 dark:border-orange-700"
+                >
+                  Bu Ay
+                </Button>
+                <Button 
+                  onClick={setPreviousMonth} 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-orange-200 dark:border-orange-700"
+                >
+                  Geçen Ay
+                </Button>
+                <Button 
+                  onClick={setAllTime} 
+                  variant="outline" 
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-orange-200 dark:border-orange-700"
+                >
+                  Tüm Zamanlar
+                </Button>
+              </div>
+            </div>
+
+            {/* Selected Period Display */}
+            <div className="text-sm text-muted-foreground bg-white dark:bg-gray-800 px-3 py-2 rounded-md border-2 border-orange-200 dark:border-orange-700">
+              📅 {new Date(startDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })} 
+              {' - '} 
+              {new Date(endDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </div>
+          </div>
+        </CardContent>
       </Card>
 
       {/* Net Kâr Özet Kartı */}
@@ -297,12 +443,12 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
             <CardHeader className="bg-gray-50 dark:bg-gray-900/50">
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Receipt className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                Gider Listesi ({expenses.length})
+                Gider Listesi ({filteredExpenses.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
               <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                {expenses.map((expense, index) => (
+                {filteredExpenses.map((expense, index) => (
                   <motion.div
                     key={expense.id}
                     initial={{ opacity: 0, x: -20 }}
