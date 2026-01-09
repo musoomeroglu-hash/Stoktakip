@@ -4,11 +4,14 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Wrench, Camera, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Wrench, Camera, X, User } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
+import type { Customer } from "../utils/api";
 
 export interface RepairRecord {
   id: string;
+  customerId?: string; // Opsiyonel müşteri bağlantısı
   customerName: string;
   customerPhone: string;
   deviceInfo: string;
@@ -25,9 +28,11 @@ interface RepairDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (repair: Omit<RepairRecord, "id">) => void;
+  customers: Customer[];
 }
 
-export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) {
+export function RepairDialog({ open, onOpenChange, onSave, customers }: RepairDialogProps) {
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     customerName: "",
     customerPhone: "",
@@ -44,6 +49,24 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
   const scannerDivId = "qr-reader";
 
   const profit = formData.repairCost - formData.partsCost;
+  
+  // Müşteri seçildiğinde bilgileri doldur
+  const handleCustomerSelect = (customerId: string) => {
+    if (customerId === "new") {
+      setSelectedCustomerId(null);
+      setFormData(prev => ({ ...prev, customerName: "", customerPhone: "" }));
+    } else {
+      const customer = customers.find(c => c.id === customerId);
+      if (customer) {
+        setSelectedCustomerId(customerId);
+        setFormData(prev => ({
+          ...prev,
+          customerName: customer.name,
+          customerPhone: customer.phone
+        }));
+      }
+    }
+  };
 
   // useEffect to start/stop scanner based on scannerActive state
   useEffect(() => {
@@ -129,12 +152,14 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
     
     onSave({
       ...formData,
+      customerId: selectedCustomerId || undefined,
       profit,
       status: "in_progress",
       createdAt: new Date().toISOString(),
     });
 
     // Reset form
+    setSelectedCustomerId(null);
     setFormData({
       customerName: "",
       customerPhone: "",
@@ -157,6 +182,17 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
     if (scannerActive) {
       setScannerActive(false);
     }
+    // Reset form
+    setSelectedCustomerId(null);
+    setFormData({
+      customerName: "",
+      customerPhone: "",
+      deviceInfo: "",
+      imei: "",
+      problemDescription: "",
+      repairCost: 0,
+      partsCost: 0,
+    });
     onOpenChange(false);
   };
 
@@ -176,6 +212,32 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             {/* Müşteri Bilgileri */}
+            <div className="space-y-2">
+              <Label htmlFor="customerSelect">Müşteri Seç (Opsiyonel)</Label>
+              <Select
+                value={selectedCustomerId || "new"}
+                onValueChange={handleCustomerSelect}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Mevcut müşteri seç veya yeni müşteri">
+                    {selectedCustomerId 
+                      ? customers.find(c => c.id === selectedCustomerId)?.name 
+                      : "🆕 Yeni Müşteri"}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem key="new" value="new">
+                    🆕 Yeni Müşteri
+                  </SelectItem>
+                  {customers.map(customer => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name} - {customer.phone}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="customerName">Müşteri Adı *</Label>
@@ -185,6 +247,7 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
                   onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
                   placeholder="Ad Soyad"
                   required
+                  disabled={selectedCustomerId !== null}
                 />
               </div>
 
@@ -197,6 +260,7 @@ export function RepairDialog({ open, onOpenChange, onSave }: RepairDialogProps) 
                   onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
                   placeholder="0555 123 45 67"
                   required
+                  disabled={selectedCustomerId !== null}
                 />
               </div>
             </div>

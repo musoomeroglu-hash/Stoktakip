@@ -8,7 +8,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Plus, Trash2, ShoppingCart, Check } from "lucide-react";
 import { toast } from "sonner";
-import type { Product, SaleItem, PaymentMethod, PaymentDetails } from "../utils/api";
+import type { Product, SaleItem, PaymentMethod, PaymentDetails, Customer } from "../utils/api";
 import { cn } from "./ui/utils";
 import { PaymentMethodSelector } from "./PaymentMethodSelector";
 
@@ -25,9 +25,11 @@ interface SalesDialogProps {
   ) => void;
   products: Product[];
   formatPrice: (price: number) => string;
+  customers: Customer[];
 }
 
-export function SalesDialog({ open, onOpenChange, onCompleteSale, products, formatPrice }: SalesDialogProps) {
+export function SalesDialog({ open, onOpenChange, onCompleteSale, products, formatPrice, customers }: SalesDialogProps) {
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -37,6 +39,22 @@ export function SalesDialog({ open, onOpenChange, onCompleteSale, products, form
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | undefined>();
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+
+  // Müşteri seçildiğinde bilgileri doldur
+  const handleCustomerSelect = (customerId: string) => {
+    if (customerId === "new") {
+      setSelectedCustomerId(null);
+      setCustomerName("");
+      setCustomerPhone("");
+    } else {
+      const customer = customers.find(c => c.id === customerId);
+      if (customer) {
+        setSelectedCustomerId(customerId);
+        setCustomerName(customer.name);
+        setCustomerPhone(customer.phone);
+      }
+    }
+  };
 
   const addItem = () => {
     const product = products.find((p) => p.id === selectedProductId);
@@ -332,21 +350,45 @@ export function SalesDialog({ open, onOpenChange, onCompleteSale, products, form
               <h3 className="font-medium mb-3">Müşteri Bilgileri</h3>
               <div className="flex gap-2">
                 <div className="flex-1">
+                  <Select
+                    value={selectedCustomerId || "new"}
+                    onValueChange={handleCustomerSelect}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Müşteri seçin">
+                        {selectedCustomerId
+                          ? customers.find(c => c.id === selectedCustomerId)?.name
+                          : "🆕 Yeni Müşteri"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="new">🆕 Yeni Müşteri</SelectItem>
+                      {customers.map(customer => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name} - {customer.phone}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex-1">
                   <Label className="text-xs text-muted-foreground">Müşteri Adı</Label>
                   <Input
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     placeholder="Müşteri Adı"
+                    disabled={selectedCustomerId !== null}
                   />
                 </div>
-                <div className="w-24">
+                <div className="w-32">
                   <Label className="text-xs text-muted-foreground">Telefon</Label>
                   <Input
                     type="text"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="Telefon"
+                    placeholder="05XX XXX XX XX"
+                    disabled={selectedCustomerId !== null}
                   />
                 </div>
               </div>

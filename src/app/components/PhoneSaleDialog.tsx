@@ -4,9 +4,10 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Smartphone, Plus } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Smartphone, Plus, User } from "lucide-react";
 import { toast } from "sonner";
-import type { PaymentMethod, PaymentDetails } from "../utils/api";
+import type { PaymentMethod, PaymentDetails, Customer } from "../utils/api";
 
 export interface PhoneSale {
   id: string;
@@ -29,9 +30,11 @@ interface PhoneSaleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (phoneSale: PhoneSale) => void;
+  customers: Customer[];
 }
 
-export function PhoneSaleDialog({ open, onOpenChange, onSave }: PhoneSaleDialogProps) {
+export function PhoneSaleDialog({ open, onOpenChange, onSave, customers }: PhoneSaleDialogProps) {
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
   const [imei, setImei] = useState("");
@@ -41,7 +44,24 @@ export function PhoneSaleDialog({ open, onOpenChange, onSave }: PhoneSaleDialogP
   const [customerPhone, setCustomerPhone] = useState("");
   const [notes, setNotes] = useState("");
 
+  // Müşteri seçildiğinde bilgileri doldur
+  const handleCustomerSelect = (customerId: string) => {
+    if (customerId === "new") {
+      setSelectedCustomerId(null);
+      setCustomerName("");
+      setCustomerPhone("");
+    } else {
+      const customer = customers.find(c => c.id === customerId);
+      if (customer) {
+        setSelectedCustomerId(customerId);
+        setCustomerName(customer.name);
+        setCustomerPhone(customer.phone);
+      }
+    }
+  };
+
   const resetForm = () => {
+    setSelectedCustomerId(null);
     setBrand("");
     setModel("");
     setImei("");
@@ -109,6 +129,56 @@ export function PhoneSaleDialog({ open, onOpenChange, onSave }: PhoneSaleDialogP
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Müşteri Seçimi */}
+          <div className="space-y-2">
+            <Label htmlFor="customerSelect">Müşteri Seç (Opsiyonel)</Label>
+            <Select
+              value={selectedCustomerId || "new"}
+              onValueChange={handleCustomerSelect}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Müşteri seçin">
+                  {selectedCustomerId 
+                    ? customers.find(c => c.id === selectedCustomerId)?.name 
+                    : "🆕 Yeni Müşteri"}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new">🆕 Yeni Müşteri</SelectItem>
+                {customers.map(customer => (
+                  <SelectItem key={customer.id} value={customer.id}>
+                    {customer.name} - {customer.phone}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Müşteri Bilgileri */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="customerName">Müşteri Adı</Label>
+              <Input
+                id="customerName"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                placeholder="İsim Soyisim"
+                disabled={selectedCustomerId !== null}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="customerPhone">Müşteri Telefon</Label>
+              <Input
+                id="customerPhone"
+                value={customerPhone}
+                onChange={(e) => setCustomerPhone(e.target.value)}
+                placeholder="05xx xxx xx xx"
+                disabled={selectedCustomerId !== null}
+              />
+            </div>
+          </div>
+
           {/* Marka ve Model */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -198,31 +268,6 @@ export function PhoneSaleDialog({ open, onOpenChange, onSave }: PhoneSaleDialogP
               </div>
             </div>
           )}
-
-          {/* Müşteri Bilgileri */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="customerName">Müşteri Adı</Label>
-              <Input
-                id="customerName"
-                value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
-                placeholder="İsim Soyisim"
-                className="border-2"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="customerPhone">Müşteri Telefon</Label>
-              <Input
-                id="customerPhone"
-                value={customerPhone}
-                onChange={(e) => setCustomerPhone(e.target.value)}
-                placeholder="05xx xxx xx xx"
-                className="border-2"
-              />
-            </div>
-          </div>
 
           {/* Notlar */}
           <div className="space-y-2">

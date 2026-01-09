@@ -152,7 +152,7 @@ function App() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-  const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly" | "all">("daily");
+  const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly" | "all">("monthly");
   const [activeView, setActiveView] = useState<"products" | "salesManagement" | "repairs" | "phoneSales" | "caris" | "calculator" | "requests" | "expenses">("salesManagement");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
@@ -263,6 +263,68 @@ function App() {
       toast.error("USD kuru alınamadı, varsayılan kur kullanılıyor");
     }
   };
+
+  // Get all unique customers from sales, repairs, and phone sales
+  const getAllUniqueCustomers = (): Customer[] => {
+    const customerMap = new Map<string, Customer>();
+
+    // Add existing customers
+    customers.forEach(customer => {
+      customerMap.set(customer.phone, customer);
+    });
+
+    // From sales
+    sales.forEach(sale => {
+      if (sale.customerInfo && !customerMap.has(sale.customerInfo.phone)) {
+        customerMap.set(sale.customerInfo.phone, {
+          id: `auto-${sale.customerInfo.phone}`,
+          name: sale.customerInfo.name,
+          phone: sale.customerInfo.phone,
+          email: "",
+          debt: 0,
+          credit: 0,
+          notes: "",
+          createdAt: sale.date,
+        });
+      }
+    });
+
+    // From repairs
+    repairs.forEach(repair => {
+      if (repair.customerPhone && !customerMap.has(repair.customerPhone)) {
+        customerMap.set(repair.customerPhone, {
+          id: `auto-${repair.customerPhone}`,
+          name: repair.customerName,
+          phone: repair.customerPhone,
+          email: "",
+          debt: 0,
+          credit: 0,
+          notes: "",
+          createdAt: repair.createdAt,
+        });
+      }
+    });
+
+    // From phone sales
+    phoneSales.forEach(phoneSale => {
+      if (phoneSale.customerPhone && !customerMap.has(phoneSale.customerPhone)) {
+        customerMap.set(phoneSale.customerPhone, {
+          id: `auto-${phoneSale.customerPhone}`,
+          name: phoneSale.customerName,
+          phone: phoneSale.customerPhone,
+          email: "",
+          debt: 0,
+          credit: 0,
+          notes: "",
+          createdAt: phoneSale.date,
+        });
+      }
+    });
+
+    return Array.from(customerMap.values());
+  };
+
+  const allUniqueCustomers = getAllUniqueCustomers();
 
   // Category handlers
   const handleAddCategory = async (category: Omit<Category, "id">) => {
@@ -1812,6 +1874,7 @@ function App() {
         onCompleteSale={handleCompleteSale}
         products={products}
         formatPrice={formatPrice}
+        customers={allUniqueCustomers}
       />
 
       <CategoryManagementDialog
@@ -1839,12 +1902,14 @@ function App() {
         open={repairOpen}
         onOpenChange={setRepairOpen}
         onSave={handleAddRepair}
+        customers={allUniqueCustomers}
       />
 
       <PhoneSaleDialog
         open={phoneSaleOpen}
         onOpenChange={setPhoneSaleOpen}
         onSave={handleAddPhoneSale}
+        customers={allUniqueCustomers}
       />
 
       <StockValueDialog

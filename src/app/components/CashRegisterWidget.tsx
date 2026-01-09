@@ -11,92 +11,93 @@ interface CashRegisterWidgetProps {
 }
 
 export function CashRegisterWidget({ sales, repairs, phoneSales, formatPrice }: CashRegisterWidgetProps) {
-  // Calculate today's transactions
-  const today = new Date().toDateString();
+  // Calculate this month's transactions
+  const now = new Date();
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   
-  const todaySales = sales.filter(s => new Date(s.date).toDateString() === today);
-  const todayRepairs = repairs.filter(r => 
+  const thisMonthSales = sales.filter(s => new Date(s.date) >= thisMonthStart);
+  const thisMonthRepairs = repairs.filter(r => 
     (r.status === "completed" || r.status === "delivered") && 
-    new Date(r.createdAt).toDateString() === today
+    new Date(r.createdAt) >= thisMonthStart
   );
-  const todayPhoneSales = phoneSales.filter(ps => new Date(ps.date).toDateString() === today);
+  const thisMonthPhoneSales = phoneSales.filter(ps => new Date(ps.date) >= thisMonthStart);
 
   // Calculate cash
-  const cashFromSales = todaySales
+  const cashFromSales = thisMonthSales
     .filter(s => s.paymentMethod === "cash")
     .reduce((sum, s) => sum + s.totalPrice, 0);
   
-  const cashFromMixed = todaySales
+  const cashFromMixed = thisMonthSales
     .filter(s => s.paymentMethod === "mixed" && s.paymentDetails?.cash)
     .reduce((sum, s) => sum + (s.paymentDetails?.cash || 0), 0);
 
-  const cashFromRepairs = todayRepairs
+  const cashFromRepairs = thisMonthRepairs
     .filter(r => r.paymentMethod === "cash")
     .reduce((sum, r) => sum + r.repairCost, 0);
 
-  const cashFromRepairsMixed = todayRepairs
+  const cashFromRepairsMixed = thisMonthRepairs
     .filter(r => r.paymentMethod === "mixed" && r.paymentDetails?.cash)
     .reduce((sum, r) => sum + (r.paymentDetails?.cash || 0), 0);
 
-  const cashFromPhoneSales = todayPhoneSales
+  const cashFromPhoneSales = thisMonthPhoneSales
     .filter(ps => ps.paymentMethod === "cash")
     .reduce((sum, ps) => sum + ps.salePrice, 0);
 
-  const cashFromPhoneSalesMixed = todayPhoneSales
+  const cashFromPhoneSalesMixed = thisMonthPhoneSales
     .filter(ps => ps.paymentMethod === "mixed" && ps.paymentDetails?.cash)
     .reduce((sum, ps) => sum + (ps.paymentDetails?.cash || 0), 0);
 
   const totalCash = cashFromSales + cashFromMixed + cashFromRepairs + cashFromRepairsMixed + cashFromPhoneSales + cashFromPhoneSalesMixed;
 
   // Calculate card
-  const cardFromSales = todaySales
+  const cardFromSales = thisMonthSales
     .filter(s => s.paymentMethod === "card")
     .reduce((sum, s) => sum + s.totalPrice, 0);
 
-  const cardFromMixed = todaySales
+  const cardFromMixed = thisMonthSales
     .filter(s => s.paymentMethod === "mixed" && s.paymentDetails?.card)
     .reduce((sum, s) => sum + (s.paymentDetails?.card || 0), 0);
 
-  const cardFromRepairs = todayRepairs
+  const cardFromRepairs = thisMonthRepairs
     .filter(r => r.paymentMethod === "card")
     .reduce((sum, r) => sum + r.repairCost, 0);
 
-  const cardFromRepairsMixed = todayRepairs
+  const cardFromRepairsMixed = thisMonthRepairs
     .filter(r => r.paymentMethod === "mixed" && r.paymentDetails?.card)
     .reduce((sum, r) => sum + (r.paymentDetails?.card || 0), 0);
 
-  const cardFromPhoneSales = todayPhoneSales
+  const cardFromPhoneSales = thisMonthPhoneSales
     .filter(ps => ps.paymentMethod === "card")
     .reduce((sum, ps) => sum + ps.salePrice, 0);
 
-  const cardFromPhoneSalesMixed = todayPhoneSales
+  const cardFromPhoneSalesMixed = thisMonthPhoneSales
     .filter(ps => ps.paymentMethod === "mixed" && ps.paymentDetails?.card)
     .reduce((sum, ps) => sum + (ps.paymentDetails?.card || 0), 0);
 
   const totalCard = cardFromSales + cardFromMixed + cardFromRepairs + cardFromRepairsMixed + cardFromPhoneSales + cardFromPhoneSalesMixed;
 
   // Calculate transfer
-  const transferFromSales = todaySales
+  const transferFromSales = thisMonthSales
     .filter(s => s.paymentMethod === "transfer")
     .reduce((sum, s) => sum + s.totalPrice, 0);
 
-  const transferFromMixed = todaySales
+  const transferFromMixed = thisMonthSales
     .filter(s => s.paymentMethod === "mixed" && s.paymentDetails?.transfer)
     .reduce((sum, s) => sum + (s.paymentDetails?.transfer || 0), 0);
 
-  const transferFromRepairs = todayRepairs
+  const transferFromRepairs = thisMonthRepairs
     .filter(r => r.paymentMethod === "transfer")
     .reduce((sum, r) => sum + r.repairCost, 0);
 
-  const transferFromRepairsMixed = todayRepairs
+  const transferFromRepairsMixed = thisMonthRepairs
     .filter(r => r.paymentMethod === "mixed" && r.paymentDetails?.transfer)
     .reduce((sum, r) => sum + (r.paymentDetails?.transfer || 0), 0);
 
-  const transferFromPhoneSales = todayPhoneSales
+  const transferFromPhoneSales = thisMonthPhoneSales
     .filter(ps => ps.paymentMethod === "transfer")
     .reduce((sum, ps) => sum + ps.salePrice, 0);
 
-  const transferFromPhoneSalesMixed = todayPhoneSales
+  const transferFromPhoneSalesMixed = thisMonthPhoneSales
     .filter(ps => ps.paymentMethod === "mixed" && ps.paymentDetails?.transfer)
     .reduce((sum, ps) => sum + (ps.paymentDetails?.transfer || 0), 0);
 
@@ -109,7 +110,7 @@ export function CashRegisterWidget({ sales, repairs, phoneSales, formatPrice }: 
       <CardHeader className="pb-3">
         <CardTitle className="text-lg flex items-center gap-2">
           <TrendingUp className="w-5 h-5 text-emerald-600" />
-          Bugünkü Kasa Durumu
+          Bu Ayki Kasa Durumu
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -164,7 +165,7 @@ export function CashRegisterWidget({ sales, repairs, phoneSales, formatPrice }: 
         <div className="text-center pt-2 border-t border-emerald-200 dark:border-emerald-800">
           <p className="text-xs text-muted-foreground">Toplam İşlem</p>
           <p className="text-sm font-semibold">
-            {todaySales.length + todayRepairs.length + todayPhoneSales.length} adet
+            {thisMonthSales.length + thisMonthRepairs.length + thisMonthPhoneSales.length} adet
           </p>
         </div>
       </CardContent>

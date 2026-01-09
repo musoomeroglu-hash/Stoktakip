@@ -46,14 +46,22 @@ export function SalesManagementView({
 }: SalesManagementViewProps) {
   // Date range states
   const [startDate, setStartDate] = useState<string>(() => {
-    // Default: ayın ilk günü
+    // Default: ayın ilk günü (local time)
     const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const year = firstDay.getFullYear();
+    const month = String(firstDay.getMonth() + 1).padStart(2, '0');
+    const day = String(firstDay.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   });
   
   const [endDate, setEndDate] = useState<string>(() => {
-    // Default: bugün
-    return new Date().toISOString().split('T')[0];
+    // Default: bugün (local time)
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   });
 
   // Helper function to check if date is in range
@@ -69,22 +77,42 @@ export function SalesManagementView({
   // Quick date range setters
   const setCurrentMonth = () => {
     const now = new Date();
-    setStartDate(new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]);
-    setEndDate(new Date().toISOString().split('T')[0]);
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const year = firstDay.getFullYear();
+    const month = String(firstDay.getMonth() + 1).padStart(2, '0');
+    const day = String(firstDay.getDate()).padStart(2, '0');
+    setStartDate(`${year}-${month}-${day}`);
+    
+    const todayYear = now.getFullYear();
+    const todayMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const todayDay = String(now.getDate()).padStart(2, '0');
+    setEndDate(`${todayYear}-${todayMonth}-${todayDay}`);
   };
 
   const setPreviousMonth = () => {
     const now = new Date();
     const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastDayPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    setStartDate(firstDayPrevMonth.toISOString().split('T')[0]);
-    setEndDate(lastDayPrevMonth.toISOString().split('T')[0]);
+    
+    const startYear = firstDayPrevMonth.getFullYear();
+    const startMonth = String(firstDayPrevMonth.getMonth() + 1).padStart(2, '0');
+    const startDay = String(firstDayPrevMonth.getDate()).padStart(2, '0');
+    setStartDate(`${startYear}-${startMonth}-${startDay}`);
+    
+    const endYear = lastDayPrevMonth.getFullYear();
+    const endMonth = String(lastDayPrevMonth.getMonth() + 1).padStart(2, '0');
+    const endDay = String(lastDayPrevMonth.getDate()).padStart(2, '0');
+    setEndDate(`${endYear}-${endMonth}-${endDay}`);
   };
 
   const setAllTime = () => {
     // Set to very early date to include all records
     setStartDate('2020-01-01');
-    setEndDate(new Date().toISOString().split('T')[0]);
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    setEndDate(`${year}-${month}-${day}`);
   };
 
   // Helper to format price with locale

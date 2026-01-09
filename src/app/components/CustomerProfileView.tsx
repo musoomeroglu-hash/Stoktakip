@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "./ui/dialog";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { 
   User, 
   Phone, 
@@ -17,7 +18,8 @@ import {
   Edit,
   Trash2,
   Search,
-  DollarSign
+  DollarSign,
+  GitMerge
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Sale, RepairRecord } from "../utils/api";
@@ -49,6 +51,9 @@ export function CustomerProfileView({
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
+  const [mergeSourceCustomer, setMergeSourceCustomer] = useState<CustomerProfile | null>(null);
+  const [mergeTargetCustomerId, setMergeTargetCustomerId] = useState<string>("");
   const [editingCustomer, setEditingCustomer] = useState<CustomerProfile | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -298,24 +303,34 @@ export function CustomerProfileView({
                         </div>
 
                         <div className="flex flex-col gap-1">
-                          {customer.notes && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingCustomer(customer);
-                                setName(customer.name);
-                                setPhone(customer.phone);
-                                setEmail(customer.email || "");
-                                setNotes(customer.notes || "");
-                                setDialogOpen(true);
-                              }}
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingCustomer(customer);
+                              setName(customer.name);
+                              setPhone(customer.phone);
+                              setEmail(customer.email || "");
+                              setNotes(customer.notes || "");
+                              setDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="w-4 h-4 text-blue-600" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMergeSourceCustomer(customer);
+                              setMergeDialogOpen(true);
+                            }}
+                          >
+                            <GitMerge className="w-4 h-4 text-purple-600" />
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
@@ -528,6 +543,9 @@ export function CustomerProfileView({
             <DialogTitle>
               {editingCustomer ? "Müşteri Düzenle" : "Yeni Müşteri Ekle"}
             </DialogTitle>
+            <DialogDescription>
+              {editingCustomer ? "Müşteri bilgilerini güncelleyin" : "Yeni bir müşteri ekleyin"}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
@@ -580,6 +598,63 @@ export function CustomerProfileView({
             </Button>
             <Button onClick={handleSaveCustomer}>
               {editingCustomer ? "Güncelle" : "Ekle"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Merge Customer Dialog */}
+      <Dialog open={mergeDialogOpen} onOpenChange={setMergeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              Müşterileri Birleştir
+            </DialogTitle>
+            <DialogDescription>
+              Seçilen müşteri kaydını başka bir müşteri kaydı ile birleştirin
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="mergeSource">Kaynak Müşteri</Label>
+              <Input
+                id="mergeSource"
+                value={mergeSourceCustomer?.name || ""}
+                readOnly
+                placeholder="Kaynak müşteri adı"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="mergeTarget">Hedef Müşteri</Label>
+              <Select
+                value={mergeTargetCustomerId}
+                onValueChange={setMergeTargetCustomerId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Hedef müşteri seçin" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allCustomers.map(customer => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name} ({customer.phone})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMergeDialogOpen(false)}>
+              İptal
+            </Button>
+            <Button onClick={() => {
+              // Merge logic here
+              setMergeDialogOpen(false);
+            }}>
+              Birleştir
             </Button>
           </DialogFooter>
         </DialogContent>

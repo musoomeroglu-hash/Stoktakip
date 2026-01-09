@@ -83,6 +83,7 @@ export interface Sale {
 
 export interface RepairRecord {
   id: string;
+  customerId?: string; // Opsiyonel müşteri bağlantısı
   customerName: string;
   customerPhone: string;
   deviceInfo: string;

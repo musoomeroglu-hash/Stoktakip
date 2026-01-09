@@ -31,14 +31,23 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
 
   // Date range states
   const [startDate, setStartDate] = useState<string>(() => {
-    // Default: ayın ilk günü
+    // Default: ayın ilk günü (local time)
     const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const year = firstDay.getFullYear();
+    const month = String(firstDay.getMonth() + 1).padStart(2, '0');
+    const day = String(firstDay.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   });
   
   const [endDate, setEndDate] = useState<string>(() => {
-    // Default: bugün
-    return new Date().toISOString().split('T')[0];
+    // Default: ayın son günü (local time)
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Ayın son günü
+    const year = lastDay.getFullYear();
+    const month = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const day = String(lastDay.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   });
 
   // Helper function to check if date is in range
@@ -52,7 +61,11 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
 
   // Quick date range setters
   const setToday = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const today = `${year}-${month}-${day}`;
     setStartDate(today);
     setEndDate(today);
   };
@@ -61,27 +74,57 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
     const now = new Date();
     const firstDayOfWeek = new Date(now);
     firstDayOfWeek.setDate(now.getDate() - now.getDay() + 1); // Pazartesi
-    setStartDate(firstDayOfWeek.toISOString().split('T')[0]);
-    setEndDate(new Date().toISOString().split('T')[0]);
+    
+    const startYear = firstDayOfWeek.getFullYear();
+    const startMonth = String(firstDayOfWeek.getMonth() + 1).padStart(2, '0');
+    const startDay = String(firstDayOfWeek.getDate()).padStart(2, '0');
+    setStartDate(`${startYear}-${startMonth}-${startDay}`);
+    
+    const endYear = now.getFullYear();
+    const endMonth = String(now.getMonth() + 1).padStart(2, '0');
+    const endDay = String(now.getDate()).padStart(2, '0');
+    setEndDate(`${endYear}-${endMonth}-${endDay}`);
   };
 
   const setCurrentMonth = () => {
     const now = new Date();
-    setStartDate(new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]);
-    setEndDate(new Date().toISOString().split('T')[0]);
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Ayın son günü
+    
+    const startYear = firstDay.getFullYear();
+    const startMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
+    const startDay = String(firstDay.getDate()).padStart(2, '0');
+    setStartDate(`${startYear}-${startMonth}-${startDay}`);
+    
+    const endYear = lastDay.getFullYear();
+    const endMonth = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const endDay = String(lastDay.getDate()).padStart(2, '0');
+    setEndDate(`${endYear}-${endMonth}-${endDay}`);
   };
 
   const setPreviousMonth = () => {
     const now = new Date();
     const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastDayPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    setStartDate(firstDayPrevMonth.toISOString().split('T')[0]);
-    setEndDate(lastDayPrevMonth.toISOString().split('T')[0]);
+    
+    const startYear = firstDayPrevMonth.getFullYear();
+    const startMonth = String(firstDayPrevMonth.getMonth() + 1).padStart(2, '0');
+    const startDay = String(firstDayPrevMonth.getDate()).padStart(2, '0');
+    setStartDate(`${startYear}-${startMonth}-${startDay}`);
+    
+    const endYear = lastDayPrevMonth.getFullYear();
+    const endMonth = String(lastDayPrevMonth.getMonth() + 1).padStart(2, '0');
+    const endDay = String(lastDayPrevMonth.getDate()).padStart(2, '0');
+    setEndDate(`${endYear}-${endMonth}-${endDay}`);
   };
 
   const setAllTime = () => {
     setStartDate('2020-01-01');
-    setEndDate(new Date().toISOString().split('T')[0]);
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    setEndDate(`${year}-${month}-${day}`);
   };
 
   // LocalStorage'dan verileri yükle
