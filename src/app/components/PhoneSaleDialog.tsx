@@ -6,6 +6,7 @@ import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Smartphone, Plus } from "lucide-react";
 import { toast } from "sonner";
+import type { PaymentMethod, PaymentDetails } from "../utils/api";
 
 export interface PhoneSale {
   id: string;
@@ -20,6 +21,8 @@ export interface PhoneSale {
   notes: string;
   date: string;
   createdAt: string;
+  paymentMethod?: PaymentMethod;
+  paymentDetails?: PaymentDetails;
 }
 
 interface PhoneSaleDialogProps {

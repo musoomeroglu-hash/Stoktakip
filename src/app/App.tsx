@@ -19,6 +19,9 @@ import { BulkUploadDialog } from "./components/BulkUploadDialog";
 import { SalesTypeDialog } from "./components/SalesTypeDialog";
 import { RepairDialog } from "./components/RepairDialog";
 import { PhoneSaleDialog, PhoneSale } from "./components/PhoneSaleDialog";
+import { CashRegisterWidget } from "./components/CashRegisterWidget";
+import { SalesAnalyticsView } from "./components/SalesAnalyticsView";
+import { CustomerProfileView } from "./components/CustomerProfileView";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -27,7 +30,7 @@ import { Checkbox } from "./components/ui/checkbox";
 import { toast, Toaster } from "sonner";
 import * as XLSX from "xlsx";
 import { api } from "./utils/api";
-import type { Category, Product, Sale, SaleItem, RepairRecord, Customer, CustomerTransaction } from "./utils/api";
+import type { Category, Product, Sale, SaleItem, RepairRecord, Customer, CustomerTransaction, PaymentMethod, PaymentDetails } from "./utils/api";
 import { motion, AnimatePresence } from "motion/react";
 import { 
   Package, 
@@ -328,13 +331,23 @@ function App() {
   };
 
   // Sale handler
-  const handleCompleteSale = async (items: SaleItem[], totalPrice: number, totalProfit: number) => {
+  const handleCompleteSale = async (
+    items: SaleItem[], 
+    totalPrice: number, 
+    totalProfit: number,
+    paymentMethod?: PaymentMethod,
+    paymentDetails?: PaymentDetails,
+    customerInfo?: { name: string; phone: string }
+  ) => {
     try {
       const sale: Omit<Sale, "id"> = {
         items,
         totalPrice,
         totalProfit,
         date: new Date().toISOString(),
+        paymentMethod,
+        paymentDetails,
+        customerInfo: customerInfo && customerInfo.name && customerInfo.phone ? customerInfo : undefined,
       };
 
       const newSale = await api.addSale(sale);
@@ -1239,6 +1252,42 @@ function App() {
                 <span>Giderler</span>
               </div>
             </button>
+
+            {/* Satış Analizi */}
+            <button
+              onClick={() => {
+                playMenuSound();
+                setActiveView("salesAnalytics");
+              }}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
+                activeView === "salesAnalytics" 
+                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md" 
+                  : "hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:border-indigo-200 dark:hover:border-indigo-800 border border-transparent hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] dark:hover:shadow-[0_0_15px_rgba(129,140,248,0.4)]"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4" />
+                <span>Satış Analizi</span>
+              </div>
+            </button>
+
+            {/* Müşteri Profilleri */}
+            <button
+              onClick={() => {
+                playMenuSound();
+                setActiveView("customers");
+              }}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
+                activeView === "customers" 
+                  ? "bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-md" 
+                  : "hover:bg-pink-50 dark:hover:bg-pink-950/30 hover:border-pink-200 dark:hover:border-pink-800 border border-transparent hover:shadow-[0_0_15px_rgba(236,72,153,0.3)] dark:hover:shadow-[0_0_15px_rgba(244,114,182,0.4)]"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4" />
+                <span>Müşteri Profilleri</span>
+              </div>
+            </button>
           </div>
         </aside>
 
@@ -1329,6 +1378,14 @@ function App() {
                     </CardContent>
                   </Card>
                 </div>
+
+                {/* Kasa Durumu Widget */}
+                <CashRegisterWidget
+                  sales={sales}
+                  repairs={repairs}
+                  phoneSales={phoneSales}
+                  formatPrice={formatPrice}
+                />
 
                 {/* Search and Sort */}
                 <div className="flex gap-4">
@@ -1675,6 +1732,38 @@ function App() {
                   }
                 />
               </motion.div>
+            ) : activeView === "salesAnalytics" ? (
+              // Satış Analizi Görünümü
+              <motion.div
+                key="salesAnalytics"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+              >
+                <SalesAnalyticsView
+                  sales={sales}
+                  products={products}
+                  categories={categories}
+                  formatPrice={formatPrice}
+                />
+              </motion.div>
+            ) : activeView === "customers" ? (
+              // Müşteri Profilleri Görünümü
+              <motion.div
+                key="customers"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+              >
+                <CustomerProfileView
+                  sales={sales}
+                  repairs={repairs}
+                  phoneSales={phoneSales}
+                  formatPrice={formatPrice}
+                />
+              </motion.div>
             ) : (
               // Satış Paneli Görünümü
               <motion.div
@@ -1722,6 +1811,7 @@ function App() {
         onOpenChange={setSalesDialogOpen}
         onCompleteSale={handleCompleteSale}
         products={products}
+        formatPrice={formatPrice}
       />
 
       <CategoryManagementDialog

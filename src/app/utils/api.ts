@@ -59,12 +59,26 @@ export interface SaleItem {
   categoryId?: string;
 }
 
+export type PaymentMethod = "cash" | "card" | "transfer" | "mixed";
+
+export interface PaymentDetails {
+  cash?: number;
+  card?: number;
+  transfer?: number;
+}
+
 export interface Sale {
   id: string;
   items: SaleItem[];
   totalPrice: number;
   totalProfit: number;
   date: string;
+  paymentMethod?: PaymentMethod;
+  paymentDetails?: PaymentDetails;
+  customerInfo?: {
+    name: string;
+    phone: string;
+  };
 }
 
 export interface RepairRecord {
@@ -80,6 +94,8 @@ export interface RepairRecord {
   status: "in_progress" | "completed" | "delivered";
   createdAt: string;
   deliveredAt?: string;
+  paymentMethod?: PaymentMethod;
+  paymentDetails?: PaymentDetails;
 }
 
 export interface Customer {

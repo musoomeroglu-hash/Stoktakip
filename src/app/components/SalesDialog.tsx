@@ -8,22 +8,35 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { Plus, Trash2, ShoppingCart, Check } from "lucide-react";
 import { toast } from "sonner";
-import type { Product, SaleItem } from "../utils/api";
+import type { Product, SaleItem, PaymentMethod, PaymentDetails } from "../utils/api";
 import { cn } from "./ui/utils";
+import { PaymentMethodSelector } from "./PaymentMethodSelector";
 
 interface SalesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCompleteSale: (items: SaleItem[], totalPrice: number, totalProfit: number) => void;
+  onCompleteSale: (
+    items: SaleItem[], 
+    totalPrice: number, 
+    totalProfit: number, 
+    paymentMethod?: PaymentMethod, 
+    paymentDetails?: PaymentDetails,
+    customerInfo?: { name: string; phone: string }
+  ) => void;
   products: Product[];
+  formatPrice: (price: number) => string;
 }
 
-export function SalesDialog({ open, onOpenChange, onCompleteSale, products }: SalesDialogProps) {
+export function SalesDialog({ open, onOpenChange, onCompleteSale, products, formatPrice }: SalesDialogProps) {
   const [saleItems, setSaleItems] = useState<SaleItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [paymentDetails, setPaymentDetails] = useState<PaymentDetails | undefined>();
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
 
   const addItem = () => {
     const product = products.find((p) => p.id === selectedProductId);
@@ -139,7 +152,7 @@ export function SalesDialog({ open, onOpenChange, onCompleteSale, products }: Sa
       return;
     }
 
-    onCompleteSale(saleItems, totalPrice, totalProfit);
+    onCompleteSale(saleItems, totalPrice, totalProfit, paymentMethod, paymentDetails, { name: customerName, phone: customerPhone });
     setSaleItems([]);
     onOpenChange(false);
   };
@@ -296,6 +309,45 @@ export function SalesDialog({ open, onOpenChange, onCompleteSale, products }: Sa
                 <div className="flex justify-between text-green-600">
                   <span>Toplam Kâr:</span>
                   <span className="font-semibold">₺{totalProfit.toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Payment Method */}
+          {saleItems.length > 0 && (
+            <PaymentMethodSelector
+              totalAmount={totalPrice}
+              onPaymentChange={(method, details) => {
+                setPaymentMethod(method);
+                setPaymentDetails(details);
+              }}
+              formatPrice={formatPrice}
+            />
+          )}
+
+          {/* Customer Information */}
+          {saleItems.length > 0 && (
+            <div className="p-4 border rounded-lg bg-muted/30">
+              <h3 className="font-medium mb-3">Müşteri Bilgileri</h3>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <Label className="text-xs text-muted-foreground">Müşteri Adı</Label>
+                  <Input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Müşteri Adı"
+                  />
+                </div>
+                <div className="w-24">
+                  <Label className="text-xs text-muted-foreground">Telefon</Label>
+                  <Input
+                    type="text"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="Telefon"
+                  />
                 </div>
               </div>
             </div>
