@@ -40,13 +40,19 @@ interface CustomerProfileViewProps {
   phoneSales: PhoneSale[];
   formatPrice: (price: number) => string;
   onAddCustomerToSale?: (customerInfo: { name: string; phone: string }) => void;
+  onUpdateSale?: (id: string, sale: Sale) => void;
+  onUpdateRepair?: (id: string, data: Partial<RepairRecord>) => void;
+  onUpdatePhoneSale?: (id: string, phoneSale: PhoneSale) => void;
 }
 
 export function CustomerProfileView({ 
   sales, 
   repairs, 
   phoneSales, 
-  formatPrice 
+  formatPrice,
+  onUpdateSale,
+  onUpdateRepair,
+  onUpdatePhoneSale
 }: CustomerProfileViewProps) {
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(null);
@@ -204,6 +210,66 @@ export function CustomerProfileView({
     setEditingCustomer(null);
   };
 
+  const handleMergeCustomers = () => {
+    if (!mergeSourceCustomer || !mergeTargetCustomerId) {
+      toast.error("Lütfen kaynak ve hedef müşteriyi seçin!");
+      return;
+    }
+
+    const targetCustomer = allCustomers.find(c => c.id === mergeTargetCustomerId);
+    if (!targetCustomer) {
+      toast.error("Hedef müşteri bulunamadı!");
+      return;
+    }
+
+    if (mergeSourceCustomer.phone === targetCustomer.phone) {
+      toast.error("Aynı müşteriyi birleştiremezsiniz!");
+      return;
+    }
+
+    // Update all sales with source customer info to target customer
+    sales.forEach(sale => {
+      if (sale.customerInfo?.phone === mergeSourceCustomer.phone && onUpdateSale) {
+        const updatedSale = {
+          ...sale,
+          customerInfo: {
+            name: targetCustomer.name,
+            phone: targetCustomer.phone,
+          }
+        };
+        onUpdateSale(sale.id, updatedSale);
+      }
+    });
+
+    // Update all repairs with source customer info to target customer
+    repairs.forEach(repair => {
+      if (repair.customerPhone === mergeSourceCustomer.phone && onUpdateRepair) {
+        onUpdateRepair(repair.id, {
+          customerName: targetCustomer.name,
+          customerPhone: targetCustomer.phone,
+        });
+      }
+    });
+
+    // Update all phone sales with source customer info to target customer
+    phoneSales.forEach(phoneSale => {
+      if (phoneSale.customerPhone === mergeSourceCustomer.phone && onUpdatePhoneSale) {
+        const updatedPhoneSale = {
+          ...phoneSale,
+          customerName: targetCustomer.name,
+          customerPhone: targetCustomer.phone,
+        };
+        onUpdatePhoneSale(phoneSale.id, updatedPhoneSale);
+      }
+    });
+
+    toast.success(`${mergeSourceCustomer.name} müşterisi ${targetCustomer.name} ile birleştirildi!`);
+    setMergeDialogOpen(false);
+    setMergeSourceCustomer(null);
+    setMergeTargetCustomerId("");
+    setSelectedCustomer(targetCustomer);
+  };
+
   const filteredCustomers = allCustomers.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.phone.includes(searchQuery)
@@ -326,6 +392,7 @@ export function CustomerProfileView({
                             onClick={(e) => {
                               e.stopPropagation();
                               setMergeSourceCustomer(customer);
+                              setMergeTargetCustomerId("");
                               setMergeDialogOpen(true);
                             }}
                           >
@@ -616,18 +683,25 @@ export function CustomerProfileView({
           </DialogHeader>
 
           <div className="space-y-4">
+            <div className="p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                ⚠️ Bu işlem kaynak müşterinin tüm satış, tamir ve telefon satış kayıtlarını hedef müşteriye aktaracaktır.
+              </p>
+            </div>
+
             <div>
-              <Label htmlFor="mergeSource">Kaynak Müşteri</Label>
+              <Label htmlFor="mergeSource">Kaynak Müşteri (Birleştirilecek)</Label>
               <Input
                 id="mergeSource"
-                value={mergeSourceCustomer?.name || ""}
+                value={mergeSourceCustomer ? `${mergeSourceCustomer.name} (${mergeSourceCustomer.phone})` : ""}
                 readOnly
                 placeholder="Kaynak müşteri adı"
+                className="bg-red-50 dark:bg-red-950/30"
               />
             </div>
 
             <div>
-              <Label htmlFor="mergeTarget">Hedef Müşteri</Label>
+              <Label htmlFor="mergeTarget">Hedef Müşteri (Ana Kayıt)</Label>
               <Select
                 value={mergeTargetCustomerId}
                 onValueChange={setMergeTargetCustomerId}
@@ -636,11 +710,13 @@ export function CustomerProfileView({
                   <SelectValue placeholder="Hedef müşteri seçin" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allCustomers.map(customer => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name} ({customer.phone})
-                    </SelectItem>
-                  ))}
+                  {allCustomers
+                    .filter(customer => customer.phone !== mergeSourceCustomer?.phone)
+                    .map(customer => (
+                      <SelectItem key={customer.id} value={customer.id}>
+                        {customer.name} ({customer.phone})
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
@@ -650,10 +726,7 @@ export function CustomerProfileView({
             <Button variant="outline" onClick={() => setMergeDialogOpen(false)}>
               İptal
             </Button>
-            <Button onClick={() => {
-              // Merge logic here
-              setMergeDialogOpen(false);
-            }}>
+            <Button onClick={handleMergeCustomers}>
               Birleştir
             </Button>
           </DialogFooter>

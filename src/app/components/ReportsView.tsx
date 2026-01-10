@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { TrendingUp, DollarSign, ShoppingBag, Percent, Trash2, Edit, HandCoins } from "lucide-react";
-import { format, startOfDay, subDays, startOfWeek, startOfMonth } from "date-fns";
+import { TrendingUp, DollarSign, ShoppingBag, Percent, Trash2, Edit, HandCoins, BarChart3 } from "lucide-react";
+import { format, startOfDay, subDays, startOfWeek, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { Input } from "./ui/input";
@@ -113,6 +113,32 @@ export function ReportsView({ sales, period, customerTransactions, onDeleteSale,
     const avgSale = totalSales > 0 ? totalRevenue / totalSales : 0;
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
+    // Aylık günlük ciro ve kâr hesaplama (her zaman güncel ay için)
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    const dailyMonthlyData = daysInMonth.map((day) => {
+      const dayStart = startOfDay(day);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setHours(23, 59, 59, 999);
+      
+      const daySales = sales.filter((sale) => {
+        const saleDate = new Date(sale.date);
+        return saleDate >= dayStart && saleDate <= dayEnd;
+      });
+      
+      const dayRevenue = daySales.reduce((sum, sale) => sum + sale.totalPrice, 0);
+      const dayProfit = daySales.reduce((sum, sale) => sum + sale.totalProfit, 0);
+      
+      return {
+        date: day,
+        day: day.getDate(),
+        revenue: dayRevenue,
+        profit: dayProfit,
+      };
+    });
+
     return {
       chartData: Object.entries(chartData).map(([date, data]) => ({
         date,
@@ -127,6 +153,7 @@ export function ReportsView({ sales, period, customerTransactions, onDeleteSale,
       topProducts,
       filteredSales,
       totalCollected,
+      dailyMonthlyData,
     };
   }, [sales, period, customerTransactions]);
 
@@ -230,27 +257,117 @@ export function ReportsView({ sales, period, customerTransactions, onDeleteSale,
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Kâr Analizi - {periodLabel}</CardTitle>
+      {/* Aylık Sütun Grafiği */}
+      <Card className="bg-gradient-to-br from-green-50 to-emerald-50/30 dark:from-green-950 dark:to-emerald-950/30 border-green-200 dark:border-green-800">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5 text-green-600" />
+            Aylık Sütun Grafiği
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={periodData.chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip 
+                formatter={(value: number) => `₺${value.toFixed(2)}`}
+              />
+              <Legend />
+              <Bar dataKey="Kâr" fill="#22c55e" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      {/* Aylık Günlük Ciro ve Kâr Tablosu - Her Zaman Görünür */}
+      {periodData.dailyMonthlyData.length > 0 && (
+        <Card className="bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-900 dark:to-blue-950/30">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950">
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-blue-600" />
+              {format(new Date(), "MMMM yyyy")} - Günlük Ciro ve Kâr
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={periodData.chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value: number) => `₺${value.toFixed(2)}`}
-                />
-                <Legend />
-                <Bar dataKey="Kâr" fill="#22c55e" />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b-2 border-blue-200 dark:border-blue-800">
+                    <th className="text-left p-2 sticky left-0 bg-blue-100 dark:bg-blue-900 font-bold z-10">Metrik</th>
+                    {periodData.dailyMonthlyData.map((dayData) => (
+                      <th 
+                        key={dayData.day} 
+                        className="text-center p-2 min-w-[80px] bg-gradient-to-b from-blue-50 to-cyan-50 dark:from-blue-900 dark:to-cyan-950"
+                      >
+                        <div className="font-bold text-blue-900 dark:text-blue-100">{dayData.day}</div>
+                        <div className="text-xs text-blue-600 dark:text-blue-400">{format(dayData.date, "EEE")}</div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr className="border-b border-blue-100 dark:border-blue-900 bg-green-50/50 dark:bg-green-950/30 hover:bg-green-100/70 dark:hover:bg-green-900/40 transition-colors">
+                    <td className="p-2 font-bold sticky left-0 bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-100 z-10">
+                      Ciro (₺)
+                    </td>
+                    {periodData.dailyMonthlyData.map((dayData) => (
+                      <td 
+                        key={`revenue-${dayData.day}`} 
+                        className={`text-center p-2 font-medium ${
+                          dayData.revenue > 0 
+                            ? 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-950' 
+                            : 'text-gray-400 dark:text-gray-600'
+                        }`}
+                      >
+                        {dayData.revenue > 0 ? `₺${dayData.revenue.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '-'}
+                      </td>
+                    ))}
+                  </tr>
+                  <tr className="border-b border-blue-100 dark:border-blue-900 bg-purple-50/50 dark:bg-purple-950/30 hover:bg-purple-100/70 dark:hover:bg-purple-900/40 transition-colors">
+                    <td className="p-2 font-bold sticky left-0 bg-purple-100 dark:bg-purple-900 text-purple-900 dark:text-purple-100 z-10">
+                      Kâr (₺)
+                    </td>
+                    {periodData.dailyMonthlyData.map((dayData) => (
+                      <td 
+                        key={`profit-${dayData.day}`} 
+                        className={`text-center p-2 font-medium ${
+                          dayData.profit > 0 
+                            ? 'text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950' 
+                            : 'text-gray-400 dark:text-gray-600'
+                        }`}
+                      >
+                        {dayData.profit > 0 ? `₺${dayData.profit.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}` : '-'}
+                      </td>
+                    ))}
+                  </tr>
+                </tbody>
+                <tfoot>
+                  <tr className="border-t-2 border-blue-200 dark:border-blue-800 bg-blue-100 dark:bg-blue-900">
+                    <td className="p-2 font-bold sticky left-0 bg-blue-200 dark:bg-blue-800 z-10">TOPLAM</td>
+                    <td 
+                      colSpan={periodData.dailyMonthlyData.length} 
+                      className="text-center p-2"
+                    >
+                      <div className="flex justify-around">
+                        <div className="text-green-700 dark:text-green-300 font-bold">
+                          Ciro: ₺{periodData.dailyMonthlyData.reduce((sum, day) => sum + day.revenue, 0).toLocaleString('tr-TR')}
+                        </div>
+                        <div className="text-purple-700 dark:text-purple-300 font-bold">
+                          Kâr: ₺{periodData.dailyMonthlyData.reduce((sum, day) => sum + day.profit, 0).toLocaleString('tr-TR')}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           </CardContent>
         </Card>
-      </div>
+      )}
 
       {/* Top Selling Products */}
       <Card className="bg-gradient-to-br from-white to-orange-50/30 dark:from-gray-900 dark:to-orange-950/30">
@@ -382,6 +499,91 @@ export function ReportsView({ sales, period, customerTransactions, onDeleteSale,
                 Bu dönemde satış yapılmamış
               </div>
             )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Özet Kartı */}
+      <Card className="bg-gradient-to-br from-green-50 to-emerald-50/50 dark:from-green-950 dark:to-emerald-950/50 border-green-200 dark:border-green-800">
+        <CardHeader className="bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900 dark:to-emerald-900">
+          <CardTitle className="flex items-center gap-2">
+            <ShoppingBag className="w-5 h-5 text-green-600" />
+            Özet - {periodLabel}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Sol Kolon - İşlem Sayıları */}
+            <div className="space-y-4">
+              <div className="bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Ürün Satışları</div>
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                  {periodData.filteredSales.filter(sale => sale.type === 'product').length} adet
+                </div>
+              </div>
+              <div className="bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Tamir İşlemleri</div>
+                <div className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">
+                  {periodData.filteredSales.filter(sale => sale.type === 'repair').length} adet
+                </div>
+              </div>
+              <div className="bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Toplam İşlem</div>
+                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
+                  {periodData.totalSales} adet
+                </div>
+              </div>
+            </div>
+
+            {/* Orta Kolon - Kâr Detayları */}
+            <div className="space-y-4">
+              <div className="bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Ürün Satış Kârı</div>
+                <div className="text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                  ₺{periodData.filteredSales
+                    .filter(sale => sale.type === 'product')
+                    .reduce((sum, sale) => sum + sale.totalProfit, 0)
+                    .toLocaleString('tr-TR')}
+                </div>
+              </div>
+              <div className="bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Tamir Kârı</div>
+                <div className="text-2xl font-bold text-orange-600 dark:text-orange-400 mt-1">
+                  ₺{periodData.filteredSales
+                    .filter(sale => sale.type === 'repair')
+                    .reduce((sum, sale) => sum + sale.totalProfit, 0)
+                    .toLocaleString('tr-TR')}
+                </div>
+              </div>
+              <div className="bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                <div className="text-sm text-gray-600 dark:text-gray-400 font-bold">Toplam Kâr</div>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                  ₺{periodData.totalProfit.toLocaleString('tr-TR')}
+                </div>
+              </div>
+            </div>
+
+            {/* Sağ Kolon - Diğer Bilgiler */}
+            <div className="space-y-4">
+              <div className="bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Ortalama Satış</div>
+                <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400 mt-1">
+                  ₺{periodData.avgSale.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </div>
+              </div>
+              <div className="bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Kâr Marjı</div>
+                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
+                  %{periodData.profitMargin.toFixed(1)}
+                </div>
+              </div>
+              <div className="bg-white/60 dark:bg-gray-800/60 p-4 rounded-lg border border-green-200 dark:border-green-700">
+                <div className="text-sm text-gray-600 dark:text-gray-400">Toplam Ciro</div>
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                  ₺{periodData.totalRevenue.toLocaleString('tr-TR')}
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -690,7 +690,13 @@ function App() {
           }],
           totalPrice: updated.repairCost,
           totalProfit: updated.profit,
-          date: new Date().toISOString(),
+          date: updated.deliveredAt || new Date().toISOString(), // Teslim tarihini kullan
+          paymentMethod: updated.paymentMethod,
+          paymentDetails: updated.paymentDetails,
+          customerInfo: {
+            name: updated.customerName,
+            phone: updated.customerPhone,
+          },
         };
 
         await api.addSale(sale);
@@ -722,6 +728,13 @@ function App() {
     setPhoneSales(updatedPhoneSales);
     localStorage.setItem("phoneSales", JSON.stringify(updatedPhoneSales));
     toast.success("Telefon satışı silindi");
+  };
+
+  const handleUpdatePhoneSale = (id: string, phoneSale: PhoneSale) => {
+    const updatedPhoneSales = phoneSales.map((ps) => (ps.id === id ? phoneSale : ps));
+    setPhoneSales(updatedPhoneSales);
+    localStorage.setItem("phoneSales", JSON.stringify(updatedPhoneSales));
+    toast.success("Telefon satışı güncellendi");
   };
 
   // Handle repair update
@@ -1824,6 +1837,9 @@ function App() {
                   repairs={repairs}
                   phoneSales={phoneSales}
                   formatPrice={formatPrice}
+                  onUpdateSale={handleUpdateSale}
+                  onUpdateRepair={handleUpdateRepair}
+                  onUpdatePhoneSale={handleUpdatePhoneSale}
                 />
               </motion.div>
             ) : (
