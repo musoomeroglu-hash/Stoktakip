@@ -7,24 +7,7 @@ import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Smartphone, Plus, User } from "lucide-react";
 import { toast } from "sonner";
-import type { PaymentMethod, PaymentDetails, Customer } from "../utils/api";
-
-export interface PhoneSale {
-  id: string;
-  brand: string;
-  model: string;
-  imei: string;
-  purchasePrice: number;
-  salePrice: number;
-  profit: number;
-  customerName: string;
-  customerPhone: string;
-  notes: string;
-  date: string;
-  createdAt: string;
-  paymentMethod?: PaymentMethod;
-  paymentDetails?: PaymentDetails;
-}
+import type { PaymentMethod, PaymentDetails, Customer, PhoneSale } from "../utils/api";
 
 interface PhoneSaleDialogProps {
   open: boolean;
@@ -112,10 +95,11 @@ export function PhoneSaleDialog({ open, onOpenChange, onSave, customers }: Phone
       createdAt: new Date().toISOString(),
     };
 
+    console.log("📱 Telefon satışı kaydediliyor:", phoneSale);
     onSave(phoneSale);
     resetForm();
     onOpenChange(false);
-    toast.success("Telefon satışı başarıyla kaydedildi!");
+    toast.success(`Telefon satışı başarıyla kaydedildi! ${brand} ${model} - Kâr: ₺${profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`);
   };
 
   return (

@@ -7,6 +7,7 @@ import { Receipt, Plus, X, TrendingDown, DollarSign, AlertTriangle, Calendar } f
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { api } from "@/app/utils/api";
 
 interface Expense {
   id: string;
@@ -127,21 +128,23 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
     setEndDate(`${year}-${month}-${day}`);
   };
 
-  // LocalStorage'dan verileri yükle
+  // Supabase'den verileri yükle
   useEffect(() => {
-    const savedExpenses = localStorage.getItem("expenses");
-    if (savedExpenses) {
-      setExpenses(JSON.parse(savedExpenses));
-    }
+    loadExpenses();
   }, []);
 
-  // LocalStorage'a kaydet
-  const saveToLocalStorage = (updatedExpenses: Expense[]) => {
-    localStorage.setItem("expenses", JSON.stringify(updatedExpenses));
-    setExpenses(updatedExpenses);
+  const loadExpenses = async () => {
+    try {
+      const data = await api.getExpenses();
+      setExpenses(data);
+      console.log("✅ Giderler Supabase'den yüklendi:", data.length);
+    } catch (error) {
+      console.error("❌ Giderler yüklenirken hata:", error);
+      toast.error("Giderler yüklenemedi. Lütfen sayfayı yenileyin.");
+    }
   };
 
-  const handleAddExpense = () => {
+  const handleAddExpense = async () => {
     if (!expenseName.trim()) {
       toast.error("Lütfen gider adını girin!");
       return;
@@ -153,28 +156,39 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
       return;
     }
 
-    const newExpense: Expense = {
-      id: Date.now().toString(),
-      name: expenseName.trim(),
-      amount: amount,
-      createdAt: new Date().toISOString()
-    };
+    try {
+      const newExpense = await api.addExpense({
+        name: expenseName.trim(),
+        amount: amount,
+        createdAt: new Date().toISOString()
+      });
 
-    const updatedExpenses = [newExpense, ...expenses];
-    saveToLocalStorage(updatedExpenses);
+      setExpenses([newExpense, ...expenses]);
+      console.log("✅ Gider Supabase'e kaydedildi:", newExpense);
 
-    // Form temizle
-    setExpenseName("");
-    setExpenseAmount("");
-    setShowForm(false);
+      // Form temizle
+      setExpenseName("");
+      setExpenseAmount("");
+      setShowForm(false);
 
-    toast.success("Gider başarıyla eklendi!");
+      toast.success("Gider başarıyla eklendi!");
+    } catch (error) {
+      console.error("❌ Gider kaydedilemedi:", error);
+      toast.error("Gider kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.");
+    }
   };
 
-  const handleDeleteExpense = (id: string) => {
-    const updatedExpenses = expenses.filter(exp => exp.id !== id);
-    saveToLocalStorage(updatedExpenses);
-    toast.success("Gider silindi");
+  const handleDeleteExpense = async (id: string) => {
+    try {
+      await api.deleteExpense(id);
+      const updatedExpenses = expenses.filter(exp => exp.id !== id);
+      setExpenses(updatedExpenses);
+      console.log("✅ Gider Supabase'den silindi");
+      toast.success("Gider silindi");
+    } catch (error) {
+      console.error("❌ Gider silinemedi:", error);
+      toast.error("Gider silinirken bir hata oluştu. Lütfen tekrar deneyin.");
+    }
   };
 
   // Filtrelenmiş giderler

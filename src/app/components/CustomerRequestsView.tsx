@@ -7,6 +7,7 @@ import { Textarea } from "./ui/textarea";
 import { ClipboardList, Plus, X, Phone, User, Package, Calendar, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
+import { api } from "@/app/utils/api";
 
 interface CustomerRequest {
   id: string;
@@ -28,61 +29,80 @@ export function CustomerRequestsView() {
   const [productName, setProductName] = useState("");
   const [notes, setNotes] = useState("");
 
-  // LocalStorage'dan verileri yükle
+  // Supabase'den verileri yükle
   useEffect(() => {
-    const savedRequests = localStorage.getItem("customer_requests");
-    if (savedRequests) {
-      setRequests(JSON.parse(savedRequests));
-    }
+    loadRequests();
   }, []);
 
-  // LocalStorage'a kaydet
-  const saveToLocalStorage = (updatedRequests: CustomerRequest[]) => {
-    localStorage.setItem("customer_requests", JSON.stringify(updatedRequests));
-    setRequests(updatedRequests);
+  const loadRequests = async () => {
+    try {
+      const data = await api.getCustomerRequests();
+      setRequests(data);
+      console.log("✅ İstek & Siparişler Supabase'den yüklendi:", data.length);
+    } catch (error) {
+      console.error("❌ İstek & Siparişler yüklenirken hata:", error);
+      toast.error("İstekler yüklenemedi. Lütfen sayfayı yenileyin.");
+    }
   };
 
-  const handleAddRequest = () => {
+  const handleAddRequest = async () => {
     if (!customerName.trim() || !phoneNumber.trim() || !productName.trim()) {
       toast.error("Lütfen tüm zorunlu alanları doldurun!");
       return;
     }
 
-    const newRequest: CustomerRequest = {
-      id: Date.now().toString(),
-      customerName: customerName.trim(),
-      phoneNumber: phoneNumber.trim(),
-      productName: productName.trim(),
-      notes: notes.trim() || undefined,
-      createdAt: new Date().toISOString(),
-      status: 'pending'
-    };
+    try {
+      const newRequest = await api.addCustomerRequest({
+        customerName: customerName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        productName: productName.trim(),
+        notes: notes.trim() || undefined,
+        createdAt: new Date().toISOString(),
+        status: 'pending'
+      });
 
-    const updatedRequests = [newRequest, ...requests];
-    saveToLocalStorage(updatedRequests);
+      setRequests([newRequest, ...requests]);
+      console.log("✅ İstek Supabase'e kaydedildi:", newRequest);
 
-    // Form temizle
-    setCustomerName("");
-    setPhoneNumber("");
-    setProductName("");
-    setNotes("");
-    setShowForm(false);
+      // Form temizle
+      setCustomerName("");
+      setPhoneNumber("");
+      setProductName("");
+      setNotes("");
+      setShowForm(false);
 
-    toast.success("İstek başarıyla kaydedildi!");
+      toast.success("İstek başarıyla kaydedildi!");
+    } catch (error) {
+      console.error("❌ İstek kaydedilemedi:", error);
+      toast.error("İstek kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.");
+    }
   };
 
-  const handleMarkCompleted = (id: string) => {
-    const updatedRequests = requests.map(req =>
-      req.id === id ? { ...req, status: 'completed' as const } : req
-    );
-    saveToLocalStorage(updatedRequests);
-    toast.success("İstek tamamlandı olarak işaretlendi");
+  const handleMarkCompleted = async (id: string) => {
+    try {
+      const request = requests.find(req => req.id === id);
+      if (!request) return;
+      
+      const updated = await api.updateCustomerRequest(id, { ...request, status: 'completed' });
+      const updatedRequests = requests.map(req => req.id === id ? updated : req);
+      setRequests(updatedRequests);
+      toast.success("İstek tamamlandı olarak işaretlendi");
+    } catch (error) {
+      console.error("❌ İstek güncellenemedi:", error);
+      toast.error("İstek güncellenemedi");
+    }
   };
 
-  const handleDeleteRequest = (id: string) => {
-    const updatedRequests = requests.filter(req => req.id !== id);
-    saveToLocalStorage(updatedRequests);
-    toast.success("İstek silindi");
+  const handleDeleteRequest = async (id: string) => {
+    try {
+      await api.deleteCustomerRequest(id);
+      const updatedRequests = requests.filter(req => req.id !== id);
+      setRequests(updatedRequests);
+      toast.success("İstek silindi");
+    } catch (error) {
+      console.error("❌ İstek silinemedi:", error);
+      toast.error("İstek silinemedi");
+    }
   };
 
   const pendingRequests = requests.filter(r => r.status === 'pending');

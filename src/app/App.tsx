@@ -18,7 +18,8 @@ import { SalesDialog } from "./components/SalesDialog";
 import { BulkUploadDialog } from "./components/BulkUploadDialog";
 import { SalesTypeDialog } from "./components/SalesTypeDialog";
 import { RepairDialog } from "./components/RepairDialog";
-import { PhoneSaleDialog, PhoneSale } from "./components/PhoneSaleDialog";
+import { PhoneSaleDialog } from "./components/PhoneSaleDialog";
+import type { PhoneSale } from "./utils/api";
 import { CashRegisterWidget } from "./components/CashRegisterWidget";
 import { SalesAnalyticsView } from "./components/SalesAnalyticsView";
 import { CustomerProfileView } from "./components/CustomerProfileView";
@@ -204,13 +205,14 @@ function App() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [categoriesData, productsData, salesData, repairsData, customersData, customerTransactionsData] = await Promise.all([
+      const [categoriesData, productsData, salesData, repairsData, customersData, customerTransactionsData, phoneSalesData] = await Promise.all([
         api.getCategories().catch(() => []),
         api.getProducts().catch(() => []),
         api.getSales().catch(() => []),
         api.getRepairs().catch(() => []),
         api.getCustomers().catch(() => []),
         api.getCustomerTransactions().catch(() => []),
+        api.getPhoneSales().catch(() => []),
       ]);
 
       setCategories(categoriesData);
@@ -219,12 +221,8 @@ function App() {
       setRepairs(repairsData);
       setCustomers(customersData);
       setCustomerTransactions(customerTransactionsData);
-
-      // Load phone sales from LocalStorage
-      const savedPhoneSales = localStorage.getItem("phoneSales");
-      if (savedPhoneSales) {
-        setPhoneSales(JSON.parse(savedPhoneSales));
-      }
+      setPhoneSales(phoneSalesData);
+      console.log("✅ Veriler Supabase'den yüklendi - Telefon satışları:", phoneSalesData.length);
 
       // Initialize with sample data if empty
       if (categoriesData.length === 0) {
@@ -716,25 +714,45 @@ function App() {
   };
 
   // Handle phone sale
-  const handleAddPhoneSale = (phoneSale: PhoneSale) => {
-    const updatedPhoneSales = [phoneSale, ...phoneSales];
-    setPhoneSales(updatedPhoneSales);
-    localStorage.setItem("phoneSales", JSON.stringify(updatedPhoneSales));
-    playSuccessSound();
+  const handleAddPhoneSale = async (phoneSale: PhoneSale) => {
+    try {
+      console.log("📱 Telefon satışı ekleniyor...", phoneSale);
+      const newPhoneSale = await api.addPhoneSale(phoneSale);
+      const updatedPhoneSales = [newPhoneSale, ...phoneSales];
+      setPhoneSales(updatedPhoneSales);
+      console.log("✅ Telefon satışı Supabase'e kaydedildi. Toplam:", updatedPhoneSales.length);
+      console.log("📱 Kaydedilen satış:", newPhoneSale);
+      playSuccessSound();
+      toast.success("Telefon satışı başarıyla kaydedildi ve Telefon Satışları görünümünde görüntülenebilir!");
+    } catch (error) {
+      console.error("❌ Telefon satışı kaydedilemedi:", error);
+      toast.error("Telefon satışı kaydedilirken bir hata oluştu. Lütfen tekrar deneyin.");
+    }
   };
 
-  const handleDeletePhoneSale = (id: string) => {
-    const updatedPhoneSales = phoneSales.filter((ps) => ps.id !== id);
-    setPhoneSales(updatedPhoneSales);
-    localStorage.setItem("phoneSales", JSON.stringify(updatedPhoneSales));
-    toast.success("Telefon satışı silindi");
+  const handleDeletePhoneSale = async (id: string) => {
+    try {
+      await api.deletePhoneSale(id);
+      const updatedPhoneSales = phoneSales.filter((ps) => ps.id !== id);
+      setPhoneSales(updatedPhoneSales);
+      console.log("✅ Telefon satışı Supabase'den silindi. Kalan:", updatedPhoneSales.length);
+      toast.success("Telefon satışı silindi");
+    } catch (error) {
+      console.error("❌ Telefon satışı silinemedi:", error);
+      toast.error("Telefon satışı silinemedi");
+    }
   };
 
-  const handleUpdatePhoneSale = (id: string, phoneSale: PhoneSale) => {
-    const updatedPhoneSales = phoneSales.map((ps) => (ps.id === id ? phoneSale : ps));
-    setPhoneSales(updatedPhoneSales);
-    localStorage.setItem("phoneSales", JSON.stringify(updatedPhoneSales));
-    toast.success("Telefon satışı güncellendi");
+  const handleUpdatePhoneSale = async (id: string, phoneSale: PhoneSale) => {
+    try {
+      const updated = await api.updatePhoneSale(id, phoneSale);
+      const updatedPhoneSales = phoneSales.map((ps) => (ps.id === id ? updated : ps));
+      setPhoneSales(updatedPhoneSales);
+      toast.success("Telefon satışı güncellendi");
+    } catch (error) {
+      console.error("❌ Telefon satışı güncellenemedi:", error);
+      toast.error("Telefon satışı güncellenemedi");
+    }
   };
 
   // Handle repair update
@@ -1803,7 +1821,8 @@ function App() {
                   totalProfit={
                     sales.reduce((sum, s) => sum + s.totalProfit, 0) + 
                     repairs.filter(r => r.status === "completed" || r.status === "delivered")
-                      .reduce((sum, r) => sum + (r.repairCost - r.partsCost), 0)
+                      .reduce((sum, r) => sum + (r.repairCost - r.partsCost), 0) +
+                    phoneSales.reduce((sum, ps) => sum + ps.profit, 0)
                   }
                 />
               </motion.div>

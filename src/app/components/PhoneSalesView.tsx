@@ -3,7 +3,8 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Smartphone, Trash2, DollarSign, TrendingUp } from "lucide-react";
 import { motion } from "motion/react";
-import type { PhoneSale } from "./PhoneSaleDialog";
+import type { PhoneSale } from "../utils/api";
+import { useEffect } from "react";
 
 interface PhoneSalesViewProps {
   phoneSales: PhoneSale[];
@@ -11,6 +12,12 @@ interface PhoneSalesViewProps {
 }
 
 export function PhoneSalesView({ phoneSales, onDeletePhoneSale }: PhoneSalesViewProps) {
+  // Debug: Telefon satışları listesini kontrol et
+  useEffect(() => {
+    console.log("📱 PhoneSalesView - Mevcut telefon satışları:", phoneSales.length);
+    console.log("📱 Telefon satışları detayı:", phoneSales);
+  }, [phoneSales]);
+
   const totalProfit = phoneSales.reduce((sum, ps) => sum + ps.profit, 0);
   const totalRevenue = phoneSales.reduce((sum, ps) => sum + ps.salePrice, 0);
   const totalInvestment = phoneSales.reduce((sum, ps) => sum + ps.purchasePrice, 0);

@@ -4,29 +4,39 @@ const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-929c4
 
 async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const url = `${API_URL}${endpoint}`;
-  console.log('API Request:', url);
+  console.log('🔵 API Request:', url);
+  console.log('🔵 Request options:', options);
   
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${publicAnonKey}`,
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    console.error('API Error:', {
-      url,
-      status: response.status,
-      statusText: response.statusText,
-      error
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${publicAnonKey}`,
+        ...options.headers,
+      },
     });
-    throw new Error(`${response.status} ${response.statusText}: ${error || "API request failed"}`);
-  }
 
-  return response.json();
+    console.log('🔵 Response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ API Error:', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        error: errorText
+      });
+      throw new Error(`API Hatası (${response.status}): ${errorText || response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ API Response:', data);
+    return data;
+  } catch (error) {
+    console.error('❌ Fetch Error:', error);
+    throw error;
+  }
 }
 
 export interface Category {
@@ -117,6 +127,40 @@ export interface CustomerTransaction {
   amount: number;
   description: string;
   createdAt: string;
+}
+
+export interface PhoneSale {
+  id: string;
+  brand: string;
+  model: string;
+  imei: string;
+  purchasePrice: number;
+  salePrice: number;
+  profit: number;
+  customerName: string;
+  customerPhone: string;
+  notes: string;
+  date: string;
+  createdAt: string;
+  paymentMethod?: PaymentMethod;
+  paymentDetails?: PaymentDetails;
+}
+
+export interface Expense {
+  id: string;
+  name: string;
+  amount: number;
+  createdAt: string;
+}
+
+export interface CustomerRequest {
+  id: string;
+  customerName: string;
+  phoneNumber: string;
+  productName: string;
+  notes?: string;
+  createdAt: string;
+  status: 'pending' | 'completed';
 }
 
 export const api = {
@@ -348,5 +392,89 @@ export const api = {
   async getWhatsAppStats(sessionId: string): Promise<{ totalSearches: number; totalResults: number; recentSearches: any[] }> {
     const result = await fetchAPI(`/whatsapp/stats/${sessionId}`);
     return result.data;
+  },
+
+  // Phone Sales
+  async getPhoneSales(): Promise<PhoneSale[]> {
+    const result = await fetchAPI("/phone-sales");
+    return result.data || [];
+  },
+
+  async addPhoneSale(phoneSale: Omit<PhoneSale, "id">): Promise<PhoneSale> {
+    const result = await fetchAPI("/phone-sales", {
+      method: "POST",
+      body: JSON.stringify(phoneSale),
+    });
+    return result.data;
+  },
+
+  async updatePhoneSale(id: string, phoneSale: PhoneSale): Promise<PhoneSale> {
+    const result = await fetchAPI(`/phone-sales/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(phoneSale),
+    });
+    return result.data;
+  },
+
+  async deletePhoneSale(id: string): Promise<void> {
+    await fetchAPI(`/phone-sales/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  // Expenses
+  async getExpenses(): Promise<Expense[]> {
+    const result = await fetchAPI("/expenses");
+    return result.data || [];
+  },
+
+  async addExpense(expense: Omit<Expense, "id">): Promise<Expense> {
+    const result = await fetchAPI("/expenses", {
+      method: "POST",
+      body: JSON.stringify(expense),
+    });
+    return result.data;
+  },
+
+  async updateExpense(id: string, expense: Expense): Promise<Expense> {
+    const result = await fetchAPI(`/expenses/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(expense),
+    });
+    return result.data;
+  },
+
+  async deleteExpense(id: string): Promise<void> {
+    await fetchAPI(`/expenses/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  // Customer Requests
+  async getCustomerRequests(): Promise<CustomerRequest[]> {
+    const result = await fetchAPI("/customer-requests");
+    return result.data || [];
+  },
+
+  async addCustomerRequest(request: Omit<CustomerRequest, "id">): Promise<CustomerRequest> {
+    const result = await fetchAPI("/customer-requests", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+    return result.data;
+  },
+
+  async updateCustomerRequest(id: string, request: CustomerRequest): Promise<CustomerRequest> {
+    const result = await fetchAPI(`/customer-requests/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(request),
+    });
+    return result.data;
+  },
+
+  async deleteCustomerRequest(id: string): Promise<void> {
+    await fetchAPI(`/customer-requests/${id}`, {
+      method: "DELETE",
+    });
   },
 };
