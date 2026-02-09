@@ -658,4 +658,151 @@ app.get("/make-server-929c4905/whatsapp/stats/:sessionId", async (c) => {
   }
 });
 
+// Phone Sales
+app.get("/make-server-929c4905/phone-sales", async (c) => {
+  try {
+    const phoneSales = await kv.getByPrefix("phone-sale:");
+    return c.json({ success: true, data: phoneSales });
+  } catch (error) {
+    console.error("Error fetching phone sales:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.post("/make-server-929c4905/phone-sales", async (c) => {
+  try {
+    const phoneSale = await c.req.json();
+    const id = phoneSale.id || Date.now().toString();
+    const phoneSaleData = { ...phoneSale, id };
+    await kv.set(`phone-sale:${id}`, phoneSaleData);
+    console.log("✅ Telefon satışı kaydedildi:", phoneSaleData);
+    return c.json({ success: true, data: phoneSaleData });
+  } catch (error) {
+    console.error("Error adding phone sale:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.put("/make-server-929c4905/phone-sales/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const phoneSale = await c.req.json();
+    const phoneSaleData = { ...phoneSale, id };
+    await kv.set(`phone-sale:${id}`, phoneSaleData);
+    return c.json({ success: true, data: phoneSaleData });
+  } catch (error) {
+    console.error("Error updating phone sale:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.delete("/make-server-929c4905/phone-sales/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    await kv.del(`phone-sale:${id}`);
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting phone sale:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// Expenses
+app.get("/make-server-929c4905/expenses", async (c) => {
+  try {
+    const expenses = await kv.getByPrefix("expense:");
+    return c.json({ success: true, data: expenses });
+  } catch (error) {
+    console.error("Error fetching expenses:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.post("/make-server-929c4905/expenses", async (c) => {
+  try {
+    const expense = await c.req.json();
+    const id = expense.id || Date.now().toString();
+    const expenseData = { ...expense, id };
+    await kv.set(`expense:${id}`, expenseData);
+    console.log("✅ Gider kaydedildi:", expenseData);
+    return c.json({ success: true, data: expenseData });
+  } catch (error) {
+    console.error("Error adding expense:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.put("/make-server-929c4905/expenses/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const expense = await c.req.json();
+    const expenseData = { ...expense, id };
+    await kv.set(`expense:${id}`, expenseData);
+    return c.json({ success: true, data: expenseData });
+  } catch (error) {
+    console.error("Error updating expense:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.delete("/make-server-929c4905/expenses/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    await kv.del(`expense:${id}`);
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting expense:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// Customer Requests
+app.get("/make-server-929c4905/customer-requests", async (c) => {
+  try {
+    const customerRequests = await kv.getByPrefix("customer-request:");
+    return c.json({ success: true, data: customerRequests });
+  } catch (error) {
+    console.error("Error fetching customer requests:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.post("/make-server-929c4905/customer-requests", async (c) => {
+  try {
+    const request = await c.req.json();
+    const id = request.id || Date.now().toString();
+    const requestData = { ...request, id };
+    await kv.set(`customer-request:${id}`, requestData);
+    console.log("✅ İstek kaydedildi:", requestData);
+    return c.json({ success: true, data: requestData });
+  } catch (error) {
+    console.error("Error adding customer request:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.put("/make-server-929c4905/customer-requests/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const request = await c.req.json();
+    const requestData = { ...request, id };
+    await kv.set(`customer-request:${id}`, requestData);
+    return c.json({ success: true, data: requestData });
+  } catch (error) {
+    console.error("Error updating customer request:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.delete("/make-server-929c4905/customer-requests/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    await kv.del(`customer-request:${id}`);
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting customer request:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
 Deno.serve(app.fetch);
