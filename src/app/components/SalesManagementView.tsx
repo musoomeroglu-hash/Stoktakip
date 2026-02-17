@@ -22,6 +22,7 @@ interface SalesManagementViewProps {
   onDeleteSale: (id: string) => void;
   onUpdateSale: (id: string, sale: Sale) => void;
   onUpdateRepair: (id: string, data: Partial<RepairRecord>) => void;
+  onDeleteRepair: (id: string) => void;
   onDeletePhoneSale: (id: string) => void;
   currency: "TRY" | "USD";
   usdRate: number;
@@ -39,6 +40,7 @@ export function SalesManagementView({
   onDeleteSale,
   onUpdateSale,
   onUpdateRepair,
+  onDeleteRepair,
   onDeletePhoneSale,
   currency,
   usdRate,
@@ -54,7 +56,7 @@ export function SalesManagementView({
     const day = String(firstDay.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   });
-  
+
   const [endDate, setEndDate] = useState<string>(() => {
     // Default: bugün (local time)
     const now = new Date();
@@ -82,7 +84,7 @@ export function SalesManagementView({
     const month = String(firstDay.getMonth() + 1).padStart(2, '0');
     const day = String(firstDay.getDate()).padStart(2, '0');
     setStartDate(`${year}-${month}-${day}`);
-    
+
     const todayYear = now.getFullYear();
     const todayMonth = String(now.getMonth() + 1).padStart(2, '0');
     const todayDay = String(now.getDate()).padStart(2, '0');
@@ -93,12 +95,12 @@ export function SalesManagementView({
     const now = new Date();
     const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastDayPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    
+
     const startYear = firstDayPrevMonth.getFullYear();
     const startMonth = String(firstDayPrevMonth.getMonth() + 1).padStart(2, '0');
     const startDay = String(firstDayPrevMonth.getDate()).padStart(2, '0');
     setStartDate(`${startYear}-${startMonth}-${startDay}`);
-    
+
     const endYear = lastDayPrevMonth.getFullYear();
     const endMonth = String(lastDayPrevMonth.getMonth() + 1).padStart(2, '0');
     const endDay = String(lastDayPrevMonth.getDate()).padStart(2, '0');
@@ -153,7 +155,7 @@ export function SalesManagementView({
 
   // Calculate repair stats
   const repairStats = useMemo(() => {
-    const filtered = repairs.filter(r => 
+    const filtered = repairs.filter(r =>
       (r.status === "completed" || r.status === "delivered") &&
       isDateInRange(r.createdAt)
     );
@@ -166,7 +168,7 @@ export function SalesManagementView({
 
   // Calculate product sale stats
   const productSaleStats = useMemo(() => {
-    const filtered = sales.filter(s => 
+    const filtered = sales.filter(s =>
       !s.items.some(item => item.productId.startsWith('repair-')) &&
       isDateInRange(s.date)
     );
@@ -252,11 +254,11 @@ export function SalesManagementView({
   const handleUpdateSaleItem = (index: number, field: keyof SaleItem, value: any) => {
     const newItems = [...editSaleForm.items];
     newItems[index] = { ...newItems[index], [field]: value };
-    
+
     // Recalculate totals
     const totalPrice = newItems.reduce((sum, item) => sum + (item.salePrice * item.quantity), 0);
     const totalProfit = newItems.reduce((sum, item) => sum + (item.profit * item.quantity), 0);
-    
+
     setEditSaleForm({ items: newItems, totalPrice, totalProfit });
   };
 
@@ -294,7 +296,7 @@ export function SalesManagementView({
               <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               <span className="font-semibold text-indigo-900 dark:text-indigo-100">Tarih Aralığı:</span>
             </div>
-            
+
             <div className="flex flex-wrap items-center gap-3 flex-1">
               {/* Date Inputs */}
               <div className="flex items-center gap-2">
@@ -315,25 +317,25 @@ export function SalesManagementView({
 
               {/* Quick Filters */}
               <div className="flex gap-2">
-                <Button 
-                  onClick={setCurrentMonth} 
-                  variant="outline" 
+                <Button
+                  onClick={setCurrentMonth}
+                  variant="outline"
                   size="sm"
                   className="bg-white dark:bg-gray-800"
                 >
                   Bu Ay
                 </Button>
-                <Button 
-                  onClick={setPreviousMonth} 
-                  variant="outline" 
+                <Button
+                  onClick={setPreviousMonth}
+                  variant="outline"
                   size="sm"
                   className="bg-white dark:bg-gray-800"
                 >
                   Geçen Ay
                 </Button>
-                <Button 
-                  onClick={setAllTime} 
-                  variant="outline" 
+                <Button
+                  onClick={setAllTime}
+                  variant="outline"
                   size="sm"
                   className="bg-white dark:bg-gray-800"
                 >
@@ -344,8 +346,8 @@ export function SalesManagementView({
 
             {/* Selected Period Display */}
             <div className="text-sm text-muted-foreground bg-white dark:bg-gray-800 px-3 py-2 rounded-md border">
-              📅 {new Date(startDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })} 
-              {' - '} 
+              📅 {new Date(startDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })}
+              {' - '}
               {new Date(endDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })}
             </div>
           </div>
@@ -808,7 +810,7 @@ export function SalesManagementView({
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip 
+                      <Tooltip
                         formatter={(value: number) => `₺${value.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
                       />
                       <Legend />
@@ -868,20 +870,19 @@ export function SalesManagementView({
               <CardTitle>Son İşlemler</CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="space-y-3">
-                {[...productSaleStats.items.slice(0, 5), ...repairStats.items.slice(0, 5), ...phoneSaleStats.items.slice(0, 5)]
+              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                {[...productSaleStats.items, ...repairStats.items, ...phoneSaleStats.items]
                   .sort((a, b) => new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime())
-                  .slice(0, 10)
                   .map((item, index) => {
                     const isSale = 'items' in item;
                     const isPhoneSale = 'brand' in item || 'salePrice' in item;
                     const isRepair = 'deviceInfo' in item;
-                    
+
                     // Skip repair sales since we already show repair records
                     if (isSale && item.items.some(saleItem => saleItem.productId.startsWith('repair-'))) {
                       return null;
                     }
-                    
+
                     return (
                       <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                         <div className="flex items-center gap-3">
@@ -900,9 +901,9 @@ export function SalesManagementView({
                           )}
                           <div>
                             <p className="font-medium">
-                              {isSale 
-                                ? `Satış - ${item.items[0]?.productName}` 
-                                : isPhoneSale 
+                              {isSale
+                                ? `Satış - ${item.items[0]?.productName}`
+                                : isPhoneSale
                                   ? `Telefon Satışı - ${item.brand} ${item.model}`
                                   : `Tamir - ${item.deviceInfo}`
                               }
@@ -921,17 +922,17 @@ export function SalesManagementView({
                           <div className="text-right">
                             <p className="font-semibold">
                               {formatPriceLocale(
-                                isSale 
-                                  ? item.totalPrice 
-                                  : isPhoneSale 
-                                    ? item.salePrice 
+                                isSale
+                                  ? item.totalPrice
+                                  : isPhoneSale
+                                    ? item.salePrice
                                     : item.repairCost
                               )}
                             </p>
                             <p className="text-sm text-green-600">
                               +{formatPriceLocale(
-                                isSale 
-                                  ? item.totalProfit 
+                                isSale
+                                  ? item.totalProfit
                                   : item.profit
                               )}
                             </p>
@@ -942,6 +943,13 @@ export function SalesManagementView({
                                 <Edit className="w-4 h-4" />
                               </Button>
                               <Button variant="ghost" size="icon" onClick={() => handleDeleteSale(item.id!)}>
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </div>
+                          )}
+                          {!isSale && !isPhoneSale && (
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => onDeleteRepair(item.id!)}>
                                 <Trash2 className="w-4 h-4 text-destructive" />
                               </Button>
                             </div>

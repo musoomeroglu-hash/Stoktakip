@@ -177,7 +177,11 @@ export function PhoneSalesView({ phoneSales, onDeletePhoneSale }: PhoneSalesView
 
                     {/* Delete Button */}
                     <Button
-                      onClick={() => onDeletePhoneSale(sale.id)}
+                      onClick={() => {
+                        if (window.confirm("Bu telefon satışını silmek istediğinize emin misiniz?")) {
+                          onDeletePhoneSale(sale.id);
+                        }
+                      }}
                       variant="ghost"
                       size="sm"
                       className="text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"

@@ -7,22 +7,9 @@ import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Wrench, Camera, X, User } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
-import type { Customer } from "../utils/api";
+import type { Customer, RepairRecord } from "../utils/api";
 
-export interface RepairRecord {
-  id: string;
-  customerId?: string; // Opsiyonel müşteri bağlantısı
-  customerName: string;
-  customerPhone: string;
-  deviceInfo: string;
-  imei: string;
-  problemDescription: string;
-  repairCost: number;
-  partsCost: number;
-  profit: number;
-  status: string;
-  createdAt: string;
-}
+
 
 interface RepairDialogProps {
   open: boolean;
@@ -49,7 +36,7 @@ export function RepairDialog({ open, onOpenChange, onSave, customers }: RepairDi
   const scannerDivId = "qr-reader";
 
   const profit = formData.repairCost - formData.partsCost;
-  
+
   // Müşteri seçildiğinde bilgileri doldur
   const handleCustomerSelect = (customerId: string) => {
     if (customerId === "new") {
@@ -92,14 +79,14 @@ export function RepairDialog({ open, onOpenChange, onSave, customers }: RepairDi
               // Hata mesajlarını ignore ediyoruz (sürekli hata veriyor)
             }
           );
-          
+
           scannerRunningRef.current = true;
         } catch (err: any) {
           // Sadece geliştirme modunda konsola yaz
           if (process.env.NODE_ENV === 'development') {
             console.error("Scanner başlatma hatası:", err);
           }
-          
+
           if (err.name === 'NotAllowedError' || err.message?.includes('Permission denied')) {
             // Kamera izni reddedildi - sessizce iptal et
             // Kullanıcı zaten red ettiğini biliyor, ekstra uyarıya gerek yok
@@ -107,7 +94,7 @@ export function RepairDialog({ open, onOpenChange, onSave, customers }: RepairDi
             // Başka bir hata varsa bildir
             alert("Kamera erişimi sağlanamadı. IMEI'yi manuel olarak girebilirsiniz.");
           }
-          
+
           setScannerActive(false);
           html5QrCodeRef.current = null;
           scannerRunningRef.current = false;
@@ -138,7 +125,7 @@ export function RepairDialog({ open, onOpenChange, onSave, customers }: RepairDi
       if (html5QrCodeRef.current && scannerRunningRef.current) {
         html5QrCodeRef.current
           .stop()
-          .catch(() => {})
+          .catch(() => { })
           .finally(() => {
             scannerRunningRef.current = false;
           });
@@ -149,7 +136,7 @@ export function RepairDialog({ open, onOpenChange, onSave, customers }: RepairDi
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     onSave({
       ...formData,
       customerId: selectedCustomerId || undefined,
@@ -220,8 +207,8 @@ export function RepairDialog({ open, onOpenChange, onSave, customers }: RepairDi
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Mevcut müşteri seç veya yeni müşteri">
-                    {selectedCustomerId 
-                      ? customers.find(c => c.id === selectedCustomerId)?.name 
+                    {selectedCustomerId
+                      ? customers.find(c => c.id === selectedCustomerId)?.name
                       : "🆕 Yeni Müşteri"}
                   </SelectValue>
                 </SelectTrigger>
@@ -303,8 +290,8 @@ export function RepairDialog({ open, onOpenChange, onSave, customers }: RepairDi
             {/* QR Code Scanner Area */}
             {scannerActive && (
               <div className="space-y-2">
-                <div 
-                  id={scannerDivId} 
+                <div
+                  id={scannerDivId}
                   className="w-full border-2 border-dashed border-primary rounded-lg overflow-hidden"
                 />
                 <p className="text-sm text-muted-foreground text-center">
@@ -358,22 +345,20 @@ export function RepairDialog({ open, onOpenChange, onSave, customers }: RepairDi
             </div>
 
             {/* Kâr Gösterimi */}
-            <div className={`p-4 rounded-lg border-2 ${
-              profit > 0 
-                ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' 
-                : profit < 0 
-                ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
-                : 'bg-muted border-border'
-            }`}>
+            <div className={`p-4 rounded-lg border-2 ${profit > 0
+                ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
+                : profit < 0
+                  ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
+                  : 'bg-muted border-border'
+              }`}>
               <div className="flex items-center justify-between">
                 <span className="font-medium">Kâr:</span>
-                <span className={`text-2xl font-bold ${
-                  profit > 0 
-                    ? 'text-green-600 dark:text-green-400' 
-                    : profit < 0 
-                    ? 'text-red-600 dark:text-red-400'
-                    : 'text-muted-foreground'
-                }`}>
+                <span className={`text-2xl font-bold ${profit > 0
+                    ? 'text-green-600 dark:text-green-400'
+                    : profit < 0
+                      ? 'text-red-600 dark:text-red-400'
+                      : 'text-muted-foreground'
+                  }`}>
                   ₺{profit.toFixed(2)}
                 </span>
               </div>

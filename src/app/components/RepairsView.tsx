@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { Wrench, Phone, Calendar, DollarSign, Package, CheckCircle, Truck, Edit } from "lucide-react";
+import { Wrench, Phone, Calendar, DollarSign, Package, CheckCircle, Truck, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { toast } from "sonner";
@@ -16,12 +16,13 @@ interface RepairsViewProps {
   repairs: RepairRecord[];
   onUpdateStatus: (id: string, status: "in_progress" | "completed" | "delivered") => void;
   onUpdateRepair?: (id: string, data: Partial<RepairRecord>) => void;
+  onDeleteRepair?: (id: string) => void;
   currency: "TRY" | "USD";
   usdRate: number;
   formatPrice: (price: number) => string;
 }
 
-export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, currency, usdRate, formatPrice }: RepairsViewProps) {
+export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteRepair, currency, usdRate, formatPrice }: RepairsViewProps) {
   const [editingRepair, setEditingRepair] = useState<RepairRecord | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -66,7 +67,7 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, currency,
     if (!editingRepair || !onUpdateRepair) return;
 
     const profit = editForm.repairCost - editForm.partsCost;
-    
+
     onUpdateRepair(editingRepair.id!, {
       ...editForm,
       profit,
@@ -142,12 +143,13 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, currency,
           </CardHeader>
           <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
             {inProgressRepairs.map((repair) => (
-              <RepairCard 
-                key={repair.id} 
-                repair={repair} 
-                onUpdateStatus={onUpdateStatus} 
+              <RepairCard
+                key={repair.id}
+                repair={repair}
+                onUpdateStatus={onUpdateStatus}
                 onEdit={handleEditRepair}
-                formatPrice={formatPrice} 
+                onDelete={onDeleteRepair}
+                formatPrice={formatPrice}
               />
             ))}
             {inProgressRepairs.length === 0 && (
@@ -168,12 +170,13 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, currency,
           </CardHeader>
           <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
             {completedRepairs.map((repair) => (
-              <RepairCard 
-                key={repair.id} 
-                repair={repair} 
-                onUpdateStatus={onUpdateStatus} 
+              <RepairCard
+                key={repair.id}
+                repair={repair}
+                onUpdateStatus={onUpdateStatus}
                 onEdit={handleEditRepair}
-                formatPrice={formatPrice} 
+                onDelete={onDeleteRepair}
+                formatPrice={formatPrice}
               />
             ))}
             {completedRepairs.length === 0 && (
@@ -194,12 +197,13 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, currency,
           </CardHeader>
           <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
             {deliveredRepairs.map((repair) => (
-              <RepairCard 
-                key={repair.id} 
-                repair={repair} 
-                onUpdateStatus={onUpdateStatus} 
+              <RepairCard
+                key={repair.id}
+                repair={repair}
+                onUpdateStatus={onUpdateStatus}
                 onEdit={handleEditRepair}
-                formatPrice={formatPrice} 
+                onDelete={onDeleteRepair}
+                formatPrice={formatPrice}
               />
             ))}
             {deliveredRepairs.length === 0 && (
@@ -312,15 +316,17 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, currency,
   );
 }
 
-function RepairCard({ 
-  repair, 
+function RepairCard({
+  repair,
   onUpdateStatus,
   onEdit,
+  onDelete,
   formatPrice
-}: { 
-  repair: RepairRecord; 
+}: {
+  repair: RepairRecord;
   onUpdateStatus: (id: string, status: "in_progress" | "completed" | "delivered") => void;
   onEdit: (repair: RepairRecord) => void;
+  onDelete?: (id: string) => void;
   formatPrice: (price: number) => string;
 }) {
   const nextStatus = getNextStatus(repair.status);
@@ -347,6 +353,16 @@ function RepairCard({
             >
               <Edit className="w-4 h-4" />
             </Button>
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => onDelete(repair.id)}
+                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
 

@@ -33,12 +33,12 @@ import * as XLSX from "xlsx";
 import { api } from "./utils/api";
 import type { Category, Product, Sale, SaleItem, RepairRecord, Customer, CustomerTransaction, PaymentMethod, PaymentDetails } from "./utils/api";
 import { motion, AnimatePresence } from "motion/react";
-import { 
-  Package, 
-  Plus, 
-  ShoppingCart, 
-  BarChart3, 
-  FolderTree, 
+import {
+  Package,
+  Plus,
+  ShoppingCart,
+  BarChart3,
+  FolderTree,
   Search,
   Edit,
   Trash2,
@@ -67,37 +67,37 @@ import {
 const playSuccessSound = () => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    
+
     // Create oscillator for first note
     const oscillator1 = audioContext.createOscillator();
     const gainNode1 = audioContext.createGain();
-    
+
     oscillator1.connect(gainNode1);
     gainNode1.connect(audioContext.destination);
-    
+
     oscillator1.frequency.value = 800; // C note
     oscillator1.type = 'sine';
-    
+
     gainNode1.gain.setValueAtTime(0.3, audioContext.currentTime);
     gainNode1.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-    
+
     oscillator1.start(audioContext.currentTime);
     oscillator1.stop(audioContext.currentTime + 0.15);
-    
+
     // Create oscillator for second note (higher)
     const oscillator2 = audioContext.createOscillator();
     const gainNode2 = audioContext.createGain();
-    
+
     oscillator2.connect(gainNode2);
     gainNode2.connect(audioContext.destination);
-    
+
     oscillator2.frequency.value = 1000; // E note
     oscillator2.type = 'sine';
-    
+
     gainNode2.gain.setValueAtTime(0, audioContext.currentTime + 0.1);
     gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.1);
     gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-    
+
     oscillator2.start(audioContext.currentTime + 0.1);
     oscillator2.stop(audioContext.currentTime + 0.3);
   } catch (error) {
@@ -109,19 +109,19 @@ const playSuccessSound = () => {
 const playMenuSound = () => {
   try {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    
+
     const oscillator = audioContext.createOscillator();
     const gainNode = audioContext.createGain();
-    
+
     oscillator.connect(gainNode);
     gainNode.connect(audioContext.destination);
-    
+
     oscillator.frequency.value = 600; // Soft tone
     oscillator.type = 'sine';
-    
+
     gainNode.gain.setValueAtTime(0.15, audioContext.currentTime); // Lower volume
     gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08); // Shorter duration
-    
+
     oscillator.start(audioContext.currentTime);
     oscillator.stop(audioContext.currentTime + 0.08);
   } catch (error) {
@@ -149,7 +149,7 @@ function App() {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
   const [salesDialogOpen, setSalesDialogOpen] = useState(false);
-  
+
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -196,7 +196,7 @@ function App() {
   useEffect(() => {
     loadData();
     fetchUsdRate();
-    
+
     // Update USD rate every hour
     const interval = setInterval(fetchUsdRate, 3600000); // 3600000ms = 1 hour
     return () => clearInterval(interval);
@@ -215,6 +215,7 @@ function App() {
         api.getPhoneSales().catch(() => []),
       ]);
 
+
       setCategories(categoriesData);
       setProducts(productsData);
       setSales(salesData);
@@ -224,6 +225,8 @@ function App() {
       setPhoneSales(phoneSalesData);
       console.log("✅ Veriler Supabase'den yüklendi - Telefon satışları:", phoneSalesData.length);
 
+
+
       // Initialize with sample data if empty
       if (categoriesData.length === 0) {
         const sampleCategories = [
@@ -231,11 +234,11 @@ function App() {
           { name: "Giyim", createdAt: new Date().toISOString() },
           { name: "Gıda", createdAt: new Date().toISOString() },
         ];
-        
+
         for (const cat of sampleCategories) {
           await api.addCategory(cat);
         }
-        
+
         const refreshedCategories = await api.getCategories();
         setCategories(refreshedCategories);
       }
@@ -339,16 +342,18 @@ function App() {
   const handleDeleteCategory = async (id: string) => {
     const hasProducts = products.some((p) => p.categoryId === id);
     const hasSubCategories = categories.some((c) => c.parentId === id);
-    
+
     if (hasProducts) {
       toast.error("Bu kategoride ürünler var, önce onları silin");
       return;
     }
-    
+
     if (hasSubCategories) {
       toast.error("Bu kategorinin alt kategorileri var, önce onları silin");
       return;
     }
+
+    if (!window.confirm("Bu kategoriyi silmek istediğinize emin misiniz?")) return;
 
     try {
       await api.deleteCategory(id);
@@ -380,6 +385,8 @@ function App() {
   };
 
   const handleDeleteProduct = async (id: string) => {
+    if (!window.confirm("Bu ürünü silmek istediğinize emin misiniz?")) return;
+
     try {
       await api.deleteProduct(id);
       setProducts(products.filter((p) => p.id !== id));
@@ -392,8 +399,8 @@ function App() {
 
   // Sale handler
   const handleCompleteSale = async (
-    items: SaleItem[], 
-    totalPrice: number, 
+    items: SaleItem[],
+    totalPrice: number,
     totalProfit: number,
     paymentMethod?: PaymentMethod,
     paymentDetails?: PaymentDetails,
@@ -427,6 +434,8 @@ function App() {
   };
 
   const handleDeleteSale = async (id: string) => {
+    if (!window.confirm("Bu satışı silmek istediğinize emin misiniz?")) return;
+
     try {
       // Check if this sale is related to a repair
       const sale = sales.find(s => s.id === id);
@@ -435,7 +444,7 @@ function App() {
         if (repairItem.productId && repairItem.productId.startsWith("repair-")) {
           // Extract repair ID
           const repairId = repairItem.productId.replace("repair-", "");
-          
+
           // Revert repair status to completed
           const repair = repairs.find(r => r.id === repairId);
           if (repair && repair.status === "delivered") {
@@ -445,14 +454,14 @@ function App() {
           }
         }
       }
-      
+
       await api.deleteSale(id);
       setSales(sales.filter((s) => s.id !== id));
-      
+
       // Refresh products to update stock
       const updatedProducts = await api.getProducts();
       setProducts(updatedProducts);
-      
+
       toast.success("Satış silindi ve stoklar güncellendi");
     } catch (error) {
       console.error("Error deleting sale:", error);
@@ -494,12 +503,12 @@ function App() {
   const getCategoryName = (categoryId: string) => {
     const category = categories.find((c) => c.id === categoryId);
     if (!category) return "Bilinmeyen";
-    
+
     if (category.parentId) {
       const parent = categories.find((c) => c.id === category.parentId);
       return parent ? `${parent.name} > ${category.name}` : category.name;
     }
-    
+
     return category.name;
   };
 
@@ -582,10 +591,10 @@ function App() {
         }>(worksheet);
 
         // Filter out empty rows
-        const validRows = jsonData.filter(row => 
-          row["Ürün Adı"] && 
+        const validRows = jsonData.filter(row =>
+          row["Ürün Adı"] &&
           row["Ürün Adı"].toString().trim() !== "" &&
-          row["Kategori"] && 
+          row["Kategori"] &&
           row["Kategori"].toString().trim() !== "" &&
           typeof row["Stok"] === "number" &&
           typeof row["Alış Fiyatı"] === "number" &&
@@ -674,7 +683,7 @@ function App() {
   const handleUpdateRepairStatus = async (id: string, status: "in_progress" | "completed" | "delivered") => {
     try {
       const updated = await api.updateRepairStatus(id, status);
-      
+
       // If delivered, add to sales
       if (status === "delivered") {
         const sale: Omit<Sale, "id"> = {
@@ -688,7 +697,7 @@ function App() {
           }],
           totalPrice: updated.repairCost,
           totalProfit: updated.profit,
-          date: updated.deliveredAt || new Date().toISOString(), // Teslim tarihini kullan
+          date: new Date().toISOString(),
           paymentMethod: updated.paymentMethod,
           paymentDetails: updated.paymentDetails,
           customerInfo: {
@@ -704,7 +713,7 @@ function App() {
 
       const updatedRepairs = repairs.map((r) => (r.id === id ? updated : r));
       setRepairs(updatedRepairs);
-      
+
       toast.success("Tamir durumu güncellendi");
       playSuccessSound();
     } catch (error) {
@@ -882,7 +891,7 @@ function App() {
   ) => {
     try {
       await api.addCustomerTransaction(customerId, type, amount, description);
-      
+
       // Refresh customers and transactions
       const [updatedCustomers, updatedTransactions] = await Promise.all([
         api.getCustomers(),
@@ -890,7 +899,7 @@ function App() {
       ]);
       setCustomers(updatedCustomers);
       setCustomerTransactions(updatedTransactions);
-      
+
       toast.success("İşlem eklendi");
     } catch (error) {
       console.error("Error adding customer transaction:", error);
@@ -922,20 +931,20 @@ function App() {
   // Function to get stock color based on stock level
   const getStockColor = (stock: number) => {
     if (sortBy !== "stock" || filteredProducts.length === 0) return "";
-    
+
     // Find min and max stock values for gradient
     const stockValues = filteredProducts.map(p => p.stock);
     const minStock = Math.min(...stockValues);
     const maxStock = Math.max(...stockValues);
-    
+
     // Avoid division by zero
     if (minStock === maxStock) {
       return "bg-yellow-100 dark:bg-yellow-900/30";
     }
-    
+
     // Normalize stock value between 0 and 1
     const normalized = (stock - minStock) / (maxStock - minStock);
-    
+
     // Create color gradient from red (low) to light green (high)
     if (normalized < 0.2) {
       return "bg-red-100 dark:bg-red-900/40"; // Darkest red
@@ -955,20 +964,20 @@ function App() {
     if (sortBy !== "stock" || filteredProducts.length === 0) {
       return isLowStock ? "destructive" : "secondary";
     }
-    
+
     // Find min and max stock values for gradient
     const stockValues = filteredProducts.map(p => p.stock);
     const minStock = Math.min(...stockValues);
     const maxStock = Math.max(...stockValues);
-    
+
     // Avoid division by zero
     if (minStock === maxStock) {
       return "secondary";
     }
-    
+
     // Normalize stock value between 0 and 1
     const normalized = (stock - minStock) / (maxStock - minStock);
-    
+
     // Return appropriate badge variant based on stock level
     if (normalized < 0.2) {
       return "destructive"; // Red
@@ -1105,11 +1114,10 @@ function App() {
                 setSelectedCategoryId(null);
                 setActiveView("products");
               }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
-                selectedCategoryId === null && activeView === "products" 
-                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md" 
-                  : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_15px_rgba(96,165,250,0.4)]"
-              }`}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${selectedCategoryId === null && activeView === "products"
+                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
+                : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_15px_rgba(96,165,250,0.4)]"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Package className="w-4 h-4" />
@@ -1126,8 +1134,8 @@ function App() {
               const hasSubCategories = subCategories.length > 0;
               const isExpanded = expandedCategories.has(mainCat.id);
               const mainCatProductCount = products.filter(p => p.categoryId === mainCat.id).length;
-              const allProductCount = products.filter(p => 
-                p.categoryId === mainCat.id || 
+              const allProductCount = products.filter(p =>
+                p.categoryId === mainCat.id ||
                 subCategories.some(sub => sub.id === p.categoryId)
               ).length;
 
@@ -1153,13 +1161,11 @@ function App() {
                         setSelectedCategoryId(mainCat.id);
                         setActiveView("products");
                       }}
-                      className={`flex-1 text-left px-3 py-2 rounded-lg transition-all duration-300 ${
-                        !hasSubCategories ? "ml-6" : ""
-                      } ${
-                        selectedCategoryId === mainCat.id 
-                          ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md" 
+                      className={`flex-1 text-left px-3 py-2 rounded-lg transition-all duration-300 ${!hasSubCategories ? "ml-6" : ""
+                        } ${selectedCategoryId === mainCat.id
+                          ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md"
                           : "hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:border-indigo-200 dark:hover:border-indigo-800 border border-transparent hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] dark:hover:shadow-[0_0_15px_rgba(129,140,248,0.4)]"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -1186,11 +1192,10 @@ function App() {
                               setSelectedCategoryId(subCat.id);
                               setActiveView("products");
                             }}
-                            className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
-                              selectedCategoryId === subCat.id 
-                                ? "bg-gradient-to-r from-violet-500 to-violet-600 text-white shadow-md" 
-                                : "hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:border-violet-200 dark:hover:border-violet-800 border border-transparent hover:shadow-[0_0_15px_rgba(139,92,246,0.3)] dark:hover:shadow-[0_0_15px_rgba(167,139,250,0.4)]"
-                            }`}
+                            className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${selectedCategoryId === subCat.id
+                              ? "bg-gradient-to-r from-violet-500 to-violet-600 text-white shadow-md"
+                              : "hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:border-violet-200 dark:hover:border-violet-800 border border-transparent hover:shadow-[0_0_15px_rgba(139,92,246,0.3)] dark:hover:shadow-[0_0_15px_rgba(167,139,250,0.4)]"
+                              }`}
                           >
                             <div className="flex items-center justify-between">
                               <span className="text-sm">→ {subCat.name}</span>
@@ -1213,11 +1218,10 @@ function App() {
                 playMenuSound();
                 setActiveView("salesManagement");
               }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
-                activeView === "salesManagement" 
-                  ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md" 
-                  : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent hover:shadow-[0_0_15px_rgba(124,58,237,0.3)] dark:hover:shadow-[0_0_15px_rgba(147,51,234,0.4)]"
-              }`}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "salesManagement"
+                ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md"
+                : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent hover:shadow-[0_0_15px_rgba(124,58,237,0.3)] dark:hover:shadow-[0_0_15px_rgba(147,51,234,0.4)]"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4" />
@@ -1242,11 +1246,10 @@ function App() {
                 playMenuSound();
                 setActiveView("repairs");
               }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
-                activeView === "repairs" 
-                  ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md" 
-                  : "hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-200 dark:hover:border-orange-800 border border-transparent hover:shadow-[0_0_15px_rgba(249,115,22,0.3)] dark:hover:shadow-[0_0_15px_rgba(251,146,60,0.4)]"
-              }`}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "repairs"
+                ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md"
+                : "hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-200 dark:hover:border-orange-800 border border-transparent hover:shadow-[0_0_15px_rgba(249,115,22,0.3)] dark:hover:shadow-[0_0_15px_rgba(251,146,60,0.4)]"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Wrench className="w-4 h-4" />
@@ -1261,11 +1264,10 @@ function App() {
                 playMenuSound();
                 setActiveView("phoneSales");
               }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
-                activeView === "phoneSales" 
-                  ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md" 
-                  : "hover:bg-purple-50 dark:hover:bg-purple-950/30 hover:border-purple-200 dark:hover:border-purple-800 border border-transparent hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] dark:hover:shadow-[0_0_15px_rgba(192,132,252,0.4)]"
-              }`}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "phoneSales"
+                ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md"
+                : "hover:bg-purple-50 dark:hover:bg-purple-950/30 hover:border-purple-200 dark:hover:border-purple-800 border border-transparent hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] dark:hover:shadow-[0_0_15px_rgba(192,132,252,0.4)]"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Smartphone className="w-4 h-4" />
@@ -1280,11 +1282,10 @@ function App() {
                 playMenuSound();
                 setActiveView("caris");
               }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
-                activeView === "caris" 
-                  ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-md" 
-                  : "hover:bg-pink-50 dark:hover:bg-pink-950/30 hover:border-pink-200 dark:hover:border-pink-800 border border-transparent hover:shadow-[0_0_15px_rgba(236,72,153,0.3)] dark:hover:shadow-[0_0_15px_rgba(244,114,182,0.4)]"
-              }`}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "caris"
+                ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-md"
+                : "hover:bg-pink-50 dark:hover:bg-pink-950/30 hover:border-pink-200 dark:hover:border-pink-800 border border-transparent hover:shadow-[0_0_15px_rgba(236,72,153,0.3)] dark:hover:shadow-[0_0_15px_rgba(244,114,182,0.4)]"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4" />
@@ -1298,11 +1299,10 @@ function App() {
                 playMenuSound();
                 setActiveView("calculator");
               }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
-                activeView === "calculator" 
-                  ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md" 
-                  : "hover:bg-green-50 dark:hover:bg-green-950/30 hover:border-green-200 dark:hover:border-green-800 border border-transparent hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] dark:hover:shadow-[0_0_15px_rgba(74,222,128,0.4)]"
-              }`}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "calculator"
+                ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md"
+                : "hover:bg-green-50 dark:hover:bg-green-950/30 hover:border-green-200 dark:hover:border-green-800 border border-transparent hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] dark:hover:shadow-[0_0_15px_rgba(74,222,128,0.4)]"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Calculator className="w-4 h-4" />
@@ -1316,11 +1316,10 @@ function App() {
                 playMenuSound();
                 setActiveView("requests");
               }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
-                activeView === "requests" 
-                  ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md" 
-                  : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_15px_rgba(96,165,250,0.4)]"
-              }`}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "requests"
+                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
+                : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_15px_rgba(96,165,250,0.4)]"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <ClipboardList className="w-4 h-4" />
@@ -1334,11 +1333,10 @@ function App() {
                 playMenuSound();
                 setActiveView("expenses");
               }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
-                activeView === "expenses" 
-                  ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md" 
-                  : "hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-200 dark:hover:border-orange-800 border border-transparent hover:shadow-[0_0_15px_rgba(249,115,22,0.3)] dark:hover:shadow-[0_0_15px_rgba(251,146,60,0.4)]"
-              }`}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "expenses"
+                ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md"
+                : "hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-200 dark:hover:border-orange-800 border border-transparent hover:shadow-[0_0_15px_rgba(249,115,22,0.3)] dark:hover:shadow-[0_0_15px_rgba(251,146,60,0.4)]"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <Receipt className="w-4 h-4" />
@@ -1352,11 +1350,10 @@ function App() {
                 playMenuSound();
                 setActiveView("salesAnalytics");
               }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
-                activeView === "salesAnalytics" 
-                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md" 
-                  : "hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:border-indigo-200 dark:hover:border-indigo-800 border border-transparent hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] dark:hover:shadow-[0_0_15px_rgba(129,140,248,0.4)]"
-              }`}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "salesAnalytics"
+                ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md"
+                : "hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:border-indigo-200 dark:hover:border-indigo-800 border border-transparent hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] dark:hover:shadow-[0_0_15px_rgba(129,140,248,0.4)]"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
@@ -1370,11 +1367,10 @@ function App() {
                 playMenuSound();
                 setActiveView("customers");
               }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${
-                activeView === "customers" 
-                  ? "bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-md" 
-                  : "hover:bg-pink-50 dark:hover:bg-pink-950/30 hover:border-pink-200 dark:hover:border-pink-800 border border-transparent hover:shadow-[0_0_15px_rgba(236,72,153,0.3)] dark:hover:shadow-[0_0_15px_rgba(244,114,182,0.4)]"
-              }`}
+              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "customers"
+                ? "bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-md"
+                : "hover:bg-pink-50 dark:hover:bg-pink-950/30 hover:border-pink-200 dark:hover:border-pink-800 border border-transparent hover:shadow-[0_0_15px_rgba(236,72,153,0.3)] dark:hover:shadow-[0_0_15px_rgba(244,114,182,0.4)]"
+                }`}
             >
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4" />
@@ -1432,7 +1428,7 @@ function App() {
                     </CardContent>
                   </Card>
 
-                  <Card 
+                  <Card
                     className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950 dark:to-orange-900/50 border-orange-200 dark:border-orange-800 cursor-pointer hover:shadow-lg transition-all"
                     onClick={() => {
                       setSortBy("stock");
@@ -1522,7 +1518,7 @@ function App() {
                   <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
                     <div className="flex items-center justify-between">
                       <CardTitle>
-                        {selectedCategoryId 
+                        {selectedCategoryId
                           ? `${getCategoryName(selectedCategoryId)} - Ürünler (${filteredProducts.length})`
                           : `Tüm Ürünler (${filteredProducts.length})`
                         }
@@ -1584,15 +1580,15 @@ function App() {
                             const isLowStock = product.stock <= product.minStock;
 
                             // Alternating row colors or stock-based gradient
-                            const rowColor = sortBy === "stock" 
+                            const rowColor = sortBy === "stock"
                               ? getStockColor(product.stock)
-                              : (index % 2 === 0 
-                                  ? "bg-white/50 dark:bg-gray-900/50" 
-                                  : "bg-blue-50/30 dark:bg-blue-950/20");
+                              : (index % 2 === 0
+                                ? "bg-white/50 dark:bg-gray-900/50"
+                                : "bg-blue-50/30 dark:bg-blue-950/20");
 
                             return (
-                              <tr 
-                                key={product.id} 
+                              <tr
+                                key={product.id}
                                 className={`border-b ${rowColor} hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition-all duration-300 cursor-pointer hover:shadow-[0_0_20px_rgba(168,85,247,0.25)] dark:hover:shadow-[0_0_20px_rgba(192,132,252,0.35)]`}
                                 onClick={(e) => {
                                   // Don't open detail dialog if clicking on checkbox or buttons
@@ -1705,8 +1701,8 @@ function App() {
                   </div>
                 </div>
 
-                <SalesManagementView 
-                  sales={sales} 
+                <SalesManagementView
+                  sales={sales}
                   repairs={repairs}
                   phoneSales={phoneSales}
                   customers={customers}
@@ -1731,7 +1727,7 @@ function App() {
                 className="space-y-6"
               >
                 <h2 className="text-2xl font-bold">Tamir Kayıtları</h2>
-                <RepairsView 
+                <RepairsView
                   repairs={repairs}
                   onUpdateStatus={handleUpdateRepairStatus}
                   onUpdateRepair={handleUpdateRepair}
@@ -1751,7 +1747,7 @@ function App() {
                 className="space-y-6"
               >
                 <h2 className="text-2xl font-bold">Telefon Satışları</h2>
-                <PhoneSalesView 
+                <PhoneSalesView
                   phoneSales={phoneSales}
                   onDeletePhoneSale={handleDeletePhoneSale}
                 />
@@ -1767,7 +1763,7 @@ function App() {
                 className="space-y-6"
               >
                 <h2 className="text-2xl font-bold">Cariler</h2>
-                <CariView 
+                <CariView
                   customers={customers}
                   onAddCustomer={handleAddCustomer}
                   onUpdateCustomer={handleUpdateCustomer}
@@ -1787,7 +1783,7 @@ function App() {
               >
                 <h2 className="text-2xl font-bold">Hesap Makinesi</h2>
                 <CalculatorView usdRate={usdRate} />
-                
+
                 {/* WhatsApp Bot - Professional QR Code Edition */}
                 <div className="mt-8">
                   <WhatsAppBotPro />
@@ -1817,9 +1813,9 @@ function App() {
                 className="space-y-6"
               >
                 <h2 className="text-2xl font-bold">Giderler</h2>
-                <ExpensesView 
+                <ExpensesView
                   totalProfit={
-                    sales.reduce((sum, s) => sum + s.totalProfit, 0) + 
+                    sales.reduce((sum, s) => sum + s.totalProfit, 0) +
                     repairs.filter(r => r.status === "completed" || r.status === "delivered")
                       .reduce((sum, r) => sum + (r.repairCost - r.partsCost), 0) +
                     phoneSales.reduce((sum, ps) => sum + ps.profit, 0)
@@ -1871,7 +1867,7 @@ function App() {
                 transition={{ duration: 0.3, ease: "easeInOut" }}
                 className="space-y-6"
               >
-                <SalesPanelView 
+                <SalesPanelView
                   sales={sales}
                   repairs={repairs}
                   categories={categories}

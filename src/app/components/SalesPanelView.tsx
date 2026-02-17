@@ -49,7 +49,7 @@ export function SalesPanelView({
   // Filter sales by category
   const filteredSales = useMemo(() => {
     if (selectedCategory === "all") return sales;
-    return sales.filter(sale => 
+    return sales.filter(sale =>
       sale.items.some(item => {
         // Check if item has categoryId directly or find product's category
         return item.categoryId === selectedCategory;
@@ -59,10 +59,10 @@ export function SalesPanelView({
 
   // Calculate repair stats
   const repairStats = useMemo(() => {
-    const filtered = selectedCategory === "all" 
+    const filtered = selectedCategory === "all"
       ? repairs.filter(r => r.status === "completed" || r.status === "delivered")
       : repairs.filter(r => (r.status === "completed" || r.status === "delivered"));
-    
+
     const totalRevenue = filtered.reduce((sum, r) => sum + r.repairCost, 0);
     const totalCost = filtered.reduce((sum, r) => sum + r.partsCost, 0);
     const totalProfit = totalRevenue - totalCost;
@@ -115,7 +115,7 @@ export function SalesPanelView({
     if (!editingRepair) return;
 
     const profit = editForm.repairCost - editForm.partsCost;
-    
+
     onUpdateRepair(editingRepair.id!, {
       ...editForm,
       profit,
@@ -404,7 +404,7 @@ export function SalesPanelView({
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
-                      <Tooltip 
+                      <Tooltip
                         formatter={(value: number) => `₺${value.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
                       />
                       <Legend />
@@ -465,10 +465,9 @@ export function SalesPanelView({
               <CardTitle>Son İşlemler</CardTitle>
             </CardHeader>
             <CardContent className="p-6">
-              <div className="space-y-3">
-                {[...filteredSales.slice(0, 5), ...repairs.filter(r => r.status === "completed" || r.status === "delivered").slice(0, 5)]
+              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                {[...filteredSales, ...repairs.filter(r => r.status === "completed" || r.status === "delivered")]
                   .sort((a, b) => new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime())
-                  .slice(0, 10)
                   .map((item, index) => {
                     const isSale = 'items' in item;
                     return (
