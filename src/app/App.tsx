@@ -145,6 +145,7 @@ function App() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerTransactions, setCustomerTransactions] = useState<CustomerTransaction[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
@@ -199,22 +200,41 @@ function App() {
 
     // Update USD rate every hour
     const interval = setInterval(fetchUsdRate, 3600000); // 3600000ms = 1 hour
-    return () => clearInterval(interval);
-  }, []);
+    // Forced loading timeout (15s)
+    const forcedTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn("⚠️ Forced loading timeout triggered after 15s");
+        setLoading(false);
+        setError("Yükleme çok uzun sürdü. Bazı veriler eksik olabilir.");
+      }
+    }, 15000);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(forcedTimeout);
+    };
+  }, [loading]);
 
   const loadData = async () => {
     try {
       setLoading(true);
+      setError(null);
+      console.log("🔵 Veriler yükleniyor...");
+
+      const startTime = Date.now();
+
       const [categoriesData, productsData, salesData, repairsData, customersData, customerTransactionsData, phoneSalesData] = await Promise.all([
-        api.getCategories().catch(() => []),
-        api.getProducts().catch(() => []),
-        api.getSales().catch(() => []),
-        api.getRepairs().catch(() => []),
-        api.getCustomers().catch(() => []),
-        api.getCustomerTransactions().catch(() => []),
-        api.getPhoneSales().catch(() => []),
+        api.getCategories().catch(err => { console.error("Categories fetch failed:", err); return []; }),
+        api.getProducts().catch(err => { console.error("Products fetch failed:", err); return []; }),
+        api.getSales().catch(err => { console.error("Sales fetch failed:", err); return []; }),
+        api.getRepairs().catch(err => { console.error("Repairs fetch failed:", err); return []; }),
+        api.getCustomers().catch(err => { console.error("Customers fetch failed:", err); return []; }),
+        api.getCustomerTransactions().catch(err => { console.error("Transactions fetch failed:", err); return []; }),
+        api.getPhoneSales().catch(err => { console.error("PhoneSales fetch failed:", err); return []; }),
       ]);
 
+      const duration = (Date.now() - startTime) / 1000;
+      console.log(`✅ Veriler ${duration.toFixed(2)}sn içinde yüklendi`);
 
       setCategories(categoriesData);
       setProducts(productsData);
@@ -223,27 +243,13 @@ function App() {
       setCustomers(customersData);
       setCustomerTransactions(customerTransactionsData);
       setPhoneSales(phoneSalesData);
-      console.log("✅ Veriler Supabase'den yüklendi - Telefon satışları:", phoneSalesData.length);
 
+      // Initialize with sample data if empty and purely local/mock (optional)
+      // Removing automatic sample data creation to prevent potential write loops during debugging
 
-
-      // Initialize with sample data if empty
-      if (categoriesData.length === 0) {
-        const sampleCategories = [
-          { name: "Elektronik", createdAt: new Date().toISOString() },
-          { name: "Giyim", createdAt: new Date().toISOString() },
-          { name: "Gıda", createdAt: new Date().toISOString() },
-        ];
-
-        for (const cat of sampleCategories) {
-          await api.addCategory(cat);
-        }
-
-        const refreshedCategories = await api.getCategories();
-        setCategories(refreshedCategories);
-      }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error loading data:", error);
+      setError(error.message || "Veriler yüklenirken bir hata oluştu");
       toast.error("Veriler yüklenirken hata oluştu");
     } finally {
       setLoading(false);

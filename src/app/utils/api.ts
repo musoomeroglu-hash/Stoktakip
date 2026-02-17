@@ -5,11 +5,15 @@ const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-929c4
 async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const url = `${API_URL}${endpoint}`;
   console.log('🔵 API Request:', url);
-  console.log('🔵 Request options:', options);
-  
+
+  // 10 second timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
   try {
     const response = await fetch(url, {
       ...options,
+      signal: controller.signal,
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${publicAnonKey}`,
@@ -17,7 +21,8 @@ async function fetchAPI(endpoint: string, options: RequestInit = {}) {
       },
     });
 
-    console.log('🔵 Response status:', response.status);
+    clearTimeout(timeoutId);
+    console.log(`🔵 Response status [${endpoint}]:`, response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -31,9 +36,13 @@ async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     }
 
     const data = await response.json();
-    console.log('✅ API Response:', data);
     return data;
-  } catch (error) {
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error(`❌ API Timeout: ${url} (10s passed)`);
+      throw new Error(`İnternet bağlantısı yavaş veya sunucu yanıt vermiyor (Timeout: ${endpoint})`);
+    }
     console.error('❌ Fetch Error:', error);
     throw error;
   }
