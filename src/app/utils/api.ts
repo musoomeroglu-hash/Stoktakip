@@ -2,6 +2,8 @@ import { projectId, publicAnonKey } from "../../../utils/supabase/info";
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-929c4905`;
 
+export { projectId, API_URL };
+
 async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const url = `${API_URL}${endpoint}`;
   console.log('🔵 API Request:', url);

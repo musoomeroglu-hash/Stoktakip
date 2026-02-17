@@ -30,7 +30,7 @@ import { Badge } from "./components/ui/badge";
 import { Checkbox } from "./components/ui/checkbox";
 import { toast, Toaster } from "sonner";
 import * as XLSX from "xlsx";
-import { api } from "./utils/api";
+import { api, projectId, API_URL } from "./utils/api";
 import type { Category, Product, Sale, SaleItem, RepairRecord, Customer, CustomerTransaction, PaymentMethod, PaymentDetails } from "./utils/api";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -193,6 +193,27 @@ function App() {
       localStorage.setItem('theme', 'light');
     }
   }, [isDarkMode]);
+
+  useEffect(() => {
+    // 🧹 Cleanup stale Supabase sessions in LocalStorage
+    console.log("🧹 Tarayıcı oturumları kontrol ediliyor...");
+    try {
+      const keys = Object.keys(localStorage);
+      // Hem eski anahtarları hem de bu proje ID'siyle eşleşmeyen yeni Supabase anahtarlarını bul
+      const staleKeys = keys.filter(key =>
+        (key.startsWith('sb-') && !key.includes(projectId)) ||
+        key.includes('supabase.auth.token')
+      );
+
+      if (staleKeys.length > 0) {
+        console.warn(`⚠️ ${staleKeys.length} adet eski oturum anahtarı bulundu, temizleniyor:`, staleKeys);
+        staleKeys.forEach(key => localStorage.removeItem(key));
+        console.log("✅ Eski oturumlar temizlendi.");
+      }
+    } catch (e) {
+      console.error("LocalStorage temizleme hatası:", e);
+    }
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -1006,11 +1027,43 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Package className="w-12 h-12 animate-pulse mx-auto mb-4 text-primary" />
-          <p className="text-muted-foreground">Yükleniyor...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p className="text-lg font-medium animate-pulse">Yükleniyor...</p>
+        <p className="text-sm text-muted-foreground mt-2">Lütfen bekleyin, veriler sunucudan çekiliyor.</p>
+        <div className="mt-8 p-4 bg-muted/50 rounded-lg border text-[10px] font-mono opacity-50">
+          <p>Project: {projectId}</p>
+          <p>Status: Connecting to Supabase Edge...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (error && (categories.length === 0 && products.length === 0)) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4 text-center">
+        <div className="bg-destructive/10 p-6 rounded-full mb-6">
+          <Package className="w-12 h-12 text-destructive" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">Bağlantı Hatası</h2>
+        <p className="text-muted-foreground max-w-md mb-2">
+          {error}
+        </p>
+
+        <div className="mb-6 p-3 bg-destructive/5 rounded border text-xs font-mono text-left overflow-auto max-w-md mx-auto">
+          <p className="font-bold border-b mb-1 pb-1">🔍 Diagnostik Bilgi:</p>
+          <p>Project ID: <span className="text-blue-600 font-bold">{projectId}</span></p>
+          <p className="break-all">API Endpoint: {API_URL}</p>
+          <hr className="my-2 border-destructive/20" />
+          <p className="text-[10px] text-muted-foreground italic">
+            💡 Eğer yukarıdaki Project ID hatalıysa, Vercel paneline gidip Environment Variables kısmından projenizi güncelleyin.
+          </p>
+        </div>
+
+        <Button onClick={() => loadData()} size="lg" className="gap-2">
+          <Plus className="w-4 h-4 rotate-45" />
+          Yeniden Dene
+        </Button>
       </div>
     );
   }
