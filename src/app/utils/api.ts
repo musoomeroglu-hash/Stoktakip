@@ -187,6 +187,74 @@ export interface CustomerRequest {
   status: 'pending' | 'completed';
 }
 
+// New Supplier Management types
+export type Supplier = {
+  id: string;
+  name: string;
+  contact_name?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  address?: string;
+  city?: string;
+  notes?: string;
+  payment_terms: 'pesin' | 'vadeli' | 'konsinyasyon';
+  currency: 'TRY' | 'USD' | 'EUR';
+  is_active: boolean;
+  total_purchased: number;
+  total_paid: number;
+  balance: number;
+  created_at: string;
+};
+
+export type PurchaseStatus = 'odenmedi' | 'kismi_odendi' | 'odendi';
+export type PurchasePaymentMethod = 'nakit' | 'havale' | 'kart' | 'vadeli';
+
+export type Purchase = {
+  id: string;
+  supplier_id: string;
+  supplier?: Supplier;
+  purchase_date: string;
+  invoice_number?: string;
+  invoice_photo_url?: string;
+  status: PurchaseStatus;
+  payment_method?: PurchasePaymentMethod;
+  payment_due_date?: string;
+  subtotal: number;
+  discount: number;
+  total: number;
+  paid_amount: number;
+  remaining: number;
+  currency: 'TRY' | 'USD' | 'EUR';
+  exchange_rate: number;
+  total_try?: number;
+  notes?: string;
+  items?: PurchaseItem[];
+  created_at: string;
+};
+
+export type PurchaseItem = {
+  id: string;
+  purchase_id: string;
+  product_id: string;
+  quantity: number;
+  unit_cost: number;
+  total_cost: number;
+  notes?: string;
+};
+
+export type Payment = {
+  id: string;
+  purchase_id: string;
+  supplier_id: string;
+  amount: number;
+  payment_date: string;
+  payment_method: 'nakit' | 'havale' | 'kart';
+  receipt_number?: string;
+  notes?: string;
+  created_at: string;
+};
+
 export const api = {
   // Categories
   async getCategories(): Promise<Category[]> {
@@ -528,5 +596,92 @@ export const api = {
     await fetchAPI(`/customer-requests/${id}`, {
       method: "DELETE",
     });
+  },
+
+  // Suppliers
+  async getSuppliers(): Promise<Supplier[]> {
+    const result = await fetchAPI("/suppliers");
+    return result.data || [];
+  },
+
+  async addSupplier(supplier: Omit<Supplier, "id" | "created_at" | "total_purchased" | "total_paid" | "balance">): Promise<Supplier> {
+    const result = await fetchAPI("/suppliers", {
+      method: "POST",
+      body: JSON.stringify(supplier),
+    });
+    return result.data;
+  },
+
+  async updateSupplier(id: string, supplier: Partial<Supplier>): Promise<Supplier> {
+    const result = await fetchAPI(`/suppliers/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(supplier),
+    });
+    return result.data;
+  },
+
+  async deleteSupplier(id: string): Promise<void> {
+    await fetchAPI(`/suppliers/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  // Purchases
+  async getPurchases(): Promise<Purchase[]> {
+    const result = await fetchAPI("/purchases");
+    return result.data || [];
+  },
+
+  async getPurchaseById(id: string): Promise<Purchase> {
+    const result = await fetchAPI(`/purchases/${id}`);
+    return result.data;
+  },
+
+  async addPurchase(purchase: Omit<Purchase, "id" | "created_at">): Promise<Purchase> {
+    const result = await fetchAPI("/purchases", {
+      method: "POST",
+      body: JSON.stringify(purchase),
+    });
+    return result.data;
+  },
+
+  async updatePurchase(id: string, purchase: Partial<Purchase>): Promise<Purchase> {
+    const result = await fetchAPI(`/purchases/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(purchase),
+    });
+    return result.data;
+  },
+
+  async deletePurchase(id: string): Promise<void> {
+    await fetchAPI(`/purchases/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  // Purchase Items
+  async getPurchaseItems(purchaseId: string): Promise<PurchaseItem[]> {
+    const result = await fetchAPI(`/purchases/${purchaseId}/items`);
+    return result.data || [];
+  },
+
+  // Payments
+  async getPayments(supplierId?: string, purchaseId?: string): Promise<Payment[]> {
+    let endpoint = "/payments";
+    const params = new URLSearchParams();
+    if (supplierId) params.append("supplierId", supplierId);
+    if (purchaseId) params.append("purchaseId", purchaseId);
+    if (params.toString()) endpoint += `?${params.toString()}`;
+
+    const result = await fetchAPI(endpoint);
+    return result.data || [];
+  },
+
+  async addPayment(payment: Omit<Payment, "id" | "created_at">): Promise<Payment> {
+    const result = await fetchAPI("/payments", {
+      method: "POST",
+      body: JSON.stringify(payment),
+    });
+    return result.data;
   },
 };

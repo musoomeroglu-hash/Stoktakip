@@ -21,6 +21,8 @@ import { BulkUploadDialog } from "./components/BulkUploadDialog";
 import { SalesTypeDialog } from "./components/SalesTypeDialog";
 import { RepairDialog } from "./components/RepairDialog";
 import { PhoneSaleDialog } from "./components/PhoneSaleDialog";
+import { SuppliersView } from "./components/SuppliersView";
+import { PurchasesView } from "./components/PurchasesView";
 import type { PhoneSale, PhoneStock } from "./utils/api";
 import { CashRegisterWidget } from "./components/CashRegisterWidget";
 import { SalesAnalyticsView } from "./components/SalesAnalyticsView";
@@ -33,7 +35,7 @@ import { Checkbox } from "./components/ui/checkbox";
 import { toast, Toaster } from "sonner";
 import * as XLSX from "xlsx";
 import { api, projectId, API_URL } from "./utils/api";
-import type { Category, Product, Sale, SaleItem, RepairRecord, Customer, CustomerTransaction, PaymentMethod, PaymentDetails } from "./utils/api";
+import type { Category, Product, Sale, SaleItem, RepairRecord, Customer, CustomerTransaction, PaymentMethod, PaymentDetails, Supplier, Purchase } from "./utils/api";
 import { motion, AnimatePresence } from "motion/react";
 import {
   SidebarProvider,
@@ -165,6 +167,8 @@ function App() {
   const [phoneStocks, setPhoneStocks] = useState<PhoneStock[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerTransactions, setCustomerTransactions] = useState<CustomerTransaction[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -176,7 +180,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly" | "all">("monthly");
-  const [activeView, setActiveView] = useState<"products" | "salesManagement" | "repairs" | "phoneSales" | "caris" | "calculator" | "requests" | "expenses" | "salesAnalytics" | "customers">("salesManagement");
+  const [activeView, setActiveView] = useState<"products" | "salesManagement" | "repairs" | "phoneSales" | "caris" | "calculator" | "requests" | "expenses" | "salesAnalytics" | "customers" | "purchases" | "suppliers">("salesManagement");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
@@ -1293,6 +1297,8 @@ function App() {
                     sales={sales}
                     repairs={repairs}
                     phoneSales={phoneSales}
+                    suppliers={suppliers}
+                    purchases={purchases}
                     formatPrice={formatPrice}
                     onOpenAnalysis={() => setStokAnalizOpen(true)}
                     isPrivacyMode={isPrivacyMode}
@@ -1499,6 +1505,26 @@ function App() {
                     onAddTransaction={handleAddCustomerTransaction}
                     isPrivacyMode={isPrivacyMode}
                   />
+                </motion.div>
+              ) : activeView === "purchases" ? (
+                <motion.div
+                  key="purchases"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <PurchasesView isPrivacyMode={isPrivacyMode} />
+                </motion.div>
+              ) : activeView === "suppliers" ? (
+                <motion.div
+                  key="suppliers"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <SuppliersView isPrivacyMode={isPrivacyMode} />
                 </motion.div>
               ) : activeView === "calculator" ? (
                 // Hesap Makinesi Görünümü

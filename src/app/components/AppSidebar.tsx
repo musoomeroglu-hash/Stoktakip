@@ -26,6 +26,7 @@ import {
     LogOut,
     ChevronLeft,
     ChevronRight,
+    Building2,
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -41,6 +42,18 @@ const menuItems = [
         view: "products",
         icon: Package,
         color: "text-blue-500"
+    },
+    {
+        title: "Alışlar",
+        view: "purchases",
+        icon: ShoppingCart,
+        color: "text-orange-600"
+    },
+    {
+        title: "Tedarikçiler",
+        view: "suppliers",
+        icon: Building2,
+        color: "text-blue-600"
     },
     {
         title: "Satış & Raporlar",

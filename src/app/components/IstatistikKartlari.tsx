@@ -11,16 +11,19 @@ import {
     DollarSign,
     ShoppingCart,
     Wrench,
-    Eye
+    Eye,
+    Building2
 } from "lucide-react";
 import { Button } from "./ui/button";
-import type { Sale, RepairRecord, PhoneSale, Product } from "../utils/api";
+import type { Sale, RepairRecord, PhoneSale, Product, Supplier, Purchase } from "../utils/api";
 
 interface IstatistikProps {
     products: Product[];
     sales: Sale[];
     repairs: RepairRecord[];
     phoneSales: PhoneSale[];
+    suppliers: Supplier[];
+    purchases: Purchase[];
     formatPrice: (price: number) => string;
     onOpenAnalysis: () => void;
     isPrivacyMode: boolean;
@@ -31,6 +34,8 @@ export function IstatistikKartlari({
     sales,
     repairs,
     phoneSales,
+    suppliers,
+    purchases,
     formatPrice,
     onOpenAnalysis,
     isPrivacyMode,
@@ -43,20 +48,26 @@ export function IstatistikKartlari({
     const todaySales = sales.filter(s => s.date.startsWith(today));
     const todayRevenue = todaySales.reduce((sum, s) => sum + s.totalPrice, 0);
 
+    // New stats
+    const totalSupplierDebt = suppliers.reduce((sum, s) => sum + s.balance, 0);
+    const currentMonth = new Date().toISOString().substring(0, 7);
+    const monthlyPurchases = purchases.filter(p => p.purchase_date.startsWith(currentMonth));
+    const monthlyPurchaseTotal = monthlyPurchases.reduce((sum, p) => sum + p.total, 0);
+
     const stats = [
         {
-            title: "Toplam Ürün",
-            value: products.length,
-            description: "Kayıtlı ürün çeşitliliği",
-            icon: Package,
-            color: "text-blue-600",
-            bg: "bg-blue-50 dark:bg-blue-950/30",
+            title: "Tedarikçi Borcu",
+            value: formatPrice(totalSupplierDebt),
+            description: `${suppliers.filter(s => s.balance > 0).length} tedarikçiye borç var`,
+            icon: Building2,
+            color: "text-red-600",
+            bg: "bg-red-50 dark:bg-red-950/30",
         },
         {
-            title: "Kritik Stok",
-            value: lowStockProducts.length,
-            description: "Sipariş verilmesi gerekenler",
-            icon: AlertTriangle,
+            title: "Aylık Alış",
+            value: formatPrice(monthlyPurchaseTotal),
+            description: `${monthlyPurchases.length} adet fatura kesildi`,
+            icon: ShoppingCart,
             color: "text-orange-600",
             bg: "bg-orange-50 dark:bg-orange-950/30",
         },
