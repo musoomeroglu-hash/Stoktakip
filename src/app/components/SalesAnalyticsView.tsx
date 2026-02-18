@@ -259,7 +259,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
                 </BarChart>
               </ResponsiveContainer>
 
-              <div className="space-y-2">
+              <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                 {bestSellingProducts.map((product, index) => (
                   <div
                     key={product.id}
@@ -307,8 +307,8 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
         </CardHeader>
         <CardContent>
           {deadStockProducts.length > 0 ? (
-            <div className="space-y-2">
-              {deadStockProducts.slice(0, 20).map((product) => {
+            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {deadStockProducts.slice(0, 50).map((product) => {
                 const category = categories.find(c => c.id === product.categoryId);
                 return (
                   <div
@@ -339,9 +339,9 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
                   </div>
                 );
               })}
-              {deadStockProducts.length > 20 && (
+              {deadStockProducts.length > 50 && (
                 <p className="text-center text-sm text-muted-foreground pt-2">
-                  +{deadStockProducts.length - 20} ürün daha
+                  +{deadStockProducts.length - 50} ürün daha
                 </p>
               )}
             </div>
@@ -390,7 +390,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
                   </PieChart>
                 </ResponsiveContainer>
 
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                   {categorySales.map((category, index) => (
                     <div
                       key={category.id}
@@ -447,7 +447,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
                   </BarChart>
                 </ResponsiveContainer>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                   {hourlySales.map((item) => (
                     <div
                       key={item.hour}
