@@ -871,14 +871,18 @@ export function SalesManagementView({
             <CardContent className="p-6">
               <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 {[...productSaleStats.items, ...repairStats.items, ...phoneSaleStats.items]
-                  .sort((a, b) => new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime())
-                  .map((item, index) => {
+                  .sort((a: any, b: any) => {
+                    const dateB = new Date(b.date || b.createdAt || 0).getTime();
+                    const dateA = new Date(a.date || a.createdAt || 0).getTime();
+                    return dateB - dateA;
+                  })
+                  .map((item: any, index) => {
                     const isSale = 'items' in item;
                     const isPhoneSale = 'brand' in item || 'salePrice' in item;
                     const isRepair = 'deviceInfo' in item;
 
                     // Skip repair sales since we already show repair records
-                    if (isSale && item.items.some(saleItem => saleItem.productId.startsWith('repair-'))) {
+                    if (isSale && item.items.some((saleItem: any) => saleItem.productId?.startsWith('repair-'))) {
                       return null;
                     }
 
@@ -908,7 +912,7 @@ export function SalesManagementView({
                               }
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {new Date(item.date || item.createdAt).toLocaleDateString('tr-TR', {
+                              {new Date(item.date || item.createdAt || 0).toLocaleDateString('tr-TR', {
                                 day: '2-digit',
                                 month: 'short',
                                 hour: '2-digit',
