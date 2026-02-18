@@ -62,7 +62,7 @@ defineRoute("GET", "/phone-stocks", async (c: Context) => {
 defineRoute("POST", "/phone-stocks", async (c: Context) => {
     try {
         const data = await c.req.json();
-        const id = data.id || Date.now().toString();
+        const id = data.id || crypto.randomUUID();
         await kv.set(`phonestock:${id}`, { ...data, id });
         return c.json({ success: true, data: { ...data, id } });
     } catch (error) {
@@ -101,7 +101,7 @@ defineRoute("GET", "/categories", async (c: Context) => {
 defineRoute("POST", "/categories", async (c: Context) => {
     try {
         const category = await c.req.json();
-        const id = category.id || Date.now().toString();
+        const id = category.id || crypto.randomUUID();
         await kv.set(`category:${id}`, { ...category, id });
         return c.json({ success: true, data: { ...category, id } });
     } catch (error) {
@@ -143,7 +143,7 @@ defineRoute("GET", "/products", async (c: Context) => {
 defineRoute("POST", "/products", async (c: Context) => {
     try {
         const product = await c.req.json();
-        const id = product.id || Date.now().toString();
+        const id = product.id || crypto.randomUUID();
         await kv.set(`product:${id}`, { ...product, id });
         return c.json({ success: true, data: { ...product, id } });
     } catch (error) {
@@ -177,7 +177,7 @@ defineRoute("POST", "/products/bulk", async (c: Context) => {
         const { products } = await c.req.json();
         const results = [];
         for (const product of products) {
-            const id = product.id || Date.now().toString() + Math.random();
+            const id = product.id || crypto.randomUUID();
             await kv.set(`product:${id}`, { ...product, id });
             results.push({ ...product, id });
         }
@@ -212,7 +212,7 @@ defineRoute("GET", "/sales", async (c: Context) => {
 defineRoute("POST", "/sales", async (c: Context) => {
     try {
         const sale = await c.req.json();
-        const id = Date.now().toString();
+        const id = crypto.randomUUID();
         await kv.set(`sale:${id}`, { ...sale, id });
         for (const item of sale.items) {
             const product = await kv.get(`product:${item.productId}`);
@@ -282,7 +282,7 @@ defineRoute("GET", "/repairs", async (c: Context) => {
 defineRoute("POST", "/repairs", async (c: Context) => {
     try {
         const repair = await c.req.json();
-        const id = Date.now().toString();
+        const id = crypto.randomUUID();
         await kv.set(`repair:${id}`, { ...repair, id });
         return c.json({ success: true, data: { ...repair, id } });
     } catch (error) {
@@ -341,7 +341,7 @@ defineRoute("GET", "/customers", async (c: Context) => {
 defineRoute("POST", "/customers", async (c: Context) => {
     try {
         const customer = await c.req.json();
-        const id = customer.id || Date.now().toString();
+        const id = customer.id || crypto.randomUUID();
         await kv.set(`customer:${id}`, { ...customer, id });
         return c.json({ success: true, data: { ...customer, id } });
     } catch (error) {
@@ -381,7 +381,7 @@ defineRoute("GET", "/phone-sales", async (c: Context) => {
 defineRoute("POST", "/phone-sales", async (c: Context) => {
     try {
         const data = await c.req.json();
-        const id = data.id || Date.now().toString();
+        const id = data.id || crypto.randomUUID();
         await kv.set(`phonesale:${id}`, { ...data, id });
         return c.json({ success: true, data: { ...data, id } });
     } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
@@ -398,7 +398,7 @@ defineRoute("GET", "/expenses", async (c: Context) => {
 defineRoute("POST", "/expenses", async (c: Context) => {
     try {
         const data = await c.req.json();
-        const id = data.id || Date.now().toString();
+        const id = data.id || crypto.randomUUID();
         await kv.set(`expense:${id}`, { ...data, id });
         return c.json({ success: true, data: { ...data, id } });
     } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
@@ -415,7 +415,7 @@ defineRoute("GET", "/customer-requests", async (c: Context) => {
 defineRoute("POST", "/customer-requests", async (c: Context) => {
     try {
         const request = await c.req.json();
-        const id = request.id || Date.now().toString();
+        const id = request.id || crypto.randomUUID();
         await kv.set(`customer-request:${id}`, { ...request, id });
         return c.json({ success: true, data: { ...request, id } });
     } catch (error) { return c.json({ success: false, error: String(error) }, 500); }

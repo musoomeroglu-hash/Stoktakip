@@ -80,6 +80,13 @@ async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   }
 }
 
+// UUID Validation Utility
+function isValidUUID(value: any): boolean {
+  if (typeof value !== 'string') return false;
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(value);
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -634,6 +641,7 @@ export const api = {
   },
 
   async addSupplier(supplier: Omit<Supplier, "id" | "created_at" | "total_purchased" | "total_paid" | "balance">): Promise<Supplier> {
+    // Validation: Ensure no timestamp-like values are being passed as IDs if any were somehow added
     const result = await fetchSupabase("/suppliers", {
       method: "POST",
       body: JSON.stringify(supplier),
@@ -671,6 +679,21 @@ export const api = {
     const data = { ...purchase } as any;
     const items = data.items;
     delete data.items;
+
+    // PRE-FLIGHT VALIDATION: UUID Check
+    if (!isValidUUID(data.supplier_id)) {
+      throw new Error(`Kritik Hata: Seçilen tedarikçi ID'si geçersiz (${data.supplier_id}). Lütfen tedarikçiyi listeden tekrar seçin veya yeni bir tedarikçi oluşturun.`);
+    }
+
+    if (items && Array.isArray(items)) {
+      for (const item of items) {
+        if (!isValidUUID(item.productId)) {
+          const productRes = await fetchSupabase(`/products?id=eq.${item.productId}`);
+          const productName = Array.isArray(productRes.data) && productRes.data[0] ? productRes.data[0].name : item.productId;
+          throw new Error(`Kritik Hata: "${productName}" ürünü eski bir kayıt formatında (ID: ${item.productId}). Lütfen bu ürünü silip tekrar ekleyin.`);
+        }
+      }
+    }
 
     // 1. Insert main purchase
     const result = await fetchSupabase("/purchases", {
