@@ -1,6 +1,11 @@
+import { useState, useMemo, useEffect } from "react";
+import { format } from "date-fns";
+import { tr } from "date-fns/locale";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { TrendingUp, TrendingDown, Package, Clock, Tag, BarChart3, AlertCircle } from "lucide-react";
+import { Input } from "./ui/input";
+import { Button } from "./ui/button";
+import { TrendingUp, TrendingDown, Package, Clock, Tag, BarChart3, AlertCircle, Calendar } from "lucide-react";
 import type { Sale, Product, Category } from "../utils/api";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
@@ -13,15 +18,51 @@ interface SalesAnalyticsViewProps {
 }
 
 export function SalesAnalyticsView({ sales, products, categories, formatPrice, isPrivacyMode }: SalesAnalyticsViewProps) {
-  // This month's sales
-  const now = new Date();
-  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const thisMonthSales = sales.filter(s => new Date(s.date) >= thisMonthStart);
+  // Date range state
+  const [startDate, setStartDate] = useState(() => {
+    const now = new Date();
+    return format(new Date(now.getFullYear(), now.getMonth(), 1), "yyyy-MM-dd");
+  });
+  const [endDate, setEndDate] = useState(() => {
+    return format(new Date(), "yyyy-MM-dd");
+  });
 
-  // Calculate best selling products (this month)
+  const isDateInRange = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    return date >= start && date <= end;
+  };
+
+  const setCurrentMonth = () => {
+    const now = new Date();
+    setStartDate(format(new Date(now.getFullYear(), now.getMonth(), 1), "yyyy-MM-dd"));
+    setEndDate(format(now, "yyyy-MM-dd"));
+  };
+
+  const setPreviousMonth = () => {
+    const now = new Date();
+    const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    setStartDate(format(prev, "yyyy-MM-dd"));
+    setEndDate(format(prevEnd, "yyyy-MM-dd"));
+  };
+
+  const setAllTime = () => {
+    setStartDate("2020-01-01");
+    setEndDate(format(new Date(), "yyyy-MM-dd"));
+  };
+
+  // Filtered sales based on date range
+  const filteredSales = useMemo(() => {
+    return sales.filter(s => isDateInRange(s.date));
+  }, [sales, startDate, endDate]);
+
+  // Calculate best selling products
   const productSalesMap = new Map<string, { name: string; quantity: number; revenue: number }>();
 
-  thisMonthSales.forEach(sale => {
+  filteredSales.forEach(sale => {
     sale.items.forEach(item => {
       const existing = productSalesMap.get(item.productId);
       if (existing) {
@@ -42,14 +83,14 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
     .sort((a, b) => b.quantity - a.quantity)
     .slice(0, 10);
 
-  // Dead stock (products never sold)
+  // Dead stock (products never sold in the selected period)
   const soldProductIds = new Set(Array.from(productSalesMap.keys()));
   const deadStockProducts = products.filter(p => !soldProductIds.has(p.id) && p.stock > 0);
 
   // Category analysis
   const categorySalesMap = new Map<string, { name: string; quantity: number; revenue: number }>();
 
-  thisMonthSales.forEach(sale => {
+  filteredSales.forEach(sale => {
     sale.items.forEach(item => {
       if (!item.categoryId) return;
 
@@ -77,7 +118,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
   // Hourly sales analysis
   const hourlySalesMap = new Map<number, number>();
 
-  thisMonthSales.forEach(sale => {
+  filteredSales.forEach(sale => {
     const hour = new Date(sale.date).getHours();
     hourlySalesMap.set(hour, (hourlySalesMap.get(hour) || 0) + 1);
   });
@@ -94,6 +135,68 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
 
   return (
     <div className="space-y-6">
+      {/* Date Range Filter */}
+      <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-2 border-emerald-200 dark:border-emerald-800">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+              <span className="font-semibold text-emerald-900 dark:text-emerald-100">Tarih Aralığı:</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 flex-1">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-auto border-2 border-emerald-300 dark:border-emerald-700"
+                />
+                <span className="text-muted-foreground">-</span>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-auto border-2 border-emerald-300 dark:border-emerald-700"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={setCurrentMonth}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-emerald-200 dark:border-emerald-700"
+                >
+                  Bu Ay
+                </Button>
+                <Button
+                  onClick={setPreviousMonth}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-emerald-200 dark:border-emerald-700"
+                >
+                  Geçen Ay
+                </Button>
+                <Button
+                  onClick={setAllTime}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-emerald-200 dark:border-emerald-700"
+                >
+                  Tüm Zamanlar
+                </Button>
+              </div>
+
+              <div className="ml-auto bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-800 text-xs font-medium text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+                <Calendar className="w-3.5 h-3.5" />
+                {format(new Date(startDate), "dd MMM yyyy", { locale: tr })} - {format(new Date(endDate), "dd MMM yyyy", { locale: tr })}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -101,11 +204,11 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
             Satış Analizi
           </h2>
           <p className="text-muted-foreground mt-1">
-            Bu ayki satış performansı ve trendler
+            Seçili tarih aralığı performansı ve trendler
           </p>
         </div>
         <Badge variant="outline" className="text-sm px-4 py-2">
-          {thisMonthSales.length} satış bu ay
+          {filteredSales.length} satış bulundu
         </Badge>
       </div>
 
@@ -114,7 +217,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-blue-600" />
-            En Çok Satan 10 Ürün (Bu Ay)
+            En Çok Satan 10 Ürün
           </CardTitle>
           <CardDescription>
             En yüksek satış adedine sahip ürünler
@@ -177,7 +280,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
             </div>
           ) : (
             <div className="text-center py-8 text-muted-foreground">
-              Bu ay henüz satış yok
+              Seçili aralıkta henüz kayıt yok
             </div>
           )}
         </CardContent>
@@ -359,6 +462,6 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
           </CardContent>
         </Card>
       </div>
-    </div>
+    </div >
   );
 }

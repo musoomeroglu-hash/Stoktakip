@@ -16,10 +16,10 @@ interface SalesDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCompleteSale: (
-    items: SaleItem[], 
-    totalPrice: number, 
-    totalProfit: number, 
-    paymentMethod?: PaymentMethod, 
+    items: SaleItem[],
+    totalPrice: number,
+    totalProfit: number,
+    paymentMethod?: PaymentMethod,
     paymentDetails?: PaymentDetails,
     customerInfo?: { name: string; phone: string }
   ) => void;
@@ -74,14 +74,14 @@ export function SalesDialog({ open, onOpenChange, onCompleteSale, products, form
     }
 
     const existingItem = saleItems.find((item) => item.productId === product.id);
-    
+
     if (existingItem) {
       const newQuantity = existingItem.quantity + quantity;
       if (newQuantity > product.stock) {
         toast.error("Yetersiz stok!");
         return;
       }
-      
+
       setSaleItems(
         saleItems.map((item) =>
           item.productId === product.id
@@ -99,6 +99,7 @@ export function SalesDialog({ open, onOpenChange, onCompleteSale, products, form
           salePrice: product.salePrice,
           purchasePrice: product.purchasePrice,
           profit: (product.salePrice - product.purchasePrice) * quantity,
+          categoryId: product.categoryId,
         },
       ]);
     }
@@ -129,11 +130,11 @@ export function SalesDialog({ open, onOpenChange, onCompleteSale, products, form
     setSaleItems(
       saleItems.map((item) =>
         item.productId === productId
-          ? { 
-              ...item, 
-              quantity: newQuantity,
-              profit: (item.salePrice - product.purchasePrice) * newQuantity 
-            }
+          ? {
+            ...item,
+            quantity: newQuantity,
+            profit: (item.salePrice - product.purchasePrice) * newQuantity
+          }
           : item
       )
     );
@@ -151,11 +152,11 @@ export function SalesDialog({ open, onOpenChange, onCompleteSale, products, form
     setSaleItems(
       saleItems.map((item) =>
         item.productId === productId
-          ? { 
-              ...item, 
-              salePrice: newSalePrice,
-              profit: (newSalePrice - product.purchasePrice) * item.quantity 
-            }
+          ? {
+            ...item,
+            salePrice: newSalePrice,
+            profit: (newSalePrice - product.purchasePrice) * item.quantity
+          }
           : item
       )
     );

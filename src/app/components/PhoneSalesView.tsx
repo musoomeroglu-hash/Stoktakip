@@ -1,10 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Smartphone, Trash2, DollarSign, TrendingUp } from "lucide-react";
+import { Smartphone, Trash2, DollarSign, TrendingUp, Calendar } from "lucide-react";
 import { motion } from "motion/react";
 import type { PhoneSale } from "../utils/api";
-import { useEffect } from "react";
+import { useEffect, useState, useMemo } from "react";
+import { Input } from "./ui/input";
+import { format } from "date-fns";
+import { tr } from "date-fns/locale";
 
 interface PhoneSalesViewProps {
   phoneSales: PhoneSale[];
@@ -13,18 +16,156 @@ interface PhoneSalesViewProps {
 }
 
 export function PhoneSalesView({ phoneSales, onDeletePhoneSale, isPrivacyMode }: PhoneSalesViewProps) {
+  // Date range states
+  const [startDate, setStartDate] = useState<string>(() => {
+    // Default: ayın ilk günü
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const year = firstDay.getFullYear();
+    const month = String(firstDay.getMonth() + 1).padStart(2, '0');
+    const day = String(firstDay.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
+
+  const [endDate, setEndDate] = useState<string>(() => {
+    // Default: ayın son günü
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const year = lastDay.getFullYear();
+    const month = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const day = String(lastDay.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
+
+  // Helper function to check if date is in range
+  const isDateInRange = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    return date >= start && date <= end;
+  };
+
+  // Quick date range setters
+  const setCurrentMonth = () => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const startYear = firstDay.getFullYear();
+    const startMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
+    const startDay = String(firstDay.getDate()).padStart(2, '0');
+    setStartDate(`${startYear}-${startMonth}-${startDay}`);
+
+    const endYear = lastDay.getFullYear();
+    const endMonth = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const endDay = String(lastDay.getDate()).padStart(2, '0');
+    setEndDate(`${endYear}-${endMonth}-${endDay}`);
+  };
+
+  const setPreviousMonth = () => {
+    const now = new Date();
+    const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDayPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    const startYear = firstDayPrevMonth.getFullYear();
+    const startMonth = String(firstDayPrevMonth.getMonth() + 1).padStart(2, '0');
+    const startDay = String(firstDayPrevMonth.getDate()).padStart(2, '0');
+    setStartDate(`${startYear}-${startMonth}-${startDay}`);
+
+    const endYear = lastDayPrevMonth.getFullYear();
+    const endMonth = String(lastDayPrevMonth.getMonth() + 1).padStart(2, '0');
+    const endDay = String(lastDayPrevMonth.getDate()).padStart(2, '0');
+    setEndDate(`${endYear}-${endMonth}-${endDay}`);
+  };
+
+  const setAllTime = () => {
+    setStartDate('2020-01-01');
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    setEndDate(`${year}-${month}-${day}`);
+  };
+
+  // Filter phone sales based on date range
+  const filteredPhoneSales = useMemo(() => {
+    return phoneSales.filter(ps => isDateInRange(ps.date));
+  }, [phoneSales, startDate, endDate]);
+
   // Debug: Telefon satışları listesini kontrol et
   useEffect(() => {
-    console.log("📱 PhoneSalesView - Mevcut telefon satışları:", phoneSales.length);
-    console.log("📱 Telefon satışları detayı:", phoneSales);
-  }, [phoneSales]);
+    console.log("📱 PhoneSalesView - Filtrelenmiş telefon satışları:", filteredPhoneSales.length);
+  }, [filteredPhoneSales]);
 
-  const totalProfit = phoneSales.reduce((sum, ps) => sum + ps.profit, 0);
-  const totalRevenue = phoneSales.reduce((sum, ps) => sum + ps.salePrice, 0);
-  const totalInvestment = phoneSales.reduce((sum, ps) => sum + ps.purchasePrice, 0);
+  const totalProfit = filteredPhoneSales.reduce((sum, ps) => sum + ps.profit, 0);
+  const totalRevenue = filteredPhoneSales.reduce((sum, ps) => sum + ps.salePrice, 0);
+  const totalInvestment = filteredPhoneSales.reduce((sum, ps) => sum + ps.purchasePrice, 0);
 
   return (
     <div className="space-y-6">
+      {/* Date Range Filter */}
+      <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 border-2 border-purple-200 dark:border-purple-800">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <span className="font-semibold text-purple-900 dark:text-purple-100">Tarih Aralığı:</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 flex-1">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-auto border-2 border-purple-300 dark:border-purple-700"
+                />
+                <span className="text-muted-foreground">-</span>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-auto border-2 border-purple-300 dark:border-purple-700"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={setCurrentMonth}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700"
+                >
+                  Bu Ay
+                </Button>
+                <Button
+                  onClick={setPreviousMonth}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700"
+                >
+                  Geçen Ay
+                </Button>
+                <Button
+                  onClick={setAllTime}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-purple-200 dark:border-purple-700"
+                >
+                  Tüm Zamanlar
+                </Button>
+              </div>
+
+              <div className="ml-auto bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-full border border-purple-200 dark:border-purple-800 text-xs font-medium text-purple-700 dark:text-purple-300 flex items-center gap-2">
+                <Calendar className="w-3.5 h-3.5" />
+                {format(new Date(startDate), "dd MMM yyyy", { locale: tr })} - {format(new Date(endDate), "dd MMM yyyy", { locale: tr })}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Total Revenue */}
@@ -84,11 +225,11 @@ export function PhoneSalesView({ phoneSales, onDeletePhoneSale, isPrivacyMode }:
         <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30">
           <CardTitle className="flex items-center gap-2">
             <Smartphone className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-            <span>Telefon Satışları ({phoneSales.length})</span>
+            <span>Telefon Satışları ({filteredPhoneSales.length})</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
-          {phoneSales.length === 0 ? (
+          {filteredPhoneSales.length === 0 ? (
             <div className="text-center py-12">
               <Smartphone className="w-16 h-16 mx-auto mb-4 text-gray-400" />
               <h3 className="font-semibold text-lg mb-2">Henüz Telefon Satışı Yok</h3>
@@ -98,7 +239,7 @@ export function PhoneSalesView({ phoneSales, onDeletePhoneSale, isPrivacyMode }:
             </div>
           ) : (
             <div className="space-y-4">
-              {phoneSales.map((sale) => (
+              {filteredPhoneSales.map((sale) => (
                 <motion.div
                   key={sale.id}
                   initial={{ opacity: 0, y: 20 }}

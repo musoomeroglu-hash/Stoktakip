@@ -9,7 +9,7 @@ import { Wrench, Phone, Calendar, DollarSign, Package, CheckCircle, Truck, Edit,
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { RepairRecord } from "../utils/api";
 
 interface RepairsViewProps {
@@ -27,6 +27,78 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
   const [editingRepair, setEditingRepair] = useState<RepairRecord | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
+  // Date range states
+  const [startDate, setStartDate] = useState<string>(() => {
+    // Default: ayın ilk günü
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const year = firstDay.getFullYear();
+    const month = String(firstDay.getMonth() + 1).padStart(2, '0');
+    const day = String(firstDay.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
+
+  const [endDate, setEndDate] = useState<string>(() => {
+    // Default: ayın son günü
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const year = lastDay.getFullYear();
+    const month = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const day = String(lastDay.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  });
+
+  // Helper function to check if date is in range
+  const isDateInRange = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    return date >= start && date <= end;
+  };
+
+  // Quick date range setters
+  const setCurrentMonth = () => {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    const startYear = firstDay.getFullYear();
+    const startMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
+    const startDay = String(firstDay.getDate()).padStart(2, '0');
+    setStartDate(`${startYear}-${startMonth}-${startDay}`);
+
+    const endYear = lastDay.getFullYear();
+    const endMonth = String(lastDay.getMonth() + 1).padStart(2, '0');
+    const endDay = String(lastDay.getDate()).padStart(2, '0');
+    setEndDate(`${endYear}-${endMonth}-${endDay}`);
+  };
+
+  const setPreviousMonth = () => {
+    const now = new Date();
+    const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastDayPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+    const startYear = firstDayPrevMonth.getFullYear();
+    const startMonth = String(firstDayPrevMonth.getMonth() + 1).padStart(2, '0');
+    const startDay = String(firstDayPrevMonth.getDate()).padStart(2, '0');
+    setStartDate(`${startYear}-${startMonth}-${startDay}`);
+
+    const endYear = lastDayPrevMonth.getFullYear();
+    const endMonth = String(lastDayPrevMonth.getMonth() + 1).padStart(2, '0');
+    const endDay = String(lastDayPrevMonth.getDate()).padStart(2, '0');
+    setEndDate(`${endYear}-${endMonth}-${endDay}`);
+  };
+
+  const setAllTime = () => {
+    setStartDate('2020-01-01');
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    setEndDate(`${year}-${month}-${day}`);
+  };
+
   // Edit form state
   const [editForm, setEditForm] = useState({
     customerName: "",
@@ -39,10 +111,14 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
     status: "in_progress" as "in_progress" | "completed" | "delivered",
   });
 
-  // Grouping repairs by status
-  const inProgressRepairs = repairs.filter(r => r.status === "in_progress");
-  const completedRepairs = repairs.filter(r => r.status === "completed");
-  const deliveredRepairs = repairs.filter(r => r.status === "delivered");
+  // Grouping repairs by status with date filtering
+  const filteredRepairs = useMemo(() => {
+    return repairs.filter(r => isDateInRange(r.createdAt));
+  }, [repairs, startDate, endDate]);
+
+  const inProgressRepairs = filteredRepairs.filter(r => r.status === "in_progress");
+  const completedRepairs = filteredRepairs.filter(r => r.status === "completed");
+  const deliveredRepairs = filteredRepairs.filter(r => r.status === "delivered");
 
   // Summary statistics
   const totalRevenue = deliveredRepairs.reduce((sum, r) => sum + r.repairCost, 0);
@@ -131,6 +207,68 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
           </CardContent>
         </Card>
       </div>
+
+      {/* Date Range Filter */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-2 border-blue-200 dark:border-blue-800">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <span className="font-semibold text-blue-900 dark:text-blue-100">Tarih Aralığı:</span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 flex-1">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-auto border-2 border-blue-300 dark:border-blue-700"
+                />
+                <span className="text-muted-foreground">-</span>
+                <Input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-auto border-2 border-blue-300 dark:border-blue-700"
+                />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  onClick={setCurrentMonth}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700"
+                >
+                  Bu Ay
+                </Button>
+                <Button
+                  onClick={setPreviousMonth}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700"
+                >
+                  Geçen Ay
+                </Button>
+                <Button
+                  onClick={setAllTime}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700"
+                >
+                  Tüm Zamanlar
+                </Button>
+              </div>
+
+              <div className="ml-auto bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-full border border-blue-200 dark:border-blue-800 text-xs font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
+                <Calendar className="w-3.5 h-3.5" />
+                {format(new Date(startDate), "dd MMM yyyy", { locale: tr })} - {format(new Date(endDate), "dd MMM yyyy", { locale: tr })}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Repairs List */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
