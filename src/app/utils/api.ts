@@ -668,12 +668,14 @@ export const api = {
   },
 
   async addPurchase(purchase: Omit<Purchase, "id" | "created_at">): Promise<Purchase> {
-    const { items, ...purchaseData } = purchase as any;
+    const data = { ...purchase } as any;
+    const items = data.items;
+    delete data.items;
 
     // 1. Insert main purchase
     const result = await fetchSupabase("/purchases", {
       method: "POST",
-      body: JSON.stringify(purchaseData),
+      body: JSON.stringify(data),
     });
 
     const newPurchase = Array.isArray(result.data) ? result.data[0] : result.data;
