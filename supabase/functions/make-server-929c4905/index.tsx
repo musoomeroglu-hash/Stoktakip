@@ -42,7 +42,44 @@ const defineRoute = (method: string, path: string, handler: (c: Context) => any)
 };
 
 // Health check
-defineRoute("GET", "/health", (c: Context) => c.json({ status: "ok", version: "2.2", received_path: c.req.path }));
+defineRoute("GET", "/health", (c: Context) => c.json({ status: "ok", version: "2.3", received_path: c.req.path }));
+
+// Phone Stocks (MOVED UP FOR BETTER MATCHING)
+defineRoute("GET", "/phone-stocks", async (c: Context) => {
+  try {
+    const data = await kv.getByPrefix("phonestock:");
+    return c.json({ success: true, data });
+  } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
+});
+
+defineRoute("POST", "/phone-stocks", async (c: Context) => {
+  try {
+    const data = await c.req.json();
+    const id = data.id || Date.now().toString();
+    await kv.set(`phonestock:${id}`, { ...data, id });
+    return c.json({ success: true, data: { ...data, id } });
+  } catch (error) {
+    console.error("DEBUG POST phone-stocks error:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+defineRoute("PUT", "/phone-stocks/:id", async (c: Context) => {
+  try {
+    const id = c.req.param("id");
+    const data = await c.req.json();
+    await kv.set(`phonestock:${id}`, { ...data, id });
+    return c.json({ success: true, data: { ...data, id } });
+  } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
+});
+
+defineRoute("DELETE", "/phone-stocks/:id", async (c: Context) => {
+  try {
+    const id = c.req.param("id");
+    await kv.del(`phonestock:${id}`);
+    return c.json({ success: true });
+  } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
+});
 
 // Categories
 defineRoute("GET", "/categories", async (c: Context) => {
@@ -340,42 +377,6 @@ defineRoute("POST", "/phone-sales", async (c: Context) => {
     const id = data.id || Date.now().toString();
     await kv.set(`phonesale:${id}`, { ...data, id });
     return c.json({ success: true, data: { ...data, id } });
-  } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
-});
-
-defineRoute("GET", "/phone-stocks", async (c: Context) => {
-  try {
-    const data = await kv.getByPrefix("phonestock:");
-    return c.json({ success: true, data });
-  } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
-});
-
-defineRoute("POST", "/phone-stocks", async (c: Context) => {
-  try {
-    const data = await c.req.json();
-    const id = data.id || Date.now().toString();
-    await kv.set(`phonestock:${id}`, { ...data, id });
-    return c.json({ success: true, data: { ...data, id } });
-  } catch (error) {
-    console.error("DEBUG POST phone-stocks error:", error);
-    return c.json({ success: false, error: String(error) }, 500);
-  }
-});
-
-defineRoute("PUT", "/phone-stocks/:id", async (c: Context) => {
-  try {
-    const id = c.req.param("id");
-    const data = await c.req.json();
-    await kv.set(`phonestock:${id}`, { ...data, id });
-    return c.json({ success: true, data: { ...data, id } });
-  } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
-});
-
-defineRoute("DELETE", "/phone-stocks/:id", async (c: Context) => {
-  try {
-    const id = c.req.param("id");
-    await kv.del(`phonestock:${id}`);
-    return c.json({ success: true });
   } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
 });
 
