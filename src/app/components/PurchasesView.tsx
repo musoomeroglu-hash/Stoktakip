@@ -137,7 +137,7 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
             resetForm();
             loadInitialData();
         } catch (error: any) {
-            toast.error(`Kaydedilirken bir hata oluştu: ${error.message || "Bilinmeyen hata"}`);
+            toast.error(`🔴 DETAYLI HATA: ${error.message || "Bilinmeyen hata"}`);
             console.error("Alış kaydetme hatası:", error);
         }
     };
@@ -271,7 +271,7 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
                 <DialogContent className="max-w-6xl min-w-[90vw] max-h-[95vh] overflow-y-auto p-0 gap-0">
                     <DialogHeader className="p-6 border-b flex flex-row justify-between items-center">
                         <div>
-                            <DialogTitle className="text-2xl">Yeni Alış Faturası <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded ml-2 font-normal text-slate-400">v1.2</span></DialogTitle>
+                            <DialogTitle className="text-2xl">Yeni Alış Faturası <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded ml-2 font-normal text-slate-400">v1.3</span></DialogTitle>
                             <DialogDescription>Stok girişi yapmak için faturayı doldurun.</DialogDescription>
                         </div>
                     </DialogHeader>
