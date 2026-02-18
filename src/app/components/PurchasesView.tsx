@@ -267,10 +267,12 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
 
             {/* New Purchase Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto p-0 gap-0">
-                    <DialogHeader className="p-6 border-b">
-                        <DialogTitle className="text-2xl">Yeni Alış Faturası</DialogTitle>
-                        <DialogDescription>Stok girişi yapmak için faturayı doldurun.</DialogDescription>
+                <DialogContent className="max-w-6xl min-w-[90vw] max-h-[95vh] overflow-y-auto p-0 gap-0">
+                    <DialogHeader className="p-6 border-b flex flex-row justify-between items-center">
+                        <div>
+                            <DialogTitle className="text-2xl">Yeni Alış Faturası <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded ml-2 font-normal text-slate-400">v1.2</span></DialogTitle>
+                            <DialogDescription>Stok girişi yapmak için faturayı doldurun.</DialogDescription>
+                        </div>
                     </DialogHeader>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4">
