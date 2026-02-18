@@ -30,4 +30,4 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          supabase functions deploy make-server --project-ref xtjvbkhappiceyrlovkx
+          supabase functions deploy make-server-929c4905 --project-ref xtjvbkhappiceyrlovkx
