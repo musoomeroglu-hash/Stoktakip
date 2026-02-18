@@ -4,7 +4,7 @@ import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.tsx";
 
 const app = new Hono();
-const prefix = "/stocks-server";
+const prefix = "/make-server";
 
 // Enable logger
 app.use('*', logger(console.log));
@@ -42,9 +42,9 @@ const defineRoute = (method: string, path: string, handler: (c: Context) => any)
 };
 
 // Health check
-defineRoute("GET", "/health", (c: Context) => c.json({ status: "ok", version: "STOCKS-SERVER-v2.3", received_path: c.req.path }));
+defineRoute("GET", "/health", (c: Context) => c.json({ status: "ok", version: "CLEAN-MAKE-SERVER-v2.3", received_path: c.req.path }));
 
-// Phone Stocks (DEFINED EARLY)
+// Phone Stocks
 defineRoute("GET", "/phone-stocks", async (c: Context) => {
     try {
         const data = await kv.getByPrefix("phonestock:");
@@ -421,11 +421,11 @@ app.notFound((c: Context) => {
         success: false,
         error: "Route not found",
         debug: {
-            api_name: "stocks-server",
+            api_name: "make-server-ORIGINAL",
             received_path: c.req.path,
             received_method: c.req.method,
             received_url: c.req.url,
-            expected_example: `/phone-stocks`
+            expected: `/phone-stocks`
         }
     }, 404);
 });

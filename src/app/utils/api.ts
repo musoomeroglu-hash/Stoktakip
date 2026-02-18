@@ -1,6 +1,6 @@
 import { projectId, publicAnonKey } from "../../../utils/supabase/info";
 
-const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-929c4905`;
+const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server`;
 
 export { projectId, API_URL };
 
