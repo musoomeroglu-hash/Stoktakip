@@ -42,7 +42,7 @@ const defineRoute = (method: string, path: string, handler: (c: Context) => any)
 };
 
 // Health check
-defineRoute("GET", "/health", (c: Context) => c.json({ status: "ok", version: "2.1", received_path: c.req.path }));
+defineRoute("GET", "/health", (c: Context) => c.json({ status: "ok", version: "2.2", received_path: c.req.path }));
 
 // Categories
 defineRoute("GET", "/categories", async (c: Context) => {
