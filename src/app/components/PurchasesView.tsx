@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -45,6 +45,8 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
     const [discount, setDiscount] = useState(0);
     const [paidAmount, setPaidAmount] = useState(0);
     const [notes, setNotes] = useState("");
+    const [invoicePhoto, setInvoicePhoto] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         loadInitialData();
@@ -121,6 +123,7 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
                 currency: 'TRY',
                 exchange_rate: 1,
                 notes,
+                invoice_photo_url: invoicePhoto || undefined,
                 items: purchaseItems.map(item => ({
                     productId: item.productId,
                     quantity: item.quantity,
@@ -147,6 +150,18 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
         setDiscount(0);
         setPaidAmount(0);
         setNotes("");
+        setInvoicePhoto(null);
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setInvoicePhoto(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
     };
 
     const getStatusBadge = (status: PurchaseStatus) => {
@@ -252,19 +267,19 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
 
             {/* New Purchase Dialog */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>Yeni Alış Faturası</DialogTitle>
+                <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto p-0 gap-0">
+                    <DialogHeader className="p-6 border-b">
+                        <DialogTitle className="text-2xl">Yeni Alış Faturası</DialogTitle>
                         <DialogDescription>Stok girişi yapmak için faturayı doldurun.</DialogDescription>
                     </DialogHeader>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 py-4">
                         {/* Left Column: Basic Info */}
-                        <div className="md:col-span-1 space-y-4 border-r pr-6 border-slate-100 dark:border-slate-800">
-                            <div className="space-y-2">
-                                <Label>Tedarikçi *</Label>
+                        <div className="md:col-span-1 space-y-6 border-r pr-8 border-slate-100 dark:border-slate-800">
+                            <div className="space-y-3">
+                                <Label className="font-semibold text-sm">Tedarikçi *</Label>
                                 <select
-                                    className="w-full h-11 border rounded-md px-3 bg-background"
+                                    className="w-full h-11 border rounded-lg px-3 bg-background focus:ring-2 focus:ring-orange-500/20"
                                     value={selectedSupplierId}
                                     onChange={(e) => setSelectedSupplierId(e.target.value)}
                                 >
@@ -273,34 +288,60 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
                                 </select>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label>Fatura Tarihi</Label>
-                                <Input type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label className="font-semibold text-sm">Fatura Tarihi</Label>
+                                    <Input type="date" className="h-11" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label className="font-semibold text-sm">Fatura No</Label>
+                                    <Input className="h-11" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="FTR-..." />
+                                </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label>Fatura Numarası</Label>
-                                <Input value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="Örn: FTR123" />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Ödeme Şekli</Label>
+                            <div className="space-y-3">
+                                <Label className="font-semibold text-sm">Ödeme Şekli</Label>
                                 <select
-                                    className="w-full h-11 border rounded-md px-3 bg-background"
+                                    className="w-full h-11 border rounded-lg px-3 bg-background focus:ring-2 focus:ring-orange-500/20"
                                     value={paymentMethod}
                                     onChange={(e) => setPaymentMethod(e.target.value as any)}
                                 >
-                                    <option value="nakit">Nakit</option>
-                                    <option value="havale">Havale / EFT</option>
-                                    <option value="kart">Kredi Kartı</option>
-                                    <option value="vadeli">Vadeli</option>
+                                    <option value="nakit">💵 Nakit</option>
+                                    <option value="havale">🏦 Havale / EFT</option>
+                                    <option value="kart">💳 Kredi Kartı</option>
+                                    <option value="vadeli">📅 Vadeli</option>
                                 </select>
                             </div>
 
-                            <div className="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg border border-dashed border-slate-200 dark:border-slate-800">
-                                <Button variant="ghost" className="w-full justify-start text-xs h-8" onClick={() => toast.info("Dosya yükleme yakında eklenecek")}>
-                                    <ImageIcon className="w-3 h-3 mr-2" /> Fatura Fotoğrafı Ekle
-                                </Button>
+                            <div className="space-y-3 pt-4 border-t">
+                                <Label className="font-semibold text-sm">Fatura Fotoğrafı</Label>
+                                <Input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    ref={fileInputRef}
+                                    onChange={handleFileChange}
+                                />
+                                {!invoicePhoto ? (
+                                    <div
+                                        className="h-32 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-orange-500 hover:bg-orange-50/50 cursor-pointer transition-all group"
+                                        onClick={() => fileInputRef.current?.click()}
+                                    >
+                                        <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-full group-hover:bg-orange-100 dark:group-hover:bg-orange-900/30 transition-colors">
+                                            <ImageIcon className="w-6 h-6 text-slate-400 group-hover:text-orange-600" />
+                                        </div>
+                                        <span className="text-xs font-medium text-slate-500 group-hover:text-orange-600">Fotoğraf Yükle</span>
+                                    </div>
+                                ) : (
+                                    <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 h-48 group">
+                                        <img src={invoicePhoto} alt="Invoice" className="w-full h-full object-cover" />
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                            <Button variant="secondary" size="sm" onClick={() => fileInputRef.current?.click()}>Değiştir</Button>
+                                            <Button variant="destructive" size="sm" onClick={() => setInvoicePhoto(null)}>Sil</Button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -314,40 +355,51 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
                                     </Button>
                                 </div>
 
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     {purchaseItems.map((item, index) => (
-                                        <div key={index} className="flex gap-2 items-end p-3 bg-slate-50 dark:bg-slate-900/50 rounded-lg">
-                                            <div className="flex-1 space-y-1">
-                                                <Label className="text-[10px] uppercase text-muted-foreground">Ürün</Label>
+                                        <div key={index} className="flex gap-4 items-end p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 transition-all hover:shadow-sm">
+                                            <div className="flex-[3] space-y-2">
+                                                <Label className="text-[11px] font-bold uppercase text-slate-500 tracking-wider">Ürün Seçimi</Label>
                                                 <select
-                                                    className="w-full h-10 border rounded-md px-2 bg-background text-sm"
+                                                    className="w-full h-11 border rounded-lg px-3 bg-background text-sm focus:ring-2 focus:ring-orange-500/20"
                                                     value={item.productId}
                                                     onChange={(e) => updateItem(index, 'productId', e.target.value)}
                                                 >
-                                                    <option value="">Ürün Seçin</option>
-                                                    {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                    <option value="">🛒 Ürün Seçin</option>
+                                                    {products.sort((a, b) => a.name.localeCompare(b.name)).map(p => (
+                                                        <option key={p.id} value={p.id}>{p.name} ({p.stock} adet)</option>
+                                                    ))}
                                                 </select>
                                             </div>
-                                            <div className="w-20 space-y-1">
-                                                <Label className="text-[10px] uppercase text-muted-foreground">Adet</Label>
+                                            <div className="flex-1 space-y-2 max-w-[100px]">
+                                                <Label className="text-[11px] font-bold uppercase text-slate-500 tracking-wider">Adet</Label>
                                                 <Input
                                                     type="number"
-                                                    className="h-10 px-2"
+                                                    className="h-11 px-3 font-bold"
                                                     value={item.quantity}
                                                     onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
                                                 />
                                             </div>
-                                            <div className="w-28 space-y-1">
-                                                <Label className="text-[10px] uppercase text-muted-foreground">Maliyet</Label>
-                                                <Input
-                                                    type="number"
-                                                    className="h-10 px-2"
-                                                    value={item.unitCost}
-                                                    onChange={(e) => updateItem(index, 'unitCost', parseFloat(e.target.value) || 0)}
-                                                />
+                                            <div className="flex-1 space-y-2 max-w-[150px]">
+                                                <Label className="text-[11px] font-bold uppercase text-slate-500 tracking-wider">Birim Maliyet</Label>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">₺</span>
+                                                    <Input
+                                                        type="number"
+                                                        className="h-11 pl-7 font-bold text-orange-600"
+                                                        value={item.unitCost}
+                                                        onChange={(e) => updateItem(index, 'unitCost', parseFloat(e.target.value) || 0)}
+                                                    />
+                                                </div>
                                             </div>
-                                            <Button variant="ghost" size="icon" className="h-10 w-10 text-red-500" onClick={() => removeItem(index)}>
-                                                <Trash2 className="w-4 h-4" />
+                                            <div className="flex-1 space-y-2 max-w-[150px]">
+                                                <Label className="text-[11px] font-bold uppercase text-slate-500 tracking-wider">Satır Toplam</Label>
+                                                <div className="h-11 flex items-center px-3 bg-white dark:bg-slate-950 border rounded-lg font-black text-slate-700 dark:text-slate-300">
+                                                    ₺{(item.quantity * item.unitCost).toLocaleString('tr-TR')}
+                                                </div>
+                                            </div>
+                                            <Button variant="ghost" size="icon" className="h-11 w-11 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg" onClick={() => removeItem(index)}>
+                                                <Trash2 className="w-5 h-5" />
                                             </Button>
                                         </div>
                                     ))}
