@@ -2,6 +2,13 @@ import { Hono, type Context } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.tsx";
+import { createClient } from "npm:@supabase/supabase-js";
+
+const supabase = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
+);
+
 
 const app = new Hono();
 const prefix = "/make-server";
@@ -411,6 +418,164 @@ defineRoute("POST", "/customer-requests", async (c: Context) => {
         const id = request.id || Date.now().toString();
         await kv.set(`customer-request:${id}`, { ...request, id });
         return c.json({ success: true, data: { ...request, id } });
+    } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
+});
+
+// Suppliers
+defineRoute("GET", "/suppliers", async (c: Context) => {
+    try {
+        const { data, error } = await supabase
+            .from("suppliers")
+            .select("*")
+            .order("created_at", { ascending: false });
+        if (error) throw error;
+        return c.json({ success: true, data });
+    } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
+});
+
+defineRoute("GET", "/suppliers/:id", async (c: Context) => {
+    try {
+        const id = c.req.param("id");
+        const { data, error } = await supabase
+            .from("suppliers")
+            .select("*")
+            .eq("id", id)
+            .single();
+        if (error) throw error;
+        return c.json({ success: true, data });
+    } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
+});
+
+defineRoute("POST", "/suppliers", async (c: Context) => {
+    try {
+        const body = await c.req.json();
+        const { data, error } = await supabase
+            .from("suppliers")
+            .insert([body])
+            .select()
+            .single();
+        if (error) throw error;
+        return c.json({ success: true, data }, 201);
+    } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
+});
+
+defineRoute("PUT", "/suppliers/:id", async (c: Context) => {
+    try {
+        const id = c.req.param("id");
+        const body = await c.req.json();
+        const { data, error } = await supabase
+            .from("suppliers")
+            .update(body)
+            .eq("id", id)
+            .select()
+            .single();
+        if (error) throw error;
+        return c.json({ success: true, data });
+    } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
+});
+
+defineRoute("DELETE", "/suppliers/:id", async (c: Context) => {
+    try {
+        const id = c.req.param("id");
+        const { error } = await supabase
+            .from("suppliers")
+            .update({ is_active: false })
+            .eq("id", id);
+        if (error) throw error;
+        return c.json({ success: true });
+    } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
+});
+
+// Purchases
+defineRoute("GET", "/purchases", async (c: Context) => {
+    try {
+        const { data, error } = await supabase
+            .from("purchases")
+            .select("*, supplier:suppliers(*)")
+            .order("created_at", { ascending: false });
+        if (error) throw error;
+        return c.json({ success: true, data });
+    } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
+});
+
+defineRoute("GET", "/purchases/:id", async (c: Context) => {
+    try {
+        const id = c.req.param("id");
+        const { data, error } = await supabase
+            .from("purchases")
+            .select("*, supplier:suppliers(*), items:purchase_items(*)")
+            .eq("id", id)
+            .single();
+        if (error) throw error;
+        return c.json({ success: true, data });
+    } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
+});
+
+defineRoute("POST", "/purchases", async (c: Context) => {
+    try {
+        const body = await c.req.json();
+        const { items, ...purchaseData } = body;
+
+        // 1. Faturayı kaydet
+        const { data: purchase, error: pError } = await supabase
+            .from("purchases")
+            .insert([purchaseData])
+            .select()
+            .single();
+
+        if (pError) throw pError;
+
+        // 2. Fatura kalemlerini kaydet
+        if (items && items.length > 0) {
+            const itemsWithPurchaseId = items.map((item: any) => ({
+                ...item,
+                purchase_id: purchase.id
+            }));
+            const { error: iError } = await supabase
+                .from("purchase_items")
+                .insert(itemsWithPurchaseId);
+
+            if (iError) throw iError;
+
+            // ⚠️ EKSTRA: Deno KV Stoklarını da güncelle (Inconsistency'yi önlemek için)
+            // Bu kısım mevcut products endpoint'leri hala KV kullandığı için gereklidir.
+            for (const item of items) {
+                const kvProduct = await kv.get(`product:${item.product_id || item.productId}`);
+                if (kvProduct) {
+                    kvProduct.stock = (kvProduct.stock || 0) + item.quantity;
+                    await kv.set(`product:${item.product_id || item.productId}`, kvProduct);
+                }
+            }
+        }
+
+        return c.json({ success: true, data: purchase }, 201);
+    } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
+});
+
+defineRoute("PUT", "/purchases/:id", async (c: Context) => {
+    try {
+        const id = c.req.param("id");
+        const body = await c.req.json();
+        const { data, error } = await supabase
+            .from("purchases")
+            .update(body)
+            .eq("id", id)
+            .select()
+            .single();
+        if (error) throw error;
+        return c.json({ success: true, data });
+    } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
+});
+
+defineRoute("DELETE", "/purchases/:id", async (c: Context) => {
+    try {
+        const id = c.req.param("id");
+        const { error } = await supabase
+            .from("purchases")
+            .delete()
+            .eq("id", id);
+        if (error) throw error;
+        return c.json({ success: true });
     } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
 });
 
