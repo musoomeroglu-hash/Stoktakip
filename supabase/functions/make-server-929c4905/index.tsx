@@ -2,9 +2,7 @@ import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.tsx";
-
 const app = new Hono();
-// Trigger deployment: 2026-02-18 21:50
 
 // Enable logger
 app.use('*', logger(console.log));
@@ -23,7 +21,7 @@ app.use(
 
 // Health check endpoint
 app.get("/make-server-929c4905/health", (c) => {
-  return c.json({ status: "ok", version: "2.0" });
+  return c.json({ status: "ok" });
 });
 
 // Categories
@@ -133,6 +131,34 @@ app.post("/make-server-929c4905/products/bulk", async (c) => {
     return c.json({ success: true, data: results, count: results.length });
   } catch (error) {
     console.error("Error bulk importing products:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// Search products
+app.get("/make-server-929c4905/products/search", async (c) => {
+  try {
+    const query = c.req.query("q")?.toLowerCase() || "";
+
+    if (!query) {
+      return c.json({ success: false, error: "Query parameter 'q' is required" }, 400);
+    }
+
+    const allProducts = await kv.getByPrefix("product:");
+
+    // Filter products by name (case-insensitive search)
+    const results = allProducts.filter((product: any) =>
+      product.name?.toLowerCase().includes(query)
+    );
+
+    return c.json({
+      success: true,
+      data: results,
+      count: results.length,
+      query: query
+    });
+  } catch (error) {
+    console.error("Error searching products:", error);
     return c.json({ success: false, error: String(error) }, 500);
   }
 });
@@ -537,8 +563,8 @@ app.delete("/make-server-929c4905/expenses/:id", async (c) => {
 // Customer Requests
 app.get("/make-server-929c4905/customer-requests", async (c) => {
   try {
-    const requests = await kv.getByPrefix("request:");
-    return c.json({ success: true, data: requests });
+    const customerRequests = await kv.getByPrefix("customer-request:");
+    return c.json({ success: true, data: customerRequests });
   } catch (error) {
     console.error("Error fetching customer requests:", error);
     return c.json({ success: false, error: String(error) }, 500);
@@ -549,8 +575,10 @@ app.post("/make-server-929c4905/customer-requests", async (c) => {
   try {
     const request = await c.req.json();
     const id = request.id || Date.now().toString();
-    await kv.set(`request:${id}`, { ...request, id });
-    return c.json({ success: true, data: { ...request, id } });
+    const requestData = { ...request, id };
+    await kv.set(`customer-request:${id}`, requestData);
+    console.log("✅ İstek kaydedildi:", requestData);
+    return c.json({ success: true, data: requestData });
   } catch (error) {
     console.error("Error adding customer request:", error);
     return c.json({ success: false, error: String(error) }, 500);
@@ -561,8 +589,9 @@ app.put("/make-server-929c4905/customer-requests/:id", async (c) => {
   try {
     const id = c.req.param("id");
     const request = await c.req.json();
-    await kv.set(`request:${id}`, { ...request, id });
-    return c.json({ success: true, data: { ...request, id } });
+    const requestData = { ...request, id };
+    await kv.set(`customer-request:${id}`, requestData);
+    return c.json({ success: true, data: requestData });
   } catch (error) {
     console.error("Error updating customer request:", error);
     return c.json({ success: false, error: String(error) }, 500);
@@ -572,7 +601,7 @@ app.put("/make-server-929c4905/customer-requests/:id", async (c) => {
 app.delete("/make-server-929c4905/customer-requests/:id", async (c) => {
   try {
     const id = c.req.param("id");
-    await kv.del(`request:${id}`);
+    await kv.del(`customer-request:${id}`);
     return c.json({ success: true });
   } catch (error) {
     console.error("Error deleting customer request:", error);
