@@ -122,13 +122,13 @@ app.post("/make-server-929c4905/products/bulk", async (c) => {
   try {
     const { products } = await c.req.json();
     const results = [];
-    
+
     for (const product of products) {
       const id = product.id || Date.now().toString() + Math.random();
       await kv.set(`product:${id}`, { ...product, id });
       results.push({ ...product, id });
     }
-    
+
     return c.json({ success: true, data: results, count: results.length });
   } catch (error) {
     console.error("Error bulk importing products:", error);
@@ -151,10 +151,10 @@ app.post("/make-server-929c4905/sales", async (c) => {
   try {
     const sale = await c.req.json();
     const id = Date.now().toString();
-    
+
     // Save sale
     await kv.set(`sale:${id}`, { ...sale, id });
-    
+
     // Update product stock
     for (const item of sale.items) {
       const product = await kv.get(`product:${item.productId}`);
@@ -163,7 +163,7 @@ app.post("/make-server-929c4905/sales", async (c) => {
         await kv.set(`product:${item.productId}`, product);
       }
     }
-    
+
     return c.json({ success: true, data: { ...sale, id } });
   } catch (error) {
     console.error("Error adding sale:", error);
@@ -174,7 +174,7 @@ app.post("/make-server-929c4905/sales", async (c) => {
 app.delete("/make-server-929c4905/sales/:id", async (c) => {
   try {
     const id = c.req.param("id");
-    
+
     // Get the sale to restore stock
     const sale = await kv.get(`sale:${id}`);
     if (sale) {
@@ -187,7 +187,7 @@ app.delete("/make-server-929c4905/sales/:id", async (c) => {
         }
       }
     }
-    
+
     // Delete sale
     await kv.del(`sale:${id}`);
     return c.json({ success: true });
@@ -202,10 +202,10 @@ app.get("/make-server-929c4905/reports/summary", async (c) => {
   try {
     const period = c.req.query("period") || "daily";
     const sales = await kv.getByPrefix("sale:");
-    
+
     const now = new Date();
     let startDate: Date;
-    
+
     switch (period) {
       case "daily":
         startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -219,19 +219,19 @@ app.get("/make-server-929c4905/reports/summary", async (c) => {
       default:
         startDate = new Date(0);
     }
-    
-    const filteredSales = sales.filter((sale: any) => 
+
+    const filteredSales = sales.filter((sale: any) =>
       new Date(sale.date) >= startDate
     );
-    
-    const totalRevenue = filteredSales.reduce((sum: number, sale: any) => 
+
+    const totalRevenue = filteredSales.reduce((sum: number, sale: any) =>
       sum + sale.totalPrice, 0
     );
-    
-    const totalProfit = filteredSales.reduce((sum: number, sale: any) => 
+
+    const totalProfit = filteredSales.reduce((sum: number, sale: any) =>
       sum + sale.totalProfit, 0
     );
-    
+
     return c.json({
       success: true,
       data: {
@@ -275,20 +275,20 @@ app.put("/make-server-929c4905/repairs/:id/status", async (c) => {
   try {
     const id = c.req.param("id");
     const { status } = await c.req.json();
-    
+
     // Get existing repair
     const repair = await kv.get(`repair:${id}`);
     if (!repair) {
       return c.json({ success: false, error: "Repair not found" }, 404);
     }
-    
+
     // Update status and deliveredAt if status is delivered
     const updatedRepair = {
       ...repair,
       status,
       deliveredAt: status === "delivered" ? new Date().toISOString() : repair.deliveredAt,
     };
-    
+
     await kv.set(`repair:${id}`, updatedRepair);
     return c.json({ success: true, data: updatedRepair });
   } catch (error) {
@@ -302,20 +302,20 @@ app.put("/make-server-929c4905/repairs/:id", async (c) => {
   try {
     const id = c.req.param("id");
     const repairData = await c.req.json();
-    
+
     // Get existing repair
     const repair = await kv.get(`repair:${id}`);
     if (!repair) {
       return c.json({ success: false, error: "Repair not found" }, 404);
     }
-    
+
     // Merge with existing data
     const updatedRepair = {
       ...repair,
       ...repairData,
       id, // Preserve ID
     };
-    
+
     await kv.set(`repair:${id}`, updatedRepair);
     return c.json({ success: true, data: updatedRepair });
   } catch (error) {
@@ -396,13 +396,13 @@ app.get("/make-server-929c4905/customer-transactions", async (c) => {
 app.post("/make-server-929c4905/customer-transactions", async (c) => {
   try {
     const { customerId, type, amount, description } = await c.req.json();
-    
+
     // Get customer
     const customer = await kv.get(`customer:${customerId}`);
     if (!customer) {
       return c.json({ success: false, error: "Customer not found" }, 404);
     }
-    
+
     // Update customer balance
     switch (type) {
       case "debt":
@@ -418,10 +418,10 @@ app.post("/make-server-929c4905/customer-transactions", async (c) => {
         customer.credit = Math.max(0, customer.credit - amount);
         break;
     }
-    
+
     // Save updated customer
     await kv.set(`customer:${customerId}`, customer);
-    
+
     // Save transaction record
     const transactionId = Date.now().toString();
     const transaction = {
@@ -433,7 +433,7 @@ app.post("/make-server-929c4905/customer-transactions", async (c) => {
       createdAt: new Date().toISOString(),
     };
     await kv.set(`transaction:${transactionId}`, transaction);
-    
+
     return c.json({ success: true, data: transaction });
   } catch (error) {
     console.error("Error adding customer transaction:", error);
@@ -575,6 +575,52 @@ app.delete("/make-server-929c4905/customer-requests/:id", async (c) => {
     return c.json({ success: true });
   } catch (error) {
     console.error("Error deleting customer request:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+// Phone Stocks
+app.get("/make-server-929c4905/phone-stocks", async (c) => {
+  try {
+    const stocks = await kv.getByPrefix("phonestock:");
+    return c.json({ success: true, data: stocks });
+  } catch (error) {
+    console.error("Error fetching phone stocks:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.post("/make-server-929c4905/phone-stocks", async (c) => {
+  try {
+    const stock = await c.req.json();
+    const id = stock.id || Date.now().toString();
+    await kv.set(`phonestock:${id}`, { ...stock, id });
+    return c.json({ success: true, data: { ...stock, id } });
+  } catch (error) {
+    console.error("Error adding phone stock:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.put("/make-server-929c4905/phone-stocks/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const stock = await c.req.json();
+    await kv.set(`phonestock:${id}`, { ...stock, id });
+    return c.json({ success: true, data: { ...stock, id } });
+  } catch (error) {
+    console.error("Error updating phone stock:", error);
+    return c.json({ success: false, error: String(error) }, 500);
+  }
+});
+
+app.delete("/make-server-929c4905/phone-stocks/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    await kv.del(`phonestock:${id}`);
+    return c.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting phone stock:", error);
     return c.json({ success: false, error: String(error) }, 500);
   }
 });

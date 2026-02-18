@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { LoginScreen } from "./components/LoginScreen";
 import { RepairsView } from "./components/RepairsView";
 import { PhoneSalesView } from "./components/PhoneSalesView";
+import { PhoneStockDialog } from "./components/PhoneStockDialog";
 import { SalesPanelView } from "./components/SalesPanelView";
 import { SalesManagementView } from "./components/SalesManagementView";
 import { CategoryManagementDialog } from "./components/CategoryManagementDialog";
@@ -20,7 +21,7 @@ import { BulkUploadDialog } from "./components/BulkUploadDialog";
 import { SalesTypeDialog } from "./components/SalesTypeDialog";
 import { RepairDialog } from "./components/RepairDialog";
 import { PhoneSaleDialog } from "./components/PhoneSaleDialog";
-import type { PhoneSale } from "./utils/api";
+import type { PhoneSale, PhoneStock } from "./utils/api";
 import { CashRegisterWidget } from "./components/CashRegisterWidget";
 import { SalesAnalyticsView } from "./components/SalesAnalyticsView";
 import { CustomerProfileView } from "./components/CustomerProfileView";
@@ -155,6 +156,7 @@ function App() {
   const [sales, setSales] = useState<Sale[]>([]);
   const [repairs, setRepairs] = useState<RepairRecord[]>([]);
   const [phoneSales, setPhoneSales] = useState<PhoneSale[]>([]);
+  const [phoneStocks, setPhoneStocks] = useState<PhoneStock[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerTransactions, setCustomerTransactions] = useState<CustomerTransaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -175,6 +177,7 @@ function App() {
   const [salesTypeOpen, setSalesTypeOpen] = useState(false);
   const [repairOpen, setRepairOpen] = useState(false);
   const [phoneSaleOpen, setPhoneSaleOpen] = useState(false);
+  const [phoneStockOpen, setPhoneStockOpen] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [stockValueDialogOpen, setStockValueDialogOpen] = useState(false);
   const [saleDetailOpen, setSaleDetailOpen] = useState(false);
@@ -285,7 +288,7 @@ function App() {
         return data;
       };
 
-      const [categoriesData, productsData, salesData, repairsData, customersData, customerTransactionsData, phoneSalesData] = await Promise.all([
+      const [categoriesData, productsData, salesData, repairsData, customersData, customerTransactionsData, phoneSalesData, phoneStocksData] = await Promise.all([
         fetchCategories().catch(err => { console.error("❌ Categories fetch failed:", err); return []; }),
         fetchProducts().catch(err => { console.error("❌ Products fetch failed:", err); return []; }),
         fetchSales().catch(err => { console.error("❌ Sales fetch failed:", err); return []; }),
@@ -293,6 +296,7 @@ function App() {
         api.getCustomers().catch(err => { console.error("❌ Customers fetch failed:", err); return []; }),
         api.getCustomerTransactions().catch(err => { console.error("❌ Transactions fetch failed:", err); return []; }),
         api.getPhoneSales().catch(err => { console.error("❌ PhoneSales fetch failed:", err); return []; }),
+        api.getPhoneStocks().catch(err => { console.error("❌ PhoneStocks fetch failed:", err); return []; }),
       ]);
 
       const duration = (Date.now() - startTime) / 1000;
@@ -305,6 +309,7 @@ function App() {
       setCustomers(customersData);
       setCustomerTransactions(customerTransactionsData);
       setPhoneSales(phoneSalesData);
+      setPhoneStocks(phoneStocksData);
 
     } catch (error: any) {
       console.error("❌ Error loading data:", error);
@@ -784,6 +789,32 @@ function App() {
     } catch (error) {
       console.error("Repair status update error:", error);
       toast.error("Tamir durumu güncellenemedi");
+    }
+  };
+
+  const handleAddPhoneStock = async (stock: Omit<PhoneStock, "id" | "createdAt" | "status">) => {
+    try {
+      const newStock = await api.addPhoneStock({
+        ...stock,
+        status: 'in_stock',
+        createdAt: new Date().toISOString()
+      });
+      setPhoneStocks([newStock, ...phoneStocks]);
+    } catch (error: any) {
+      console.error("Error adding phone stock:", error);
+      toast.error(`Stok eklenirken hata oluştu: ${error.message}`);
+    }
+  };
+
+  const handleDeletePhoneStock = async (id: string) => {
+    if (!window.confirm("Bu stok kaydını silmek istediğinize emin misiniz?")) return;
+    try {
+      await api.deletePhoneStock(id);
+      setPhoneStocks(phoneStocks.filter(s => s.id !== id));
+      toast.success("Stok kaydı silindi");
+    } catch (error) {
+      console.error("Error deleting phone stock:", error);
+      toast.error("Stok silinirken hata oluştu");
     }
   };
 
@@ -1417,7 +1448,10 @@ function App() {
                   <h2 className="text-2xl font-bold">Telefon Satışları</h2>
                   <PhoneSalesView
                     phoneSales={phoneSales}
+                    phoneStocks={phoneStocks}
                     onDeletePhoneSale={handleDeletePhoneSale}
+                    onDeletePhoneStock={handleDeletePhoneStock}
+                    onAddPhoneStock={() => setPhoneStockOpen(true)}
                     isPrivacyMode={isPrivacyMode}
                   />
                 </motion.div>
@@ -1612,6 +1646,12 @@ function App() {
         onOpenChange={setPhoneSaleOpen}
         onSave={handleAddPhoneSale}
         customers={allUniqueCustomers}
+      />
+
+      <PhoneStockDialog
+        open={phoneStockOpen}
+        onOpenChange={setPhoneStockOpen}
+        onSave={handleAddPhoneStock}
       />
 
       <StockValueDialog

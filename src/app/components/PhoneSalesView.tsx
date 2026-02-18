@@ -1,9 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Smartphone, Trash2, DollarSign, TrendingUp, Calendar } from "lucide-react";
+import { Smartphone, Trash2, DollarSign, TrendingUp, Calendar, Plus } from "lucide-react";
 import { motion } from "motion/react";
-import type { PhoneSale } from "../utils/api";
+import type { PhoneSale, PhoneStock } from "../utils/api";
 import { useEffect, useState, useMemo } from "react";
 import { Input } from "./ui/input";
 import { format } from "date-fns";
@@ -11,11 +11,14 @@ import { tr } from "date-fns/locale";
 
 interface PhoneSalesViewProps {
   phoneSales: PhoneSale[];
+  phoneStocks: PhoneStock[];
   onDeletePhoneSale: (id: string) => void;
+  onDeletePhoneStock: (id: string) => void;
+  onAddPhoneStock: () => void;
   isPrivacyMode: boolean;
 }
 
-export function PhoneSalesView({ phoneSales, onDeletePhoneSale, isPrivacyMode }: PhoneSalesViewProps) {
+export function PhoneSalesView({ phoneSales, phoneStocks, onDeletePhoneSale, onDeletePhoneStock, onAddPhoneStock, isPrivacyMode }: PhoneSalesViewProps) {
   // Date range states
   const [startDate, setStartDate] = useState<string>(() => {
     // Default: ayın ilk günü
@@ -104,6 +107,73 @@ export function PhoneSalesView({ phoneSales, onDeletePhoneSale, isPrivacyMode }:
 
   return (
     <div className="space-y-6">
+      {/* Phone Stocks Section - AT THE TOP */}
+      <Card className="border-2 border-indigo-300 dark:border-indigo-800 shadow-lg overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-950/30 dark:to-blue-950/30 flex flex-row items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <Smartphone className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
+            <span>Telefon Stokları ({phoneStocks.length})</span>
+          </CardTitle>
+          <Button
+            onClick={onAddPhoneStock}
+            className="bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-md font-bold"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            TELEFON STOĞU EKLE
+          </Button>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {phoneStocks.length === 0 ? (
+            <div className="text-center py-8">
+              <Smartphone className="w-12 h-12 mx-auto mb-3 text-gray-400 opacity-50" />
+              <p className="text-sm text-muted-foreground">Henüz stokta telefon bulunmuyor.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {phoneStocks.map((stock) => (
+                <motion.div
+                  key={stock.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="border-2 border-indigo-100 dark:border-indigo-900 rounded-lg p-4 bg-white dark:bg-gray-900 shadow-sm hover:shadow-md transition-all relative group"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="font-bold text-indigo-900 dark:text-indigo-100">{stock.brand} {stock.model}</h3>
+                      <p className="text-xs text-muted-foreground font-mono">IMEI: {stock.imei || "Belirtilmedi"}</p>
+                    </div>
+                    <Button
+                      onClick={() => onDeletePhoneStock(stock.id)}
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 mt-3">
+                    <div className="bg-orange-50 dark:bg-orange-900/10 p-2 rounded">
+                      <p className="text-[10px] text-orange-600 uppercase font-bold">Alış</p>
+                      <p className={`text-sm font-bold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{stock.purchasePrice.toLocaleString('tr-TR')}</p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/10 p-2 rounded">
+                      <p className="text-[10px] text-green-600 uppercase font-bold">Hedef Satış</p>
+                      <p className={`text-sm font-bold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{stock.salePrice.toLocaleString('tr-TR')}</p>
+                    </div>
+                  </div>
+
+                  {stock.notes && (
+                    <p className="text-[10px] text-muted-foreground mt-2 line-clamp-1 italic border-t pt-1">
+                      {stock.notes}
+                    </p>
+                  )}
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
       {/* Date Range Filter */}
       <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30 border-2 border-purple-200 dark:border-purple-800">
         <CardContent className="p-6">

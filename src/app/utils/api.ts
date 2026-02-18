@@ -157,6 +157,18 @@ export interface PhoneSale {
   paymentDetails?: PaymentDetails;
 }
 
+export interface PhoneStock {
+  id: string;
+  brand: string;
+  model: string;
+  imei: string;
+  purchasePrice: number;
+  salePrice: number;
+  notes: string;
+  status: 'in_stock' | 'sold';
+  createdAt: string;
+}
+
 export interface Expense {
   id: string;
   name: string;
@@ -429,6 +441,34 @@ export const api = {
 
   async deletePhoneSale(id: string): Promise<void> {
     await fetchAPI(`/phone-sales/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  // Phone Stocks
+  async getPhoneStocks(): Promise<PhoneStock[]> {
+    const result = await fetchAPI("/phone-stocks");
+    return result.data || [];
+  },
+
+  async addPhoneStock(phoneStock: Omit<PhoneStock, "id">): Promise<PhoneStock> {
+    const result = await fetchAPI("/phone-stocks", {
+      method: "POST",
+      body: JSON.stringify(phoneStock),
+    });
+    return result.data;
+  },
+
+  async updatePhoneStock(id: string, phoneStock: Partial<PhoneStock>): Promise<PhoneStock> {
+    const result = await fetchAPI(`/phone-stocks/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(phoneStock),
+    });
+    return result.data;
+  },
+
+  async deletePhoneStock(id: string): Promise<void> {
+    await fetchAPI(`/phone-stocks/${id}`, {
       method: "DELETE",
     });
   },
