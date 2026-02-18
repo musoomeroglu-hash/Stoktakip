@@ -155,7 +155,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly" | "all">("monthly");
-  const [activeView, setActiveView] = useState<"products" | "salesManagement" | "repairs" | "phoneSales" | "caris" | "calculator" | "requests" | "expenses">("salesManagement");
+  const [activeView, setActiveView] = useState<"products" | "salesManagement" | "repairs" | "phoneSales" | "caris" | "calculator" | "requests" | "expenses" | "salesAnalytics" | "customers">("salesManagement");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
@@ -767,6 +767,8 @@ function App() {
   };
 
   const handleDeletePhoneSale = async (id: string) => {
+    if (!window.confirm("Bu telefon satışını silmek istediğinize emin misiniz?")) return;
+
     try {
       await api.deletePhoneSale(id);
       const updatedPhoneSales = phoneSales.filter((ps) => ps.id !== id);
@@ -900,6 +902,8 @@ function App() {
   };
 
   const handleDeleteCustomer = async (id: string) => {
+    if (!window.confirm("Bu cari kaydını silmek istediğinize emin misiniz?")) return;
+
     try {
       await api.deleteCustomer(id);
       setCustomers(customers.filter((c) => c.id !== id));

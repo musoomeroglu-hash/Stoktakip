@@ -10,8 +10,7 @@ import { Textarea } from "./ui/textarea";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
 import { Wrench, ShoppingCart, TrendingUp, DollarSign, Edit, Trash2, User, BarChart3, Calendar, Smartphone } from "lucide-react";
 import { toast } from "sonner";
-import type { Sale, RepairRecord, Customer, CustomerTransaction, SaleItem } from "../utils/api";
-import type { PhoneSale } from "./PhoneSaleDialog";
+import type { Sale, RepairRecord, Customer, CustomerTransaction, SaleItem, PhoneSale } from "../utils/api";
 
 interface SalesManagementViewProps {
   sales: Sale[];
@@ -618,7 +617,7 @@ export function SalesManagementView({
                 </Card>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                 {customers.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">Henüz cari kaydı yok</p>
                 ) : (

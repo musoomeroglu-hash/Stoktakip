@@ -357,7 +357,11 @@ function RepairCard({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => onDelete(repair.id)}
+                onClick={() => {
+                  if (window.confirm("Bu tamir kaydını silmek istediğinize emin misiniz?")) {
+                    onDelete(repair.id);
+                  }
+                }}
                 className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
               >
                 <Trash2 className="w-4 h-4" />
