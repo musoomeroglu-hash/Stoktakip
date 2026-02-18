@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Smartphone, Plus, User } from "lucide-react";
+import { Smartphone, Plus, User, Camera, X } from "lucide-react";
+import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
 import type { PaymentMethod, PaymentDetails, Customer, PhoneSale } from "../utils/api";
 
@@ -27,6 +28,11 @@ export function PhoneSaleDialog({ open, onOpenChange, onSave, customers }: Phone
   const [customerPhone, setCustomerPhone] = useState("");
   const [notes, setNotes] = useState("");
 
+  const [scannerActive, setScannerActive] = useState(false);
+  const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const scannerRunningRef = useRef(false);
+  const scannerDivId = "phone-qr-reader";
+
   // Müşteri seçildiğinde bilgileri doldur
   const handleCustomerSelect = (customerId: string) => {
     if (customerId === "new") {
@@ -42,6 +48,76 @@ export function PhoneSaleDialog({ open, onOpenChange, onSave, customers }: Phone
       }
     }
   };
+
+  // Scanner Effect
+  useEffect(() => {
+    if (scannerActive && open) {
+      // Wait a bit for DOM to be ready
+      const timer = setTimeout(async () => {
+        try {
+          const html5QrCode = new Html5Qrcode(scannerDivId);
+          html5QrCodeRef.current = html5QrCode;
+
+          await html5QrCode.start(
+            { facingMode: "environment" },
+            {
+              fps: 10,
+              qrbox: { width: 250, height: 250 },
+            },
+            (decodedText) => {
+              // IMEI okutuldu
+              setImei(decodedText);
+              setScannerActive(false);
+            },
+            () => {
+              // Hata mesajlarını ignore ediyoruz
+            }
+          );
+
+          scannerRunningRef.current = true;
+        } catch (err: any) {
+          if (process.env.NODE_ENV === 'development') {
+            console.error("Scanner başlatma hatası:", err);
+          }
+          alert("Kamera erişimi sağlanamadı. IMEI'yi manuel olarak girebilirsiniz.");
+          setScannerActive(false);
+          html5QrCodeRef.current = null;
+          scannerRunningRef.current = false;
+        }
+      }, 100);
+
+      return () => clearTimeout(timer);
+    } else if (!scannerActive && html5QrCodeRef.current && scannerRunningRef.current) {
+      // Stop scanner only if it's running
+      html5QrCodeRef.current
+        .stop()
+        .then(() => {
+          html5QrCodeRef.current?.clear();
+          html5QrCodeRef.current = null;
+          scannerRunningRef.current = false;
+        })
+        .catch((err) => {
+          console.error("Scanner durdurma hatası:", err);
+          html5QrCodeRef.current = null;
+          scannerRunningRef.current = false;
+        });
+    }
+  }, [scannerActive, open]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (html5QrCodeRef.current && scannerRunningRef.current) {
+        html5QrCodeRef.current
+          .stop()
+          .catch(() => { })
+          .finally(() => {
+            scannerRunningRef.current = false;
+          });
+        html5QrCodeRef.current = null;
+      }
+    };
+  }, []);
 
   const resetForm = () => {
     setSelectedCustomerId(null);
@@ -65,10 +141,10 @@ export function PhoneSaleDialog({ open, onOpenChange, onSave, customers }: Phone
       toast.error("Lütfen model girin!");
       return;
     }
-    
+
     const purchase = parseFloat(purchasePrice);
     const sale = parseFloat(salePrice);
-    
+
     if (isNaN(purchase) || purchase < 0) {
       toast.error("Lütfen geçerli bir alış fiyatı girin!");
       return;
@@ -122,8 +198,8 @@ export function PhoneSaleDialog({ open, onOpenChange, onSave, customers }: Phone
             >
               <SelectTrigger>
                 <SelectValue placeholder="Müşteri seçin">
-                  {selectedCustomerId 
-                    ? customers.find(c => c.id === selectedCustomerId)?.name 
+                  {selectedCustomerId
+                    ? customers.find(c => c.id === selectedCustomerId)?.name
                     : "🆕 Yeni Müşteri"}
                 </SelectValue>
               </SelectTrigger>
@@ -191,14 +267,38 @@ export function PhoneSaleDialog({ open, onOpenChange, onSave, customers }: Phone
           {/* IMEI */}
           <div className="space-y-2">
             <Label htmlFor="imei">IMEI / Seri No</Label>
-            <Input
-              id="imei"
-              value={imei}
-              onChange={(e) => setImei(e.target.value)}
-              placeholder="35xxxxxxxxxx"
-              className="border-2"
-            />
+            <div className="flex gap-2">
+              <Input
+                id="imei"
+                value={imei}
+                onChange={(e) => setImei(e.target.value)}
+                placeholder="35xxxxxxxxxx"
+                className="border-2"
+                disabled={scannerActive}
+              />
+              <Button
+                type="button"
+                variant={scannerActive ? "destructive" : "outline"}
+                onClick={scannerActive ? () => setScannerActive(false) : () => setScannerActive(true)}
+                size="icon"
+              >
+                {scannerActive ? <X className="w-4 h-4" /> : <Camera className="w-4 h-4" />}
+              </Button>
+            </div>
           </div>
+
+          {/* QR Code Scanner Area */}
+          {scannerActive && (
+            <div className="space-y-2">
+              <div
+                id={scannerDivId}
+                className="w-full border-2 border-dashed border-primary rounded-lg overflow-hidden"
+              />
+              <p className="text-sm text-muted-foreground text-center">
+                IMEI barkodunu kamera önüne tutun
+              </p>
+            </div>
+          )}
 
           {/* Fiyatlar */}
           <div className="grid grid-cols-2 gap-4">
@@ -231,22 +331,20 @@ export function PhoneSaleDialog({ open, onOpenChange, onSave, customers }: Phone
 
           {/* Kâr Göstergesi */}
           {purchasePrice && salePrice && !isNaN(parseFloat(purchasePrice)) && !isNaN(parseFloat(salePrice)) && (
-            <div className={`p-4 rounded-lg border-2 ${
-              parseFloat(salePrice) - parseFloat(purchasePrice) >= 0 
-                ? 'bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-700' 
+            <div className={`p-4 rounded-lg border-2 ${parseFloat(salePrice) - parseFloat(purchasePrice) >= 0
+                ? 'bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-700'
                 : 'bg-red-50 dark:bg-red-950/20 border-red-300 dark:border-red-700'
-            }`}>
+              }`}>
               <div className="text-center">
                 <p className="text-sm text-muted-foreground mb-1">Tahmini Kâr</p>
-                <p className={`text-2xl font-bold ${
-                  parseFloat(salePrice) - parseFloat(purchasePrice) >= 0 
-                    ? 'text-green-600 dark:text-green-400' 
+                <p className={`text-2xl font-bold ${parseFloat(salePrice) - parseFloat(purchasePrice) >= 0
+                    ? 'text-green-600 dark:text-green-400'
                     : 'text-red-600 dark:text-red-400'
-                }`}>
+                  }`}>
                   {parseFloat(salePrice) - parseFloat(purchasePrice) >= 0 ? '₺' : '-₺'}
-                  {Math.abs(parseFloat(salePrice) - parseFloat(purchasePrice)).toLocaleString('tr-TR', { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
+                  {Math.abs(parseFloat(salePrice) - parseFloat(purchasePrice)).toLocaleString('tr-TR', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
                   })}
                 </p>
               </div>
