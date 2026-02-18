@@ -1,4 +1,6 @@
+// VERSION_V3_DIRECT_REFIX
 import { useState, useEffect } from "react";
+
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -57,7 +59,8 @@ export function SuppliersView({ isPrivacyMode }: SuppliersViewProps) {
             const data = await api.getSuppliers();
             setSuppliers(data);
         } catch (error: any) {
-            toast.error(`Tedarikçiler yüklenirken bir hata oluştu: ${error.message || "Bilinmeyen hata"}`);
+            toast.error(`⚠️ HATA DETAYI: ${error.message || "Bilinmeyen API Hatası"}`);
+            console.error("Tedarikçi yükleme hatası:", error);
         } finally {
             setLoading(false);
         }
