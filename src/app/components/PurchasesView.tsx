@@ -63,8 +63,8 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
             setPurchases(purchasesData);
             setSuppliers(suppliersData);
             setProducts(productsData);
-        } catch (error) {
-            toast.error("Veriler yüklenirken bir hata oluştu");
+        } catch (error: any) {
+            toast.error(`Veriler yüklenirken bir hata oluştu: ${error.message || "Bilinmeyen hata"}`);
         } finally {
             setLoading(false);
         }
@@ -136,8 +136,9 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
             setDialogOpen(false);
             resetForm();
             loadInitialData();
-        } catch (error) {
-            toast.error("Kaydedilirken bir hata oluştu");
+        } catch (error: any) {
+            toast.error(`Kaydedilirken bir hata oluştu: ${error.message || "Bilinmeyen hata"}`);
+            console.error("Alış kaydetme hatası:", error);
         }
     };
 
