@@ -34,6 +34,17 @@ import { api, projectId, API_URL } from "./utils/api";
 import type { Category, Product, Sale, SaleItem, RepairRecord, Customer, CustomerTransaction, PaymentMethod, PaymentDetails } from "./utils/api";
 import { motion, AnimatePresence } from "motion/react";
 import {
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarInset,
+} from "./components/ui/sidebar";
+import { AppSidebar } from "./components/AppSidebar";
+import { IstatistikKartlari } from "./components/IstatistikKartlari";
+import { StokTablosu } from "./components/StokTablosu";
+import { StokFiltre } from "./components/StokFiltre";
+import { StokBadge } from "./components/StokBadge";
+import { StokAnalizDialog } from "./components/StokAnalizDialog";
+import {
   Package,
   Plus,
   ShoppingCart,
@@ -164,6 +175,9 @@ function App() {
   const [phoneSaleOpen, setPhoneSaleOpen] = useState(false);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [stockValueDialogOpen, setStockValueDialogOpen] = useState(false);
+  const [saleDetailOpen, setSaleDetailOpen] = useState(false);
+  const [selectedSaleForDetail, setSelectedSaleForDetail] = useState<Sale | null>(null);
+  const [stokAnalizOpen, setStokAnalizOpen] = useState(false);
   const [productDetailOpen, setProductDetailOpen] = useState(false);
   const [selectedProductForDetail, setSelectedProductForDetail] = useState<Product | null>(null);
   const [sortBy, setSortBy] = useState<"name" | "price" | "stock">("name");
@@ -199,7 +213,6 @@ function App() {
     console.log("🧹 Tarayıcı oturumları kontrol ediliyor...");
     try {
       const keys = Object.keys(localStorage);
-      // Hem eski anahtarları hem de bu proje ID'siyle eşleşmeyen yeni Supabase anahtarlarını bul
       const staleKeys = keys.filter(key =>
         (key.startsWith('sb-') && !key.includes(projectId)) ||
         key.includes('supabase.auth.token')
@@ -213,49 +226,73 @@ function App() {
     } catch (e) {
       console.error("LocalStorage temizleme hatası:", e);
     }
-  }, []);
 
-  useEffect(() => {
+    // Initial data load
     loadData();
     fetchUsdRate();
 
-    // Update USD rate every hour
-    const interval = setInterval(fetchUsdRate, 3600000); // 3600000ms = 1 hour
-    // Forced loading timeout (15s)
+    // Forced fallback timeout for early app interaction if network is slow
     const forcedTimeout = setTimeout(() => {
-      if (loading) {
-        console.warn("⚠️ Forced loading timeout triggered after 15s");
-        setLoading(false);
-        setError("Yükleme çok uzun sürdü. Bazı veriler eksik olabilir.");
-      }
+      setLoading(currentLoading => {
+        if (currentLoading) {
+          console.warn("⚠️ Forced loading timeout triggered after 15s - unlocking UI");
+          return false;
+        }
+        return false;
+      });
     }, 15000);
 
-    return () => {
-      clearInterval(interval);
-      clearTimeout(forcedTimeout);
-    };
-  }, [loading]);
+    return () => clearTimeout(forcedTimeout);
+  }, []); // Run only once on mount
+
+  useEffect(() => {
+    // Update USD rate every hour
+    const interval = setInterval(fetchUsdRate, 3600000);
+    return () => clearInterval(interval);
+  }, []);
 
   const loadData = async () => {
     try {
       setLoading(true);
       setError(null);
-      console.log("🔵 Veriler yükleniyor...");
+      console.log("🔵 Veriler yükleniyor (Mount)...");
 
       const startTime = Date.now();
 
+      // Parallel fetch with individual error catching for logging
+      const fetchCategories = async () => {
+        console.log("  ⏳ Kategoriler çekiliyor...");
+        const data = await api.getCategories();
+        console.log(`  ✅ Kategoriler yüklendi (${data.length})`);
+        return data;
+      };
+
+      const fetchProducts = async () => {
+        console.log("  ⏳ Ürünler çekiliyor...");
+        const data = await api.getProducts();
+        console.log(`  ✅ Ürünler yüklendi (${data.length})`);
+        return data;
+      };
+
+      const fetchSales = async () => {
+        console.log("  ⏳ Satışlar çekiliyor...");
+        const data = await api.getSales();
+        console.log(`  ✅ Satışlar yüklendi (${data.length})`);
+        return data;
+      };
+
       const [categoriesData, productsData, salesData, repairsData, customersData, customerTransactionsData, phoneSalesData] = await Promise.all([
-        api.getCategories().catch(err => { console.error("Categories fetch failed:", err); return []; }),
-        api.getProducts().catch(err => { console.error("Products fetch failed:", err); return []; }),
-        api.getSales().catch(err => { console.error("Sales fetch failed:", err); return []; }),
-        api.getRepairs().catch(err => { console.error("Repairs fetch failed:", err); return []; }),
-        api.getCustomers().catch(err => { console.error("Customers fetch failed:", err); return []; }),
-        api.getCustomerTransactions().catch(err => { console.error("Transactions fetch failed:", err); return []; }),
-        api.getPhoneSales().catch(err => { console.error("PhoneSales fetch failed:", err); return []; }),
+        fetchCategories().catch(err => { console.error("❌ Categories fetch failed:", err); return []; }),
+        fetchProducts().catch(err => { console.error("❌ Products fetch failed:", err); return []; }),
+        fetchSales().catch(err => { console.error("❌ Sales fetch failed:", err); return []; }),
+        api.getRepairs().catch(err => { console.error("❌ Repairs fetch failed:", err); return []; }),
+        api.getCustomers().catch(err => { console.error("❌ Customers fetch failed:", err); return []; }),
+        api.getCustomerTransactions().catch(err => { console.error("❌ Transactions fetch failed:", err); return []; }),
+        api.getPhoneSales().catch(err => { console.error("❌ PhoneSales fetch failed:", err); return []; }),
       ]);
 
       const duration = (Date.now() - startTime) / 1000;
-      console.log(`✅ Veriler ${duration.toFixed(2)}sn içinde yüklendi`);
+      console.log(`✅ Tüm veriler ${duration.toFixed(2)}sn içinde yüklendi`);
 
       setCategories(categoriesData);
       setProducts(productsData);
@@ -265,11 +302,8 @@ function App() {
       setCustomerTransactions(customerTransactionsData);
       setPhoneSales(phoneSalesData);
 
-      // Initialize with sample data if empty and purely local/mock (optional)
-      // Removing automatic sample data creation to prevent potential write loops during debugging
-
     } catch (error: any) {
-      console.error("Error loading data:", error);
+      console.error("❌ Error loading data:", error);
       setError(error.message || "Veriler yüklenirken bir hata oluştu");
       toast.error("Veriler yüklenirken hata oluştu");
     } finally {
@@ -564,9 +598,9 @@ function App() {
         return `$--.--`; // Dolar kuru yüklenene kadar
       }
       const usdValue = price / usdRate;
-      return `$${usdValue.toFixed(2)}`;
+      return `$${usdValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
-    return `₺${price.toFixed(2)}`;
+    return `₺${price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   // Excel Export
@@ -1075,873 +1109,409 @@ function App() {
   const mainCategories = categories.filter(c => !c.parentId);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-sky-50 to-cyan-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       <Toaster position="top-right" />
 
-      {/* Header */}
-      <header className="border-b bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10 shadow-sm">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Techno.Cep</h1>
-                <p className="text-sm text-muted-foreground">Bir işletmeden daha fazlası</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={toggleCurrency}
-                  className="h-9 w-9 rounded-full border-2 hover:bg-green-50 dark:hover:bg-green-950 hover:border-green-300 dark:hover:border-green-700"
-                  title={`Para birimi: ${currency === "TRY" ? "₺ TL" : "$ USD"}`}
-                >
-                  <DollarSign className={`w-4 h-4 ${currency === "USD" ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`} />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => setIsDarkMode(!isDarkMode)}
-                  className="h-9 w-9 rounded-full border-2 hover:bg-muted"
-                  title="Tema değiştir"
-                >
-                  {isDarkMode ? (
-                    <Sun className="w-4 h-4 text-yellow-500" />
-                  ) : (
-                    <Moon className="w-4 h-4 text-blue-600" />
-                  )}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={handleLogout}
-                  className="h-9 w-9 rounded-full border-2 hover:bg-red-50 dark:hover:bg-red-950 hover:border-red-300 dark:hover:border-red-700"
-                  title="Çıkış yap"
-                >
-                  <LogOut className="w-4 h-4 text-red-600 dark:text-red-400" />
-                </Button>
+      <SidebarProvider>
+        <AppSidebar
+          activeView={activeView}
+          setActiveView={setActiveView}
+          onLogout={handleLogout}
+          onOpenCategoryManagement={() => setCategoryManagementOpen(true)}
+        />
+        <SidebarInset className="flex flex-col min-h-screen bg-slate-50/30 dark:bg-slate-950/50">
+          {/* Header */}
+          <header className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-slate-200/60 dark:border-slate-800 bg-white/40 dark:bg-slate-950/50 backdrop-blur-md sticky top-0 z-10 transition-all duration-300">
+            <div className="flex items-center gap-4">
+              <SidebarTrigger className="-ml-1" />
+              <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 group-data-[collapsible=icon]:hidden" />
+              <div className="flex flex-col group-data-[collapsible=icon]:hidden">
+                <h2 className="text-sm font-bold text-slate-900 dark:text-slate-100 uppercase tracking-tight">
+                  {activeView === "products" ? "Stok Envanteri" :
+                    activeView === "salesManagement" ? "Satış & Raporlar" :
+                      activeView === "repairs" ? "Tamir Kayıtları" :
+                        activeView === "phoneSales" ? "Telefon Satışları" :
+                          activeView === "caris" ? "Cari Hesaplar" :
+                            activeView === "salesAnalytics" ? "Satış Analitiği" :
+                              activeView === "expenses" ? "Gider Takibi" :
+                                activeView === "requests" ? "İstek & Siparişler" :
+                                  activeView === "calculator" ? "Hesap Makinesi" :
+                                    activeView === "customers" ? "Müşteri Profilleri" : "Dashboard"}
+                </h2>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button onClick={() => setCategoryDialogOpen(true)} variant="outline" size="sm" className="border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-950">
-                <FolderTree className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Kategori</span>
-              </Button>
-              <Button onClick={() => setProductDialogOpen(true)} variant="outline" size="sm" className="border-green-200 hover:bg-green-50 dark:border-green-800 dark:hover:bg-green-950">
-                <Plus className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Ürün</span>
-              </Button>
-              <Button onClick={() => setBulkUploadOpen(true)} variant="outline" size="sm" className="border-purple-200 hover:bg-purple-50 dark:border-purple-800 dark:hover:bg-purple-950">
-                <Upload className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Toplu</span>
-              </Button>
-              <Button onClick={handleExportToExcel} variant="outline" size="sm" className="border-orange-200 hover:bg-orange-50 dark:border-orange-800 dark:hover:bg-orange-950">
-                <Download className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">İndir</span>
-              </Button>
-              <label htmlFor="excel-upload">
-                <Button variant="outline" size="sm" asChild className="border-pink-200 hover:bg-pink-50 dark:border-pink-800 dark:hover:bg-pink-950">
-                  <span>
-                    <Upload className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">Yükle</span>
+
+            <div className="flex items-center gap-2">
+              <div className="flex bg-slate-100 dark:bg-slate-900 rounded-full p-1 border border-slate-200 dark:border-slate-800">
+                <Button
+                  variant={currency === "TRY" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setCurrency("TRY")}
+                  className={`h-7 px-3 rounded-full text-[10px] uppercase font-bold transition-all ${currency === "TRY" ? "shadow-sm" : "text-slate-500"}`}
+                >
+                  ₺ TL
+                </Button>
+                <Button
+                  variant={currency === "USD" ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => setCurrency("USD")}
+                  className={`h-7 px-3 rounded-full text-[10px] uppercase font-bold transition-all ${currency === "USD" ? "shadow-sm" : "text-slate-500"}`}
+                >
+                  $ USD
+                </Button>
+              </div>
+
+              {usdRate > 0 && (
+                <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-slate-100/50 dark:bg-slate-900/50 border border-slate-200/50 dark:border-slate-800/50 rounded-full text-slate-600 dark:text-slate-400">
+                  <span className="text-[10px] font-bold tracking-tight whitespace-nowrap">
+                    $ 1.00 = <span className="text-slate-900 dark:text-slate-100">₺{usdRate.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   </span>
-                </Button>
-              </label>
-              <input
-                id="excel-upload"
-                type="file"
-                accept=".xlsx,.xls"
-                className="hidden"
-                onChange={handleImportFromExcel}
-              />
-              <Button onClick={() => setSalesTypeOpen(true)} className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Satış/Tamir</span>
+                </div>
+              )}
+
+              <div className="h-4 w-px bg-slate-200 dark:bg-slate-800 mx-1" />
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className="h-9 w-9 rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900"
+              >
+                {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-blue-600" />}
+              </Button>
+
+              <Button
+                onClick={() => setSalesTypeOpen(true)}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/20 gap-2 h-9 rounded-xl px-4 ml-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">İşlem Ekle</span>
               </Button>
             </div>
-          </div>
-        </div>
-      </header>
+          </header>
 
-      <div className="flex flex-col md:flex-row">
-        {/* Sidebar - Kategoriler */}
-        <aside className="w-full md:w-64 border-b md:border-r md:border-b-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm md:min-h-[calc(100vh-73px)] md:sticky md:top-[73px] shadow-sm">
-          <div className="p-4 space-y-2 max-h-[300px] md:max-h-none overflow-y-auto">
-            <div className="mb-4">
-              <h2 className="font-semibold mb-2">KATEGORİLER</h2>
-            </div>
+          <main className="flex-1 p-6 lg:p-8">
+            <AnimatePresence mode="wait">
+              {activeView === "products" ? (
+                <motion.div
+                  key="products"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="space-y-6"
+                >
+                  <IstatistikKartlari
+                    products={products}
+                    sales={sales}
+                    repairs={repairs}
+                    phoneSales={phoneSales}
+                    formatPrice={formatPrice}
+                    onOpenAnalysis={() => setStokAnalizOpen(true)}
+                  />
 
-            {/* Tüm Ürünler */}
-            <button
-              onClick={() => {
-                playMenuSound();
-                setSelectedCategoryId(null);
-                setActiveView("products");
-              }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${selectedCategoryId === null && activeView === "products"
-                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
-                : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_15px_rgba(96,165,250,0.4)]"
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <Package className="w-4 h-4" />
-                <span>Tüm Ürünler</span>
-                <Badge variant={selectedCategoryId === null && activeView === "products" ? "secondary" : "outline"} className="ml-auto">{products.length}</Badge>
-              </div>
-            </button>
+                  {/* Kasa Durumu Widget */}
+                  <CashRegisterWidget
+                    sales={sales}
+                    repairs={repairs}
+                    phoneSales={phoneSales}
+                    formatPrice={formatPrice}
+                  />
 
-            <div className="border-t pt-2 mt-2" />
-
-            {/* Ana Kategoriler & Alt Kategoriler */}
-            {mainCategories.map((mainCat) => {
-              const subCategories = categories.filter(c => c.parentId === mainCat.id);
-              const hasSubCategories = subCategories.length > 0;
-              const isExpanded = expandedCategories.has(mainCat.id);
-              const mainCatProductCount = products.filter(p => p.categoryId === mainCat.id).length;
-              const allProductCount = products.filter(p =>
-                p.categoryId === mainCat.id ||
-                subCategories.some(sub => sub.id === p.categoryId)
-              ).length;
-
-              return (
-                <div key={mainCat.id} className="space-y-1">
-                  {/* Ana Kategori */}
-                  <div className="flex items-center gap-1">
-                    {hasSubCategories && (
-                      <button
-                        onClick={() => toggleCategory(mainCat.id)}
-                        className="p-1 hover:bg-muted rounded transition-colors"
-                      >
-                        {isExpanded ? (
-                          <ChevronDown className="w-4 h-4" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4" />
-                        )}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        playMenuSound();
-                        setSelectedCategoryId(mainCat.id);
-                        setActiveView("products");
-                      }}
-                      className={`flex-1 text-left px-3 py-2 rounded-lg transition-all duration-300 ${!hasSubCategories ? "ml-6" : ""
-                        } ${selectedCategoryId === mainCat.id
-                          ? "bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-md"
-                          : "hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:border-indigo-200 dark:hover:border-indigo-800 border border-transparent hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] dark:hover:shadow-[0_0_15px_rgba(129,140,248,0.4)]"
-                        }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FolderTree className="w-4 h-4" />
-                          <span className="text-sm">{mainCat.name}</span>
-                        </div>
-                        <Badge variant={selectedCategoryId === mainCat.id ? "secondary" : "outline"} className="text-xs">
-                          {hasSubCategories ? allProductCount : mainCatProductCount}
-                        </Badge>
-                      </div>
-                    </button>
-                  </div>
-
-                  {/* Alt Kategoriler */}
-                  {hasSubCategories && isExpanded && (
-                    <div className="ml-6 space-y-1">
-                      {subCategories.map((subCat) => {
-                        const subProductCount = products.filter(p => p.categoryId === subCat.id).length;
-                        return (
-                          <button
-                            key={subCat.id}
-                            onClick={() => {
-                              playMenuSound();
-                              setSelectedCategoryId(subCat.id);
-                              setActiveView("products");
-                            }}
-                            className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${selectedCategoryId === subCat.id
-                              ? "bg-gradient-to-r from-violet-500 to-violet-600 text-white shadow-md"
-                              : "hover:bg-violet-50 dark:hover:bg-violet-950/30 hover:border-violet-200 dark:hover:border-violet-800 border border-transparent hover:shadow-[0_0_15px_rgba(139,92,246,0.3)] dark:hover:shadow-[0_0_15px_rgba(167,139,250,0.4)]"
-                              }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm">→ {subCat.name}</span>
-                              <Badge variant={selectedCategoryId === subCat.id ? "secondary" : "outline"} className="text-xs">{subProductCount}</Badge>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            <div className="border-t pt-2 mt-4" />
-
-            {/* Satış & Raporlar */}
-            <button
-              onClick={() => {
-                playMenuSound();
-                setActiveView("salesManagement");
-              }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "salesManagement"
-                ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md"
-                : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent hover:shadow-[0_0_15px_rgba(124,58,237,0.3)] dark:hover:shadow-[0_0_15px_rgba(147,51,234,0.4)]"
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4" />
-                <span>Satış & Raporlar</span>
-              </div>
-            </button>
-
-            {/* Kategori Yönetimi */}
-            <button
-              onClick={() => setCategoryManagementOpen(true)}
-              className="w-full text-left px-3 py-2 rounded-lg transition-all duration-300 hover:bg-slate-100 dark:hover:bg-slate-900/30 hover:border-slate-300 dark:hover:border-slate-700 border border-transparent hover:shadow-[0_0_15px_rgba(148,163,184,0.3)] dark:hover:shadow-[0_0_15px_rgba(148,163,184,0.4)]"
-            >
-              <div className="flex items-center gap-2">
-                <Settings className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                <span className="text-slate-700 dark:text-slate-300">Kategori Yönetimi</span>
-              </div>
-            </button>
-
-            {/* Tamir Kayıtları */}
-            <button
-              onClick={() => {
-                playMenuSound();
-                setActiveView("repairs");
-              }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "repairs"
-                ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md"
-                : "hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-200 dark:hover:border-orange-800 border border-transparent hover:shadow-[0_0_15px_rgba(249,115,22,0.3)] dark:hover:shadow-[0_0_15px_rgba(251,146,60,0.4)]"
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <Wrench className="w-4 h-4" />
-                <span>Tamir Kayıtları</span>
-                <Badge variant={activeView === "repairs" ? "secondary" : "outline"} className="ml-auto">{repairs.length}</Badge>
-              </div>
-            </button>
-
-            {/* Telefon Satışları */}
-            <button
-              onClick={() => {
-                playMenuSound();
-                setActiveView("phoneSales");
-              }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "phoneSales"
-                ? "bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-md"
-                : "hover:bg-purple-50 dark:hover:bg-purple-950/30 hover:border-purple-200 dark:hover:border-purple-800 border border-transparent hover:shadow-[0_0_15px_rgba(168,85,247,0.3)] dark:hover:shadow-[0_0_15px_rgba(192,132,252,0.4)]"
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <Smartphone className="w-4 h-4" />
-                <span>Telefon Satışları</span>
-                <Badge variant={activeView === "phoneSales" ? "secondary" : "outline"} className="ml-auto">{phoneSales.length}</Badge>
-              </div>
-            </button>
-
-            {/* Cariler */}
-            <button
-              onClick={() => {
-                playMenuSound();
-                setActiveView("caris");
-              }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "caris"
-                ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-md"
-                : "hover:bg-pink-50 dark:hover:bg-pink-950/30 hover:border-pink-200 dark:hover:border-pink-800 border border-transparent hover:shadow-[0_0_15px_rgba(236,72,153,0.3)] dark:hover:shadow-[0_0_15px_rgba(244,114,182,0.4)]"
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                <span>Cariler</span>
-              </div>
-            </button>
-
-            {/* Hesap Makinesi */}
-            <button
-              onClick={() => {
-                playMenuSound();
-                setActiveView("calculator");
-              }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "calculator"
-                ? "bg-gradient-to-r from-green-500 to-green-600 text-white shadow-md"
-                : "hover:bg-green-50 dark:hover:bg-green-950/30 hover:border-green-200 dark:hover:border-green-800 border border-transparent hover:shadow-[0_0_15px_rgba(34,197,94,0.3)] dark:hover:shadow-[0_0_15px_rgba(74,222,128,0.4)]"
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <Calculator className="w-4 h-4" />
-                <span>Hesap Makinesi</span>
-              </div>
-            </button>
-
-            {/* İstek & Siparişler */}
-            <button
-              onClick={() => {
-                playMenuSound();
-                setActiveView("requests");
-              }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "requests"
-                ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md"
-                : "hover:bg-blue-50 dark:hover:bg-blue-950/30 hover:border-blue-200 dark:hover:border-blue-800 border border-transparent hover:shadow-[0_0_15px_rgba(59,130,246,0.3)] dark:hover:shadow-[0_0_15px_rgba(96,165,250,0.4)]"
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <ClipboardList className="w-4 h-4" />
-                <span>İstek & Siparişler</span>
-              </div>
-            </button>
-
-            {/* Giderler */}
-            <button
-              onClick={() => {
-                playMenuSound();
-                setActiveView("expenses");
-              }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "expenses"
-                ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md"
-                : "hover:bg-orange-50 dark:hover:bg-orange-950/30 hover:border-orange-200 dark:hover:border-orange-800 border border-transparent hover:shadow-[0_0_15px_rgba(249,115,22,0.3)] dark:hover:shadow-[0_0_15px_rgba(251,146,60,0.4)]"
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <Receipt className="w-4 h-4" />
-                <span>Giderler</span>
-              </div>
-            </button>
-
-            {/* Satış Analizi */}
-            <button
-              onClick={() => {
-                playMenuSound();
-                setActiveView("salesAnalytics");
-              }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "salesAnalytics"
-                ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md"
-                : "hover:bg-indigo-50 dark:hover:bg-indigo-950/30 hover:border-indigo-200 dark:hover:border-indigo-800 border border-transparent hover:shadow-[0_0_15px_rgba(99,102,241,0.3)] dark:hover:shadow-[0_0_15px_rgba(129,140,248,0.4)]"
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                <span>Satış Analizi</span>
-              </div>
-            </button>
-
-            {/* Müşteri Profilleri */}
-            <button
-              onClick={() => {
-                playMenuSound();
-                setActiveView("customers");
-              }}
-              className={`w-full text-left px-3 py-2 rounded-lg transition-all duration-300 ${activeView === "customers"
-                ? "bg-gradient-to-r from-pink-500 to-rose-600 text-white shadow-md"
-                : "hover:bg-pink-50 dark:hover:bg-pink-950/30 hover:border-pink-200 dark:hover:border-pink-800 border border-transparent hover:shadow-[0_0_15px_rgba(236,72,153,0.3)] dark:hover:shadow-[0_0_15px_rgba(244,114,182,0.4)]"
-                }`}
-            >
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                <span>Müşteri Profilleri</span>
-              </div>
-            </button>
-          </div>
-        </aside>
-
-        {/* Ana İçerik */}
-        <main className="flex-1 p-6">
-          <AnimatePresence mode="wait">
-            {activeView === "products" ? (
-              <motion.div
-                key="products"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="space-y-6"
-              >
-                {/* Quick Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/50 border-blue-200 dark:border-blue-800">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-blue-700 dark:text-blue-300">Toplam Ürün</p>
-                          <p className="text-2xl font-semibold text-blue-900 dark:text-blue-100">{products.length}</p>
-                        </div>
-                        <Package className="w-8 h-8 text-blue-500" />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950 dark:to-green-900/50 border-green-200 dark:border-green-800">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <p className="text-sm text-green-700 dark:text-green-300 mb-1">Stok Değeri (Alış)</p>
-                          <p className="text-2xl font-semibold text-green-900 dark:text-green-100">{formatPrice(totalInventoryValue)}</p>
-                        </div>
-                        <div className="flex flex-col gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setStockValueDialogOpen(true)}
-                            className="bg-green-200/50 hover:bg-green-300/50 dark:bg-green-800/50 dark:hover:bg-green-700/50"
-                          >
-                            <Eye className="w-5 h-5 text-green-700 dark:text-green-300" />
-                          </Button>
-                          <BarChart3 className="w-8 h-8 text-green-500" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card
-                    className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950 dark:to-orange-900/50 border-orange-200 dark:border-orange-800 cursor-pointer hover:shadow-lg transition-all"
-                    onClick={() => {
-                      setSortBy("stock");
-                      setSelectedCategoryId(null);
-                      setActiveView("products");
-                      toast.info("Ürünler stok miktarına göre sıralandı");
-                    }}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-orange-700 dark:text-orange-300">Düşük Stok</p>
-                          <p className="text-2xl font-semibold text-orange-900 dark:text-orange-100">{lowStockProducts.length}</p>
-                        </div>
-                        <AlertTriangle className="w-8 h-8 text-orange-500" />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950 dark:to-purple-900/50 border-purple-200 dark:border-purple-800">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-purple-700 dark:text-purple-300">Güncel Dolar Kuru</p>
-                          <p className="text-2xl font-semibold text-purple-900 dark:text-purple-100">
-                            {usdRate > 0 ? `₺${usdRate.toFixed(2)}` : "Yükleniyor..."}
-                          </p>
-                          {usdRate > 0 && (
-                            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-                              $1 USD = ₺{usdRate.toFixed(2)} TRY
-                            </p>
-                          )}
-                        </div>
-                        <DollarSign className="w-8 h-8 text-purple-500" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Kasa Durumu Widget */}
-                <CashRegisterWidget
-                  sales={sales}
-                  repairs={repairs}
-                  phoneSales={phoneSales}
-                  formatPrice={formatPrice}
-                />
-
-                {/* Search and Sort */}
-                <div className="flex gap-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Ürün veya barkod ara..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
+                  {/* Search and Quick Filters */}
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 backdrop-blur-sm shadow-sm transition-all duration-300">
+                    <StokFiltre
+                      searchQuery={searchQuery}
+                      onSearchChange={setSearchQuery}
+                      selectedCategoryId={selectedCategoryId}
+                      onCategoryChange={setSelectedCategoryId}
+                      categories={categories}
                     />
-                  </div>
-                  <Button
-                    variant={sortBy === "name" ? "default" : "outline"}
-                    onClick={() => setSortBy("name")}
-                    className="gap-2"
-                  >
-                    <ArrowUpDown className="w-4 h-4" />
-                    İsme Göre
-                  </Button>
-                  <Button
-                    variant={sortBy === "price" ? "default" : "outline"}
-                    onClick={() => setSortBy("price")}
-                    className="gap-2"
-                  >
-                    <ArrowUpDown className="w-4 h-4" />
-                    Fiyata Göre
-                  </Button>
-                  <Button
-                    variant={sortBy === "stock" ? "default" : "outline"}
-                    onClick={() => setSortBy("stock")}
-                    className="gap-2"
-                  >
-                    <ArrowUpDown className="w-4 h-4" />
-                    Stoğa Göre
-                  </Button>
-                </div>
 
-                {/* Products Table */}
-                <Card className="bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-900 dark:to-blue-950/30">
-                  <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
-                    <div className="flex items-center justify-between">
-                      <CardTitle>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" onClick={() => setCategoryDialogOpen(true)} className="h-10 rounded-lg border-blue-200 dark:border-blue-900 shadow-sm">
+                        <FolderTree className="w-4 h-4 mr-2 text-blue-500" />
+                        Kategori Ekle
+                      </Button>
+                      <Button onClick={() => setProductDialogOpen(true)} className="h-10 rounded-lg bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 shadow-lg px-6">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Ürün Ekle
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Products Table */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between px-2">
+                      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <Package className="w-5 h-5 text-blue-500" />
                         {selectedCategoryId
-                          ? `${getCategoryName(selectedCategoryId)} - Ürünler (${filteredProducts.length})`
-                          : `Tüm Ürünler (${filteredProducts.length})`
+                          ? `${getCategoryName(selectedCategoryId)} - Ürünler`
+                          : "Tüm Ürün Listesi"
                         }
-                      </CardTitle>
+                        <span className="ml-2 text-xs font-medium px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full border border-slate-200 dark:border-slate-700">
+                          {filteredProducts.length} adet
+                        </span>
+                      </h3>
+
                       <div className="flex gap-2">
+                        <Button onClick={handleExportToExcel} variant="outline" size="sm" className="h-9 rounded-lg px-4 border-slate-200 dark:border-slate-800">
+                          <Download className="w-4 h-4 mr-2 text-orange-500" />
+                          Excel İndir
+                        </Button>
                         {selectedProducts.size > 0 && (
                           <Button
                             variant="destructive"
                             size="sm"
                             onClick={handleBulkDelete}
+                            className="h-9 px-4 rounded-lg shadow-lg shadow-red-500/20"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Seçili Sil ({selectedProducts.size})
                           </Button>
                         )}
-                        {selectedCategoryId && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              if (window.confirm("Bu kategoriyi silmek istediğinize emin misiniz?")) {
-                                handleDeleteCategory(selectedCategoryId);
-                                setSelectedCategoryId(null);
-                              }
-                            }}
-                          >
-                            <Trash2 className="w-4 h-4 text-destructive" />
-                          </Button>
-                        )}
                       </div>
                     </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b bg-gradient-to-r from-blue-100/50 to-purple-100/50 dark:from-blue-900/30 dark:to-purple-900/30">
-                            <th className="text-center p-3 w-12">
-                              <Checkbox
-                                checked={selectedProducts.size === filteredProducts.length && filteredProducts.length > 0}
-                                onCheckedChange={toggleAllProducts}
-                              />
-                            </th>
-                            <th className="text-left p-3">Ürün Adı</th>
-                            <th className="text-left p-3">Kategori</th>
-                            <th className="text-center p-3">Stok</th>
-                            <th className="text-right p-3">Alış</th>
-                            <th className="text-right p-3">Satış</th>
-                            <th className="text-right p-3">Kâr</th>
-                            <th className="text-center p-3">İşlemler</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredProducts.map((product, index) => {
-                            const purchasePrice = product.purchasePrice || 0;
-                            const salePrice = product.salePrice || 0;
-                            const profit = salePrice - purchasePrice;
-                            const margin = salePrice > 0 ? (profit / salePrice * 100).toFixed(1) : "0";
-                            const isLowStock = product.stock <= product.minStock;
 
-                            // Alternating row colors or stock-based gradient
-                            const rowColor = sortBy === "stock"
-                              ? getStockColor(product.stock)
-                              : (index % 2 === 0
-                                ? "bg-white/50 dark:bg-gray-900/50"
-                                : "bg-blue-50/30 dark:bg-blue-950/20");
-
-                            return (
-                              <tr
-                                key={product.id}
-                                className={`border-b ${rowColor} hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition-all duration-300 cursor-pointer hover:shadow-[0_0_20px_rgba(168,85,247,0.25)] dark:hover:shadow-[0_0_20px_rgba(192,132,252,0.35)]`}
-                                onClick={(e) => {
-                                  // Don't open detail dialog if clicking on checkbox or buttons
-                                  if (!(e.target as HTMLElement).closest('input, button')) {
-                                    setSelectedProductForDetail(product);
-                                    setProductDetailOpen(true);
-                                  }
-                                }}
-                              >
-                                <td className="p-3 text-center" onClick={(e) => e.stopPropagation()}>
-                                  <Checkbox
-                                    checked={selectedProducts.has(product.id)}
-                                    onCheckedChange={() => toggleProductSelection(product.id)}
-                                  />
-                                </td>
-                                <td className="p-3">
-                                  <div>
-                                    <p className="font-medium">{product.name}</p>
-                                    {product.barcode && (
-                                      <p className="text-xs text-muted-foreground">{product.barcode}</p>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="p-3 text-sm">{getCategoryName(product.categoryId)}</td>
-                                <td className="p-3 text-center">
-                                  <Badge variant={getStockBadgeColor(product.stock, isLowStock)}>
-                                    {product.stock}
-                                  </Badge>
-                                </td>
-                                <td className="text-right p-3">{formatPrice(purchasePrice)}</td>
-                                <td className="text-right p-3 font-medium">{formatPrice(salePrice)}</td>
-                                <td className="text-right p-3">
-                                  <div className="text-green-600 dark:text-green-400">
-                                    {formatPrice(profit)}
-                                    <span className="text-xs ml-1">(%{margin})</span>
-                                  </div>
-                                </td>
-                                <td className="p-3" onClick={(e) => e.stopPropagation()}>
-                                  <div className="flex justify-center gap-1">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => {
-                                        setEditingProduct(product);
-                                        setProductDialogOpen(true);
-                                      }}
-                                    >
-                                      <Edit className="w-4 h-4" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleDeleteProduct(product.id)}
-                                    >
-                                      <Trash2 className="w-4 h-4 text-destructive" />
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                      {filteredProducts.length === 0 && (
-                        <div className="text-center py-8 text-muted-foreground">
-                          Ürün bulunamadı
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ) : activeView === "salesManagement" ? (
-              // Satış & Raporlar Görünümü
-              <motion.div
-                key="salesManagement"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="space-y-6"
-              >
-                <div className="flex justify-between items-center">
-                  <h2 className="text-2xl font-bold">Satış Raporları</h2>
-                  <div className="flex gap-2">
-                    <Button
-                      variant={reportPeriod === "daily" ? "default" : "outline"}
-                      onClick={() => setReportPeriod("daily")}
-                    >
-                      Günlük
-                    </Button>
-                    <Button
-                      variant={reportPeriod === "weekly" ? "default" : "outline"}
-                      onClick={() => setReportPeriod("weekly")}
-                    >
-                      Haftalık
-                    </Button>
-                    <Button
-                      variant={reportPeriod === "monthly" ? "default" : "outline"}
-                      onClick={() => setReportPeriod("monthly")}
-                    >
-                      Aylık
-                    </Button>
-                    <Button
-                      variant={reportPeriod === "all" ? "default" : "outline"}
-                      onClick={() => setReportPeriod("all")}
-                    >
-                      Tümü
-                    </Button>
+                    <StokTablosu
+                      products={filteredProducts}
+                      categories={categories}
+                      selectedProducts={selectedProducts}
+                      onToggleSelection={toggleProductSelection}
+                      onToggleAll={toggleAllProducts}
+                      onEdit={(p) => {
+                        setEditingProduct(p);
+                        setProductDialogOpen(true);
+                      }}
+                      onDelete={handleDeleteProduct}
+                      onViewDetail={(p) => {
+                        setSelectedProductForDetail(p);
+                        setProductDetailOpen(true);
+                      }}
+                      getCategoryName={getCategoryName}
+                      formatPrice={formatPrice}
+                    />
                   </div>
-                </div>
+                </motion.div>
+              ) : activeView === "salesManagement" ? (
+                // Satış & Raporlar Görünümü
+                <motion.div
+                  key="salesManagement"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="space-y-6"
+                >
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-bold">Satış Raporları</h2>
+                    <div className="flex gap-2">
+                      <Button
+                        variant={reportPeriod === "daily" ? "default" : "outline"}
+                        onClick={() => setReportPeriod("daily")}
+                      >
+                        Günlük
+                      </Button>
+                      <Button
+                        variant={reportPeriod === "weekly" ? "default" : "outline"}
+                        onClick={() => setReportPeriod("weekly")}
+                      >
+                        Haftalık
+                      </Button>
+                      <Button
+                        variant={reportPeriod === "monthly" ? "default" : "outline"}
+                        onClick={() => setReportPeriod("monthly")}
+                      >
+                        Aylık
+                      </Button>
+                      <Button
+                        variant={reportPeriod === "all" ? "default" : "outline"}
+                        onClick={() => setReportPeriod("all")}
+                      >
+                        Tümü
+                      </Button>
+                    </div>
+                  </div>
 
-                <SalesManagementView
-                  sales={sales}
-                  repairs={repairs}
-                  phoneSales={phoneSales}
-                  customers={customers}
-                  customerTransactions={customerTransactions}
-                  onDeleteSale={handleDeleteSale}
-                  onUpdateSale={handleUpdateSale}
-                  onUpdateRepair={handleUpdateRepair}
-                  onDeletePhoneSale={handleDeletePhoneSale}
-                  currency={currency}
-                  usdRate={usdRate}
-                  formatPrice={formatPrice}
-                />
-              </motion.div>
-            ) : activeView === "repairs" ? (
-              // Tamirler Görünümü
-              <motion.div
-                key="repairs"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="space-y-6"
-              >
-                <h2 className="text-2xl font-bold">Tamir Kayıtları</h2>
-                <RepairsView
-                  repairs={repairs}
-                  onUpdateStatus={handleUpdateRepairStatus}
-                  onUpdateRepair={handleUpdateRepair}
-                  currency={currency}
-                  usdRate={usdRate}
-                  formatPrice={formatPrice}
-                />
-              </motion.div>
-            ) : activeView === "phoneSales" ? (
-              // Telefon Satışları Görünümü
-              <motion.div
-                key="phoneSales"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="space-y-6"
-              >
-                <h2 className="text-2xl font-bold">Telefon Satışları</h2>
-                <PhoneSalesView
-                  phoneSales={phoneSales}
-                  onDeletePhoneSale={handleDeletePhoneSale}
-                />
-              </motion.div>
-            ) : activeView === "caris" ? (
-              // Cariler Görünümü
-              <motion.div
-                key="caris"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="space-y-6"
-              >
-                <h2 className="text-2xl font-bold">Cariler</h2>
-                <CariView
-                  customers={customers}
-                  onAddCustomer={handleAddCustomer}
-                  onUpdateCustomer={handleUpdateCustomer}
-                  onDeleteCustomer={handleDeleteCustomer}
-                  onAddTransaction={handleAddCustomerTransaction}
-                />
-              </motion.div>
-            ) : activeView === "calculator" ? (
-              // Hesap Makinesi Görünümü
-              <motion.div
-                key="calculator"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="space-y-6"
-              >
-                <h2 className="text-2xl font-bold">Hesap Makinesi</h2>
-                <CalculatorView usdRate={usdRate} />
+                  <SalesManagementView
+                    sales={sales}
+                    repairs={repairs}
+                    phoneSales={phoneSales}
+                    customers={customers}
+                    customerTransactions={customerTransactions}
+                    onDeleteSale={handleDeleteSale}
+                    onUpdateSale={handleUpdateSale}
+                    onUpdateRepair={handleUpdateRepair}
+                    onDeletePhoneSale={handleDeletePhoneSale}
+                    currency={currency}
+                    usdRate={usdRate}
+                    formatPrice={formatPrice}
+                  />
+                </motion.div>
+              ) : activeView === "repairs" ? (
+                // Tamirler Görünümü
+                <motion.div
+                  key="repairs"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="space-y-6"
+                >
+                  <h2 className="text-2xl font-bold">Tamir Kayıtları</h2>
+                  <RepairsView
+                    repairs={repairs}
+                    onUpdateStatus={handleUpdateRepairStatus}
+                    onUpdateRepair={handleUpdateRepair}
+                    currency={currency}
+                    usdRate={usdRate}
+                    formatPrice={formatPrice}
+                  />
+                </motion.div>
+              ) : activeView === "phoneSales" ? (
+                // Telefon Satışları Görünümü
+                <motion.div
+                  key="phoneSales"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="space-y-6"
+                >
+                  <h2 className="text-2xl font-bold">Telefon Satışları</h2>
+                  <PhoneSalesView
+                    phoneSales={phoneSales}
+                    onDeletePhoneSale={handleDeletePhoneSale}
+                  />
+                </motion.div>
+              ) : activeView === "caris" ? (
+                // Cariler Görünümü
+                <motion.div
+                  key="caris"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="space-y-6"
+                >
+                  <h2 className="text-2xl font-bold">Cariler</h2>
+                  <CariView
+                    customers={customers}
+                    onAddCustomer={handleAddCustomer}
+                    onUpdateCustomer={handleUpdateCustomer}
+                    onDeleteCustomer={handleDeleteCustomer}
+                    onAddTransaction={handleAddCustomerTransaction}
+                  />
+                </motion.div>
+              ) : activeView === "calculator" ? (
+                // Hesap Makinesi Görünümü
+                <motion.div
+                  key="calculator"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="space-y-6"
+                >
+                  <h2 className="text-2xl font-bold">Hesap Makinesi</h2>
+                  <CalculatorView usdRate={usdRate} />
 
-                {/* WhatsApp Bot - Professional QR Code Edition */}
-                <div className="mt-8">
-                  <WhatsAppBotPro />
-                </div>
-              </motion.div>
-            ) : activeView === "requests" ? (
-              // İstek & Siparişler Görünümü
-              <motion.div
-                key="requests"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="space-y-6"
-              >
-                <h2 className="text-2xl font-bold">İstek & Siparişler</h2>
-                <CustomerRequestsView />
-              </motion.div>
-            ) : activeView === "expenses" ? (
-              // Giderler Görünümü
-              <motion.div
-                key="expenses"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="space-y-6"
-              >
-                <h2 className="text-2xl font-bold">Giderler</h2>
-                <ExpensesView
-                  totalProfit={
-                    sales.reduce((sum, s) => sum + s.totalProfit, 0) +
-                    repairs.filter(r => r.status === "completed" || r.status === "delivered")
-                      .reduce((sum, r) => sum + (r.repairCost - r.partsCost), 0) +
-                    phoneSales.reduce((sum, ps) => sum + ps.profit, 0)
-                  }
-                />
-              </motion.div>
-            ) : activeView === "salesAnalytics" ? (
-              // Satış Analizi Görünümü
-              <motion.div
-                key="salesAnalytics"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-              >
-                <SalesAnalyticsView
-                  sales={sales}
-                  products={products}
-                  categories={categories}
-                  formatPrice={formatPrice}
-                />
-              </motion.div>
-            ) : activeView === "customers" ? (
-              // Müşteri Profilleri Görünümü
-              <motion.div
-                key="customers"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-              >
-                <CustomerProfileView
-                  sales={sales}
-                  repairs={repairs}
-                  phoneSales={phoneSales}
-                  formatPrice={formatPrice}
-                  onUpdateSale={handleUpdateSale}
-                  onUpdateRepair={handleUpdateRepair}
-                  onUpdatePhoneSale={handleUpdatePhoneSale}
-                />
-              </motion.div>
-            ) : (
-              // Satış Paneli Görünümü
-              <motion.div
-                key="salesPanel"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="space-y-6"
-              >
-                <SalesPanelView
-                  sales={sales}
-                  repairs={repairs}
-                  categories={categories}
-                  onDeleteSale={handleDeleteSale}
-                  onUpdateRepair={handleUpdateRepair}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </main>
-      </div>
+                  {/* WhatsApp Bot - Professional QR Code Edition */}
+                  <div className="mt-8">
+                    <WhatsAppBotPro />
+                  </div>
+                </motion.div>
+              ) : activeView === "requests" ? (
+                // İstek & Siparişler Görünümü
+                <motion.div
+                  key="requests"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="space-y-6"
+                >
+                  <h2 className="text-2xl font-bold">İstek & Siparişler</h2>
+                  <CustomerRequestsView />
+                </motion.div>
+              ) : activeView === "expenses" ? (
+                // Giderler Görünümü
+                <motion.div
+                  key="expenses"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="space-y-6"
+                >
+                  <h2 className="text-2xl font-bold">Giderler</h2>
+                  <ExpensesView
+                    totalProfit={
+                      sales.reduce((sum, s) => sum + s.totalProfit, 0) +
+                      repairs.filter(r => r.status === "completed" || r.status === "delivered")
+                        .reduce((sum, r) => sum + (r.repairCost - r.partsCost), 0) +
+                      phoneSales.reduce((sum, ps) => sum + ps.profit, 0)
+                    }
+                  />
+                </motion.div>
+              ) : activeView === "salesAnalytics" ? (
+                // Satış Analizi Görünümü
+                <motion.div
+                  key="salesAnalytics"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                >
+                  <SalesAnalyticsView
+                    sales={sales}
+                    products={products}
+                    categories={categories}
+                    formatPrice={formatPrice}
+                  />
+                </motion.div>
+              ) : activeView === "customers" ? (
+                // Müşteri Profilleri Görünümü
+                <motion.div
+                  key="customers"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                >
+                  <CustomerProfileView
+                    sales={sales}
+                    repairs={repairs}
+                    phoneSales={phoneSales}
+                    formatPrice={formatPrice}
+                    onUpdateSale={handleUpdateSale}
+                    onUpdateRepair={handleUpdateRepair}
+                    onUpdatePhoneSale={handleUpdatePhoneSale}
+                  />
+                </motion.div>
+              ) : (
+                // Satış Paneli Görünümü
+                <motion.div
+                  key="salesPanel"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  className="space-y-6"
+                >
+                  <SalesPanelView
+                    sales={sales}
+                    repairs={repairs}
+                    categories={categories}
+                    onDeleteSale={handleDeleteSale}
+                    onUpdateRepair={handleUpdateRepair}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </main>
+        </SidebarInset>
+      </SidebarProvider>
 
       {/* Dialogs */}
       <CategoryDialog
@@ -2017,6 +1587,14 @@ function App() {
         open={productDetailOpen}
         onOpenChange={setProductDetailOpen}
         product={selectedProductForDetail}
+        categories={categories}
+        formatPrice={formatPrice}
+      />
+      {/* Stok Analiz Dialog */}
+      <StokAnalizDialog
+        open={stokAnalizOpen}
+        onOpenChange={setStokAnalizOpen}
+        products={products}
         categories={categories}
         formatPrice={formatPrice}
       />
