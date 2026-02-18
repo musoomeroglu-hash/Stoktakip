@@ -99,7 +99,7 @@ export function AppSidebar({
     onOpenCategoryManagement
 }: AppSidebarProps) {
     return (
-        <Sidebar collapsible="icon" className="border-r border-slate-200 dark:border-slate-800">
+        <Sidebar collapsible="icon" className="max-md:hidden border-r border-slate-200 dark:border-slate-800">
             <SidebarHeader className="p-4">
                 <div className="flex items-center gap-3 px-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-md shadow-blue-500/20">

@@ -41,6 +41,12 @@ import {
   SidebarInset,
 } from "./components/ui/sidebar";
 import { AppSidebar } from "./components/AppSidebar";
+import { MobileTabBar } from "./components/MobileTabBar";
+import {
+  isBiometricAvailable,
+  isBiometricRegistered,
+  registerBiometric,
+} from "@/lib/webauthn";
 import { IstatistikKartlari } from "./components/IstatistikKartlari";
 import { StokTablosu } from "./components/StokTablosu";
 import { StokFiltre } from "./components/StokFiltre";
@@ -251,6 +257,25 @@ function App() {
 
     return () => clearTimeout(forcedTimeout);
   }, []); // Run only once on mount
+
+  // Biometric registration offer after login
+  useEffect(() => {
+    const handlePostLoginBiometricOffer = async () => {
+      if (isAuthenticated && isBiometricAvailable() && !isBiometricRegistered()) {
+        // Wait a bit after login to show the offer
+        setTimeout(async () => {
+          const wantBiometric = window.confirm(
+            'Gelecek sefer Face ID ile hızlı giriş yapmak ister misiniz?'
+          );
+          if (wantBiometric) {
+            await registerBiometric('technocep'); // Hardcoded user for this app
+          }
+        }, 2000);
+      }
+    };
+
+    handlePostLoginBiometricOffer();
+  }, [isAuthenticated]);
 
   useEffect(() => {
     // Update USD rate every hour
@@ -1252,7 +1277,7 @@ function App() {
             </div>
           </header>
 
-          <main className="flex-1 p-6 lg:p-8">
+          <main className="flex-1 p-4 lg:p-8 pb-24 md:pb-8">
             <AnimatePresence mode="wait">
               {activeView === "products" ? (
                 <motion.div
@@ -1584,6 +1609,7 @@ function App() {
             </AnimatePresence>
           </main>
         </SidebarInset>
+        <MobileTabBar activeView={activeView} setActiveView={setActiveView} />
       </SidebarProvider>
 
       {/* Dialogs */}

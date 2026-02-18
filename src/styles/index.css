@@ -2,7 +2,18 @@
 @import './tailwind.css';
 @import './theme.css';
 
+@layer base {
+  input, select, textarea {
+    @apply text-base md:text-sm; /* iOS zoom prevent */
+  }
+
+  button, a, input[type="button"], input[type="submit"] {
+    @apply min-h-[44px]; /* iOS touch target standard */
+  }
+}
+
 @layer utilities {
+
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }

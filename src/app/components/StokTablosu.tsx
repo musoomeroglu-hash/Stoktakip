@@ -186,13 +186,14 @@ export function StokTablosu({
 
     return (
         <div className="space-y-4">
-            <div className="rounded-xl border border-slate-200/60 dark:border-slate-800 bg-white/40 dark:bg-slate-950/50 overflow-hidden shadow-sm">
+            {/* Desktop Table View */}
+            <div className="hidden md:block rounded-xl border border-slate-200/60 dark:border-slate-800 bg-white/40 dark:bg-slate-950/50 overflow-hidden shadow-sm">
                 <Table>
                     <TableHeader className="bg-slate-50/40 dark:bg-slate-900/50">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id}>
                                 {headerGroup.headers.map((header) => (
-                                    <TableHead key={header.id} className="h-12 text-slate-900 dark:text-slate-100 font-semibold">
+                                    <TableHead key={header.id} className="h-12 text-slate-900 dark:text-slate-100 font-semibold text-center whitespace-nowrap px-4">
                                         {header.isPlaceholder
                                             ? null
                                             : flexRender(
@@ -213,7 +214,7 @@ export function StokTablosu({
                                     className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors"
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id} className="py-3">
+                                        <TableCell key={cell.id} className="py-3 px-4 text-center">
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </TableCell>
                                     ))}
@@ -229,6 +230,92 @@ export function StokTablosu({
                     </TableBody>
                 </Table>
             </div>
+
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-3">
+                {table.getRowModel().rows?.length ? (
+                    table.getRowModel().rows.map((row) => {
+                        const product = row.original;
+                        return (
+                            <div
+                                key={row.id}
+                                className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800 space-y-3"
+                            >
+                                <div className="flex justify-between items-start">
+                                    <div className="flex gap-3">
+                                        <Checkbox
+                                            checked={selectedProducts.has(product.id)}
+                                            onCheckedChange={() => onToggleSelection(product.id)}
+                                            className="mt-1"
+                                        />
+                                        <div>
+                                            <h4 className="font-bold text-slate-900 dark:text-slate-100">
+                                                {product.name}
+                                            </h4>
+                                            <p className="text-xs text-slate-500">
+                                                {getCategoryName(product.categoryId)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className={isPrivacyMode ? "privacy-mode-blur" : ""}>
+                                        <StokBadge miktar={product.stock} minStok={product.minStock} />
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-between items-end border-t border-slate-100 dark:border-slate-800 pt-3">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Fiyat Bilgisi</p>
+                                        <div className="flex gap-3 items-center">
+                                            <div className={isPrivacyMode ? "privacy-mode-blur" : ""}>
+                                                <span className="text-[10px] text-slate-400 mr-1">Alış:</span>
+                                                <span className="text-xs font-mono">{formatPrice(product.purchasePrice)}</span>
+                                            </div>
+                                            <div className={isPrivacyMode ? "privacy-mode-blur" : ""}>
+                                                <span className="text-[10px] text-slate-400 mr-1">Satış:</span>
+                                                <span className="text-sm font-mono font-bold text-blue-600 tracking-tight">
+                                                    {formatPrice(product.salePrice)}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-9 w-9 text-blue-600 border-blue-100 hover:bg-blue-50"
+                                            onClick={() => onViewDetail(product)}
+                                        >
+                                            <Eye className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-9 w-9 text-amber-600 border-amber-100 hover:bg-amber-50"
+                                            onClick={() => onEdit(product)}
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-9 w-9 text-red-600 border-red-100 hover:bg-red-50"
+                                            onClick={() => onDelete(product.id)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                ) : (
+                    <div className="text-center py-8 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 text-slate-500">
+                        Ürün bulunamadı.
+                    </div>
+                )}
+            </div>
+
 
             <div className="flex items-center justify-between px-2">
                 <div className="text-sm text-slate-500 dark:text-slate-400">

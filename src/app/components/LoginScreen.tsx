@@ -2,10 +2,15 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { toast } from "sonner";
+import {
+  isBiometricAvailable,
+  isBiometricRegistered,
+  authenticateWithBiometric,
+} from "@/lib/webauthn";
 import { Checkbox } from "./ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "./ui/card";
-import { Lock, User, Eye, EyeOff } from "lucide-react";
-import { toast } from "sonner";
+import { Lock, User, Eye, EyeOff, Smartphone } from "lucide-react";
 
 interface LoginScreenProps {
   onLogin: (rememberMe: boolean) => void;
@@ -14,13 +19,23 @@ interface LoginScreenProps {
 export function LoginScreen({ onLogin }: LoginScreenProps) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const handleFaceIDLogin = async () => {
+    const success = await authenticateWithBiometric();
+    if (success) {
+      toast.success("Face ID ile giriş başarılı! 🎉");
+      onLogin(rememberMe);
+    } else {
+      toast.error("Face ID doğrulaması başarısız oldu.");
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!username || !password) {
       toast.error("Lütfen kullanıcı adı ve şifre giriniz");
       return;
@@ -81,11 +96,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ 
+              transition={{
                 type: "spring",
                 stiffness: 260,
                 damping: 20,
-                delay: 0.1 
+                delay: 0.1
               }}
               className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg"
             >
@@ -102,7 +117,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Username */}
-              <motion.div 
+              <motion.div
                 className="space-y-2"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -126,7 +141,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               </motion.div>
 
               {/* Password */}
-              <motion.div 
+              <motion.div
                 className="space-y-2"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -161,7 +176,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               </motion.div>
 
               {/* Remember Me */}
-              <motion.div 
+              <motion.div
                 className="flex items-center space-x-2"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -180,6 +195,25 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                   Beni hatırla
                 </label>
               </motion.div>
+
+              {isBiometricAvailable() && isBiometricRegistered() && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.45 }}
+                >
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleFaceIDLogin}
+                    className="w-full h-12 text-base font-semibold border-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 gap-2"
+                    disabled={isLoading}
+                  >
+                    <Smartphone className="w-5 h-5 text-blue-600" />
+                    Face ID ile Giriş Yap
+                  </Button>
+                </motion.div>
+              )}
 
               {/* Submit Button */}
               <motion.div
