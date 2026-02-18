@@ -15,6 +15,7 @@ interface StokAnalizDialogProps {
     products: Product[];
     categories: Category[];
     formatPrice: (price: number) => string;
+    isPrivacyMode: boolean;
 }
 
 export function StokAnalizDialog({
@@ -22,7 +23,8 @@ export function StokAnalizDialog({
     onOpenChange,
     products,
     categories,
-    formatPrice
+    formatPrice,
+    isPrivacyMode,
 }: StokAnalizDialogProps) {
     // Toplam değerler
     const totalPurchase = products.reduce((sum, p) => sum + (p.stock * p.purchasePrice), 0);
@@ -73,16 +75,16 @@ export function StokAnalizDialog({
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-900/20 border border-blue-100/50 dark:border-blue-800/30">
                                 <p className="text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">Alış Fiyatı Toplamı</p>
-                                <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{formatPrice(totalPurchase)}</p>
+                                <p className={`text-lg font-bold text-blue-700 dark:text-blue-300 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(totalPurchase)}</p>
                             </div>
                             <div className="p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-900/20 border border-emerald-100/50 dark:border-emerald-800/30">
                                 <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">Satış Fiyatı Toplamı</p>
-                                <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{formatPrice(totalSales)}</p>
+                                <p className={`text-lg font-bold text-emerald-700 dark:text-emerald-300 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(totalSales)}</p>
                             </div>
                             <div className="p-4 rounded-2xl bg-purple-50/50 dark:bg-purple-900/20 border border-purple-100/50 dark:border-purple-800/30">
                                 <p className="text-xs font-medium text-purple-600 dark:text-purple-400 mb-1">Potansiyel Kâr</p>
                                 <div className="flex items-baseline gap-2">
-                                    <p className="text-lg font-bold text-purple-700 dark:text-purple-300">{formatPrice(totalProfit)}</p>
+                                    <p className={`text-lg font-bold text-purple-700 dark:text-purple-300 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(totalProfit)}</p>
                                     <span className="text-xs font-medium text-purple-500">%{profitMargin.toFixed(1)}</span>
                                 </div>
                             </div>
@@ -108,16 +110,16 @@ export function StokAnalizDialog({
                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-4">
                                             <div>
                                                 <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-0.5">Alış Değeri</p>
-                                                <p className="text-sm font-bold text-slate-900 dark:text-slate-100">{formatPrice(stat.purchase)}</p>
+                                                <p className={`text-sm font-bold text-slate-900 dark:text-slate-100 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(stat.purchase)}</p>
                                             </div>
                                             <div>
                                                 <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-0.5">Satış Değeri</p>
-                                                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{formatPrice(stat.sales)}</p>
+                                                <p className={`text-sm font-bold text-emerald-600 dark:text-emerald-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(stat.sales)}</p>
                                             </div>
                                             <div className="col-span-2 md:col-span-1">
                                                 <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 mb-0.5">Potansiyel Kâr</p>
                                                 <div className="flex items-center gap-2">
-                                                    <p className="text-sm font-bold text-purple-600 dark:text-purple-400">{formatPrice(stat.profit)}</p>
+                                                    <p className={`text-sm font-bold text-purple-600 dark:text-purple-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(stat.profit)}</p>
                                                     <span className="text-[10px] font-bold text-purple-500">%{stat.margin.toFixed(1)}</span>
                                                 </div>
                                             </div>

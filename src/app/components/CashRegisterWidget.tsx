@@ -1,23 +1,23 @@
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Banknote, CreditCard, Landmark, TrendingUp } from "lucide-react";
-import type { Sale, RepairRecord, PaymentMethod, PaymentDetails } from "../utils/api";
-import type { PhoneSale } from "./PhoneSaleDialog";
+import type { Sale, RepairRecord, PaymentMethod, PaymentDetails, PhoneSale } from "../utils/api";
 
 interface CashRegisterWidgetProps {
   sales: Sale[];
   repairs: RepairRecord[];
   phoneSales: PhoneSale[];
   formatPrice: (price: number) => string;
+  isPrivacyMode: boolean;
 }
 
-export function CashRegisterWidget({ sales, repairs, phoneSales, formatPrice }: CashRegisterWidgetProps) {
+export function CashRegisterWidget({ sales, repairs, phoneSales, formatPrice, isPrivacyMode }: CashRegisterWidgetProps) {
   // Calculate this month's transactions
   const now = new Date();
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  
+
   const thisMonthSales = sales.filter(s => new Date(s.date) >= thisMonthStart);
-  const thisMonthRepairs = repairs.filter(r => 
-    (r.status === "completed" || r.status === "delivered") && 
+  const thisMonthRepairs = repairs.filter(r =>
+    (r.status === "completed" || r.status === "delivered") &&
     new Date(r.createdAt) >= thisMonthStart
   );
   const thisMonthPhoneSales = phoneSales.filter(ps => new Date(ps.date) >= thisMonthStart);
@@ -26,7 +26,7 @@ export function CashRegisterWidget({ sales, repairs, phoneSales, formatPrice }: 
   const cashFromSales = thisMonthSales
     .filter(s => s.paymentMethod === "cash")
     .reduce((sum, s) => sum + s.totalPrice, 0);
-  
+
   const cashFromMixed = thisMonthSales
     .filter(s => s.paymentMethod === "mixed" && s.paymentDetails?.cash)
     .reduce((sum, s) => sum + (s.paymentDetails?.cash || 0), 0);
@@ -121,7 +121,7 @@ export function CashRegisterWidget({ sales, repairs, phoneSales, formatPrice }: 
               <Banknote className="w-4 h-4 text-green-600" />
               <span className="text-xs font-medium text-muted-foreground">Nakit</span>
             </div>
-            <p className="text-lg font-bold text-green-600">
+            <p className={`text-lg font-bold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
               {formatPrice(totalCash)}
             </p>
           </div>
@@ -132,7 +132,7 @@ export function CashRegisterWidget({ sales, repairs, phoneSales, formatPrice }: 
               <CreditCard className="w-4 h-4 text-blue-600" />
               <span className="text-xs font-medium text-muted-foreground">Kart</span>
             </div>
-            <p className="text-lg font-bold text-blue-600">
+            <p className={`text-lg font-bold text-blue-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
               {formatPrice(totalCard)}
             </p>
           </div>
@@ -143,7 +143,7 @@ export function CashRegisterWidget({ sales, repairs, phoneSales, formatPrice }: 
               <Landmark className="w-4 h-4 text-purple-600" />
               <span className="text-xs font-medium text-muted-foreground">Havale</span>
             </div>
-            <p className="text-lg font-bold text-purple-600">
+            <p className={`text-lg font-bold text-purple-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
               {formatPrice(totalTransfer)}
             </p>
           </div>
@@ -155,7 +155,7 @@ export function CashRegisterWidget({ sales, repairs, phoneSales, formatPrice }: 
             <span className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">
               Toplam Gelir
             </span>
-            <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+            <span className={`text-xl font-bold text-emerald-600 dark:text-emerald-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
               {formatPrice(totalRevenue)}
             </span>
           </div>

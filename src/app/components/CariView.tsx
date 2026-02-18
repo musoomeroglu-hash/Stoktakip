@@ -16,9 +16,10 @@ interface CariViewProps {
   onUpdateCustomer: (id: string, customer: Customer) => void;
   onDeleteCustomer: (id: string) => void;
   onAddTransaction: (customerId: string, type: "debt" | "credit" | "payment_received" | "payment_made", amount: number, description: string) => void;
+  isPrivacyMode: boolean;
 }
 
-export function CariView({ customers, onAddCustomer, onUpdateCustomer, onDeleteCustomer, onAddTransaction }: CariViewProps) {
+export function CariView({ customers, onAddCustomer, onUpdateCustomer, onDeleteCustomer, onAddTransaction, isPrivacyMode }: CariViewProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [transactionDialogOpen, setTransactionDialogOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -122,7 +123,7 @@ export function CariView({ customers, onAddCustomer, onUpdateCustomer, onDeleteC
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm text-red-700 dark:text-red-300">Toplam Borç</div>
-                <div className="text-3xl font-bold text-red-900 dark:text-red-100 mt-2">₺{totalDebt.toLocaleString('tr-TR')}</div>
+                <div className={`text-3xl font-bold text-red-900 dark:text-red-100 mt-2 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{totalDebt.toLocaleString('tr-TR')}</div>
                 <div className="text-xs text-red-600 dark:text-red-400 mt-1">Müşteriler bize borçlu</div>
               </div>
               <TrendingUp className="w-10 h-10 text-red-500" />
@@ -135,7 +136,7 @@ export function CariView({ customers, onAddCustomer, onUpdateCustomer, onDeleteC
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm text-green-700 dark:text-green-300">Toplam Alacak</div>
-                <div className="text-3xl font-bold text-green-900 dark:text-green-100 mt-2">₺{totalCredit.toLocaleString('tr-TR')}</div>
+                <div className={`text-3xl font-bold text-green-900 dark:text-green-100 mt-2 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{totalCredit.toLocaleString('tr-TR')}</div>
                 <div className="text-xs text-green-600 dark:text-green-400 mt-1">Biz müşterilere borçluyuz</div>
               </div>
               <TrendingDown className="w-10 h-10 text-green-500" />
@@ -148,7 +149,7 @@ export function CariView({ customers, onAddCustomer, onUpdateCustomer, onDeleteC
             <div className="flex items-center justify-between">
               <div>
                 <div className={`text-sm ${balance >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-orange-700 dark:text-orange-300'}`}>Net Durum</div>
-                <div className={`text-3xl font-bold mt-2 ${balance >= 0 ? 'text-blue-900 dark:text-blue-100' : 'text-orange-900 dark:text-orange-100'}`}>
+                <div className={`text-3xl font-bold mt-2 ${balance >= 0 ? 'text-blue-900 dark:text-blue-100' : 'text-orange-900 dark:text-orange-100'} ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                   ₺{Math.abs(balance).toLocaleString('tr-TR')}
                 </div>
                 <div className={`text-xs mt-1 ${balance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
@@ -191,8 +192,8 @@ export function CariView({ customers, onAddCustomer, onUpdateCustomer, onDeleteC
               <tbody>
                 {customers.map((customer, index) => {
                   const balance = customer.debt - customer.credit;
-                  const rowColor = index % 2 === 0 
-                    ? "bg-white/50 dark:bg-gray-900/50" 
+                  const rowColor = index % 2 === 0
+                    ? "bg-white/50 dark:bg-gray-900/50"
                     : "bg-indigo-50/30 dark:bg-indigo-950/20";
 
                   return (
@@ -220,17 +221,17 @@ export function CariView({ customers, onAddCustomer, onUpdateCustomer, onDeleteC
                         </div>
                       </td>
                       <td className="text-right p-3">
-                        <span className="text-red-600 dark:text-red-400 font-medium">
+                        <span className={`text-red-600 dark:text-red-400 font-medium ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                           ₺{customer.debt.toFixed(2)}
                         </span>
                       </td>
                       <td className="text-right p-3">
-                        <span className="text-green-600 dark:text-green-400 font-medium">
+                        <span className={`text-green-600 dark:text-green-400 font-medium ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                           ₺{customer.credit.toFixed(2)}
                         </span>
                       </td>
                       <td className="text-right p-3">
-                        <Badge variant={balance > 0 ? "destructive" : balance < 0 ? "default" : "secondary"}>
+                        <Badge variant={balance > 0 ? "destructive" : balance < 0 ? "default" : "secondary"} className={isPrivacyMode ? "privacy-mode-blur" : ""}>
                           {balance > 0 && '+'}₺{balance.toFixed(2)}
                         </Badge>
                       </td>

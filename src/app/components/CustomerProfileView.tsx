@@ -7,13 +7,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { 
-  User, 
-  Phone, 
-  Mail, 
-  Calendar, 
-  ShoppingBag, 
-  TrendingUp, 
+import {
+  User,
+  Phone,
+  Mail,
+  Calendar,
+  ShoppingBag,
+  TrendingUp,
   Plus,
   Edit,
   Trash2,
@@ -22,8 +22,7 @@ import {
   GitMerge
 } from "lucide-react";
 import { toast } from "sonner";
-import type { Sale, RepairRecord } from "../utils/api";
-import type { PhoneSale } from "./PhoneSaleDialog";
+import type { Sale, RepairRecord, PhoneSale } from "../utils/api";
 
 interface CustomerProfile {
   id: string;
@@ -43,16 +42,18 @@ interface CustomerProfileViewProps {
   onUpdateSale?: (id: string, sale: Sale) => void;
   onUpdateRepair?: (id: string, data: Partial<RepairRecord>) => void;
   onUpdatePhoneSale?: (id: string, phoneSale: PhoneSale) => void;
+  isPrivacyMode: boolean;
 }
 
-export function CustomerProfileView({ 
-  sales, 
-  repairs, 
-  phoneSales, 
+export function CustomerProfileView({
+  sales,
+  repairs,
+  phoneSales,
   formatPrice,
   onUpdateSale,
   onUpdateRepair,
-  onUpdatePhoneSale
+  onUpdatePhoneSale,
+  isPrivacyMode
 }: CustomerProfileViewProps) {
   const [customers, setCustomers] = useState<CustomerProfile[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerProfile | null>(null);
@@ -137,7 +138,7 @@ export function CustomerProfileView({
     const customerRepairs = repairs.filter(r => r.customerPhone === customerPhone);
     const customerPhoneSales = phoneSales.filter(ps => ps.customerPhone === customerPhone);
 
-    const totalRevenue = 
+    const totalRevenue =
       customerSales.reduce((sum, s) => sum + s.totalPrice, 0) +
       customerRepairs.reduce((sum, r) => sum + r.repairCost, 0) +
       customerPhoneSales.reduce((sum, ps) => sum + ps.salePrice, 0);
@@ -171,8 +172,8 @@ export function CustomerProfileView({
     }
 
     if (editingCustomer) {
-      setCustomers(customers.map(c => 
-        c.id === editingCustomer.id 
+      setCustomers(customers.map(c =>
+        c.id === editingCustomer.id
           ? { ...c, name, phone, email, notes }
           : c
       ));
@@ -320,7 +321,7 @@ export function CustomerProfileView({
           <h3 className="font-semibold text-lg">
             Müşteri Listesi ({sortedCustomers.length})
           </h3>
-          
+
           {sortedCustomers.length > 0 ? (
             <div className="space-y-2 max-h-[800px] overflow-y-auto">
               {sortedCustomers.map((customer) => {
@@ -328,11 +329,10 @@ export function CustomerProfileView({
                 return (
                   <Card
                     key={customer.id}
-                    className={`cursor-pointer transition-all hover:shadow-lg ${
-                      selectedCustomer?.phone === customer.phone
-                        ? "border-blue-500 bg-blue-50/50 dark:bg-blue-950/30"
-                        : ""
-                    }`}
+                    className={`cursor-pointer transition-all hover:shadow-lg ${selectedCustomer?.phone === customer.phone
+                      ? "border-blue-500 bg-blue-50/50 dark:bg-blue-950/30"
+                      : ""
+                      }`}
                     onClick={() => setSelectedCustomer(customer)}
                   >
                     <CardContent className="p-4">
@@ -342,7 +342,7 @@ export function CustomerProfileView({
                             <User className="w-4 h-4 text-blue-600" />
                             <h4 className="font-semibold">{customer.name}</h4>
                           </div>
-                          
+
                           <div className="space-y-1 text-sm text-muted-foreground">
                             <div className="flex items-center gap-2">
                               <Phone className="w-3 h-3" />
@@ -361,8 +361,8 @@ export function CustomerProfileView({
                               <ShoppingBag className="w-3 h-3 mr-1" />
                               {stats.totalTransactions} işlem
                             </Badge>
-                            <Badge variant="outline" className="text-xs text-green-600">
-                              <DollarSign className="w-3 h-3 mr-1" />
+                            <Badge variant="outline" className={`text-xs text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+                              <ShoppingBag className="w-3 h-3 mr-1" />
                               {formatPrice(stats.totalRevenue)}
                             </Badge>
                           </div>
@@ -428,7 +428,7 @@ export function CustomerProfileView({
               <CardContent className="p-6 space-y-6">
                 {(() => {
                   const stats = getCustomerStats(selectedCustomer.phone);
-                  
+
                   return (
                     <>
                       {/* Contact Info */}
@@ -458,7 +458,7 @@ export function CustomerProfileView({
                             <TrendingUp className="w-4 h-4 text-green-600" />
                             <span className="text-xs font-medium text-muted-foreground">Toplam Alışveriş</span>
                           </div>
-                          <p className="text-lg font-bold text-green-600">
+                          <p className={`text-lg font-bold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                             {formatPrice(stats.totalRevenue)}
                           </p>
                         </div>
@@ -500,7 +500,7 @@ export function CustomerProfileView({
                           <ShoppingBag className="w-4 h-4" />
                           Alışveriş Geçmişi
                         </h4>
-                        
+
                         <div className="space-y-2 max-h-[400px] overflow-y-auto">
                           {/* Product Sales */}
                           {stats.sales.map((sale) => (
@@ -518,7 +518,7 @@ export function CustomerProfileView({
                                 {sale.items.map((item, idx) => (
                                   <div key={idx} className="flex justify-between text-xs">
                                     <span>{item.productName} x{item.quantity}</span>
-                                    <span className="font-medium">
+                                    <span className={`font-medium ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                                       {formatPrice(item.salePrice * item.quantity)}
                                     </span>
                                   </div>
@@ -526,7 +526,7 @@ export function CustomerProfileView({
                               </div>
                               <div className="flex justify-between mt-2 pt-2 border-t">
                                 <span className="font-semibold">Toplam:</span>
-                                <span className="font-bold text-green-600">
+                                <span className={`font-bold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                                   {formatPrice(sale.totalPrice)}
                                 </span>
                               </div>
@@ -553,7 +553,7 @@ export function CustomerProfileView({
                               </p>
                               <div className="flex justify-between">
                                 <span className="font-semibold">Tutar:</span>
-                                <span className="font-bold text-blue-600">
+                                <span className={`font-bold text-blue-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                                   {formatPrice(repair.repairCost)}
                                 </span>
                               </div>
@@ -579,7 +579,7 @@ export function CustomerProfileView({
                               </p>
                               <div className="flex justify-between">
                                 <span className="font-semibold">Tutar:</span>
-                                <span className="font-bold text-purple-600">
+                                <span className={`font-bold text-purple-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                                   {formatPrice(phoneSale.salePrice)}
                                 </span>
                               </div>

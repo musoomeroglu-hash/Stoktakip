@@ -36,6 +36,7 @@ interface StokTablosuProps {
     onViewDetail: (product: Product) => void;
     getCategoryName: (id: string) => string;
     formatPrice: (price: number) => string;
+    isPrivacyMode: boolean;
 }
 
 export function StokTablosu({
@@ -49,6 +50,7 @@ export function StokTablosu({
     onViewDetail,
     getCategoryName,
     formatPrice,
+    isPrivacyMode,
 }: StokTablosuProps) {
     const [sorting, setSorting] = useState<SortingState>([]);
 
@@ -111,7 +113,7 @@ export function StokTablosu({
                 </div>
             ),
             cell: ({ row }) => (
-                <div className="flex justify-center">
+                <div className={`flex justify-center ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                     <StokBadge miktar={row.original.stock} minStok={row.original.minStock} />
                 </div>
             ),
@@ -119,12 +121,12 @@ export function StokTablosu({
         {
             accessorKey: "purchasePrice",
             header: () => <div className="text-right">Alış</div>,
-            cell: ({ row }) => <div className="text-right font-mono">{formatPrice(row.getValue("purchasePrice"))}</div>,
+            cell: ({ row }) => <div className={`text-right font-mono ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(row.getValue("purchasePrice"))}</div>,
         },
         {
             accessorKey: "salePrice",
             header: () => <div className="text-right">Satış</div>,
-            cell: ({ row }) => <div className="text-right font-mono font-semibold text-blue-600 dark:text-blue-400">{formatPrice(row.getValue("salePrice"))}</div>,
+            cell: ({ row }) => <div className={`text-right font-mono font-semibold text-blue-600 dark:text-blue-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(row.getValue("salePrice"))}</div>,
         },
         {
             id: "actions",

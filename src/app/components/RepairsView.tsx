@@ -20,9 +20,10 @@ interface RepairsViewProps {
   currency: "TRY" | "USD";
   usdRate: number;
   formatPrice: (price: number) => string;
+  isPrivacyMode: boolean;
 }
 
-export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteRepair, currency, usdRate, formatPrice }: RepairsViewProps) {
+export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteRepair, currency, usdRate, formatPrice, isPrivacyMode }: RepairsViewProps) {
   const [editingRepair, setEditingRepair] = useState<RepairRecord | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
@@ -111,7 +112,7 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm text-purple-700 dark:text-purple-300">Toplam Gelir</div>
-                <div className="text-3xl font-bold text-purple-900 dark:text-purple-100 mt-2">{formatPrice(totalRevenue)}</div>
+                <div className={`text-3xl font-bold text-purple-900 dark:text-purple-100 mt-2 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(totalRevenue)}</div>
               </div>
               <DollarSign className="w-10 h-10 text-purple-500" />
             </div>
@@ -123,7 +124,7 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-sm text-orange-700 dark:text-orange-300">Toplam Kâr</div>
-                <div className="text-3xl font-bold text-orange-900 dark:text-orange-100 mt-2">{formatPrice(totalProfit)}</div>
+                <div className={`text-3xl font-bold text-orange-900 dark:text-orange-100 mt-2 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(totalProfit)}</div>
               </div>
               <Package className="w-10 h-10 text-orange-500" />
             </div>
@@ -150,6 +151,7 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
                 onEdit={handleEditRepair}
                 onDelete={onDeleteRepair}
                 formatPrice={formatPrice}
+                isPrivacyMode={isPrivacyMode}
               />
             ))}
             {inProgressRepairs.length === 0 && (
@@ -177,6 +179,7 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
                 onEdit={handleEditRepair}
                 onDelete={onDeleteRepair}
                 formatPrice={formatPrice}
+                isPrivacyMode={isPrivacyMode}
               />
             ))}
             {completedRepairs.length === 0 && (
@@ -204,6 +207,7 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
                 onEdit={handleEditRepair}
                 onDelete={onDeleteRepair}
                 formatPrice={formatPrice}
+                isPrivacyMode={isPrivacyMode}
               />
             ))}
             {deliveredRepairs.length === 0 && (
@@ -297,7 +301,7 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
 
             <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
               <p className="text-sm text-muted-foreground">Kâr</p>
-              <p className="text-2xl font-bold text-green-600">
+              <p className={`text-2xl font-bold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                 ₺{(editForm.repairCost - editForm.partsCost).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
               </p>
             </div>
@@ -321,13 +325,15 @@ function RepairCard({
   onUpdateStatus,
   onEdit,
   onDelete,
-  formatPrice
+  formatPrice,
+  isPrivacyMode
 }: {
   repair: RepairRecord;
   onUpdateStatus: (id: string, status: "in_progress" | "completed" | "delivered") => void;
   onEdit: (repair: RepairRecord) => void;
   onDelete?: (id: string) => void;
   formatPrice: (price: number) => string;
+  isPrivacyMode: boolean;
 }) {
   const nextStatus = getNextStatus(repair.status);
   const NextIcon = nextStatus?.icon;
@@ -393,11 +399,11 @@ function RepairCard({
         <div className="grid grid-cols-2 gap-2 text-sm">
           <div>
             <span className="text-muted-foreground">Tamir Ücreti:</span>
-            <p className="font-medium">{formatPrice(repair.repairCost)}</p>
+            <p className={`font-medium ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(repair.repairCost)}</p>
           </div>
           <div>
             <span className="text-muted-foreground">Kâr:</span>
-            <p className="font-medium text-green-600 dark:text-green-400">{formatPrice(repair.profit)}</p>
+            <p className={`font-medium text-green-600 dark:text-green-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(repair.profit)}</p>
           </div>
         </div>
 

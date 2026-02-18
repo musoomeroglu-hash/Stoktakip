@@ -19,6 +19,7 @@ interface SalesPanelViewProps {
   categories: Category[];
   onDeleteSale: (id: string) => void;
   onUpdateRepair: (id: string, data: Partial<RepairRecord>) => void;
+  isPrivacyMode: boolean;
 }
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#f43f5e'];
@@ -29,6 +30,7 @@ export function SalesPanelView({
   categories,
   onDeleteSale,
   onUpdateRepair,
+  isPrivacyMode,
 }: SalesPanelViewProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [editingRepair, setEditingRepair] = useState<RepairRecord | null>(null);
@@ -163,7 +165,7 @@ export function SalesPanelView({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-blue-700 dark:text-blue-300">Toplam Ciro</p>
-                <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                <p className={`text-3xl font-bold text-blue-900 dark:text-blue-100 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                   ₺{combinedStats.totalRevenue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -177,7 +179,7 @@ export function SalesPanelView({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-green-700 dark:text-green-300">Toplam Kâr</p>
-                <p className="text-3xl font-bold text-green-900 dark:text-green-100">
+                <p className={`text-3xl font-bold text-green-900 dark:text-green-100 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                   ₺{combinedStats.totalProfit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                 </p>
               </div>
@@ -227,11 +229,11 @@ export function SalesPanelView({
                 <div className="flex gap-4">
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Ciro</p>
-                    <p className="text-xl font-semibold">₺{repairStats.revenue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
+                    <p className={`text-xl font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{repairStats.revenue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Kâr</p>
-                    <p className="text-xl font-semibold text-green-600">₺{repairStats.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
+                    <p className={`text-xl font-semibold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{repairStats.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
                   </div>
                 </div>
               </div>
@@ -259,7 +261,7 @@ export function SalesPanelView({
                               <div className="flex gap-4 text-sm">
                                 <div>
                                   <span className="text-muted-foreground">Tamir Ücreti:</span>{" "}
-                                  <span className="font-semibold">₺{repair.repairCost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                  <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{repair.repairCost.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                                 </div>
                                 <div>
                                   <span className="text-muted-foreground">Malzeme:</span>{" "}
@@ -267,7 +269,7 @@ export function SalesPanelView({
                                 </div>
                                 <div>
                                   <span className="text-muted-foreground">Kâr:</span>{" "}
-                                  <span className="font-semibold text-green-600">₺{repair.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                  <span className={`font-semibold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{repair.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                                 </div>
                               </div>
                               <p className="text-xs text-muted-foreground mt-2">
@@ -300,11 +302,11 @@ export function SalesPanelView({
                 <div className="flex gap-4">
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Ciro</p>
-                    <p className="text-xl font-semibold">₺{productSaleStats.revenue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
+                    <p className={`text-xl font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{productSaleStats.revenue.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Kâr</p>
-                    <p className="text-xl font-semibold text-green-600">₺{productSaleStats.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
+                    <p className={`text-xl font-semibold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{productSaleStats.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</p>
                   </div>
                 </div>
               </div>
@@ -328,18 +330,18 @@ export function SalesPanelView({
                                   <span className="font-medium">{item.productName}</span>{" "}
                                   <span className="text-muted-foreground">x{item.quantity}</span>{" "}
                                   <span className="text-muted-foreground">-</span>{" "}
-                                  <span className="font-semibold">₺{(item.salePrice * item.quantity).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                  <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{(item.salePrice * item.quantity).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                                 </div>
                               ))}
                             </div>
                             <div className="flex gap-4 text-sm">
                               <div>
                                 <span className="text-muted-foreground">Toplam:</span>{" "}
-                                <span className="font-semibold">₺{sale.totalPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{sale.totalPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Kâr:</span>{" "}
-                                <span className="font-semibold text-green-600">₺{sale.totalProfit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+                                <span className={`font-semibold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{sale.totalProfit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
                               </div>
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">
@@ -405,7 +407,7 @@ export function SalesPanelView({
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number) => `₺${value.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
+                        formatter={(value: number) => isPrivacyMode ? "****" : `₺${value.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
                       />
                       <Legend />
                     </PieChart>
@@ -438,19 +440,19 @@ export function SalesPanelView({
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Ürün Satış Kârı</span>
-                    <span className="font-semibold text-blue-600">
+                    <span className={`font-semibold text-blue-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                       ₺{productSaleStats.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Tamir Kârı</span>
-                    <span className="font-semibold text-orange-600">
+                    <span className={`font-semibold text-orange-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                       ₺{repairStats.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
                     <span className="font-medium">Toplam Kâr</span>
-                    <span className="text-xl font-bold text-green-600">
+                    <span className={`text-xl font-bold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                       ₺{combinedStats.totalProfit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                     </span>
                   </div>
@@ -467,9 +469,14 @@ export function SalesPanelView({
             <CardContent className="p-6">
               <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 {[...filteredSales, ...repairs.filter(r => r.status === "completed" || r.status === "delivered")]
-                  .sort((a, b) => new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime())
+                  .sort((a, b) => {
+                    const dateA = 'items' in a ? a.date : a.createdAt;
+                    const dateB = 'items' in b ? b.date : b.createdAt;
+                    return new Date(dateB).getTime() - new Date(dateA).getTime();
+                  })
                   .map((item, index) => {
                     const isSale = 'items' in item;
+                    const itemDate = isSale ? (item as Sale).date : (item as RepairRecord).createdAt;
                     return (
                       <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
                         <div className="flex items-center gap-3">
@@ -487,7 +494,7 @@ export function SalesPanelView({
                               {isSale ? `Satış - ${item.items[0]?.productName}` : `Tamir - ${item.deviceInfo}`}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {new Date(item.date || item.createdAt).toLocaleDateString('tr-TR', {
+                              {new Date(itemDate).toLocaleDateString('tr-TR', {
                                 day: '2-digit',
                                 month: 'short',
                                 hour: '2-digit',
@@ -497,10 +504,10 @@ export function SalesPanelView({
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-semibold">
+                          <p className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                             ₺{(isSale ? item.totalPrice : item.repairCost).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                           </p>
-                          <p className="text-sm text-green-600">
+                          <p className={`text-sm text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                             +₺{(isSale ? item.totalProfit : item.profit).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                           </p>
                         </div>

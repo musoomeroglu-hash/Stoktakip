@@ -26,6 +26,7 @@ interface SalesManagementViewProps {
   currency: "TRY" | "USD";
   usdRate: number;
   formatPrice: (price: number) => string;
+  isPrivacyMode: boolean;
 }
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#f43f5e', '#84cc16'];
@@ -44,6 +45,7 @@ export function SalesManagementView({
   currency,
   usdRate,
   formatPrice,
+  isPrivacyMode,
 }: SalesManagementViewProps) {
   // Date range states
   const [startDate, setStartDate] = useState<string>(() => {
@@ -360,7 +362,7 @@ export function SalesManagementView({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-blue-700 dark:text-blue-300">Toplam Ciro</p>
-                <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">
+                <p className={`text-3xl font-bold text-blue-900 dark:text-blue-100 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                   {formatPriceLocale(profitLossStats.totalRevenue)}
                 </p>
               </div>
@@ -374,7 +376,7 @@ export function SalesManagementView({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-green-700 dark:text-green-300">Toplam Kâr</p>
-                <p className="text-3xl font-bold text-green-900 dark:text-green-100">
+                <p className={`text-3xl font-bold text-green-900 dark:text-green-100 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                   {formatPriceLocale(profitLossStats.totalProfit)}
                 </p>
               </div>
@@ -402,7 +404,7 @@ export function SalesManagementView({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-orange-700 dark:text-orange-300">Cari Bakiye</p>
-                <p className={`text-3xl font-bold ${cariStats.balance >= 0 ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'}`}>
+                <p className={`text-3xl font-bold ${cariStats.balance >= 0 ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'} ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                   {formatPriceLocale(cariStats.balance)}
                 </p>
               </div>
@@ -446,11 +448,11 @@ export function SalesManagementView({
                 <div className="flex gap-4">
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Ciro</p>
-                    <p className="text-xl font-semibold">{formatPriceLocale(repairStats.revenue)}</p>
+                    <p className={`text-xl font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repairStats.revenue)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Kâr</p>
-                    <p className="text-xl font-semibold text-green-600">{formatPriceLocale(repairStats.profit)}</p>
+                    <p className={`text-xl font-semibold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repairStats.profit)}</p>
                   </div>
                 </div>
               </div>
@@ -476,15 +478,15 @@ export function SalesManagementView({
                             <div className="flex gap-4 text-sm">
                               <div>
                                 <span className="text-muted-foreground">Tamir:</span>{" "}
-                                <span className="font-semibold">{formatPriceLocale(repair.repairCost)}</span>
+                                <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repair.repairCost)}</span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Malzeme:</span>{" "}
-                                <span className="font-semibold">{formatPriceLocale(repair.partsCost)}</span>
+                                <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repair.partsCost)}</span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Kâr:</span>{" "}
-                                <span className="font-semibold text-green-600">{formatPriceLocale(repair.profit)}</span>
+                                <span className={`font-semibold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repair.profit)}</span>
                               </div>
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">
@@ -517,11 +519,11 @@ export function SalesManagementView({
                 <div className="flex gap-4">
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Ciro</p>
-                    <p className="text-xl font-semibold">{formatPriceLocale(productSaleStats.revenue)}</p>
+                    <p className={`text-xl font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(productSaleStats.revenue)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm text-muted-foreground">Kâr</p>
-                    <p className="text-xl font-semibold text-green-600">{formatPriceLocale(productSaleStats.profit)}</p>
+                    <p className={`text-xl font-semibold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(productSaleStats.profit)}</p>
                   </div>
                 </div>
               </div>
@@ -545,18 +547,18 @@ export function SalesManagementView({
                                   <span className="font-medium">{item.productName}</span>{" "}
                                   <span className="text-muted-foreground">x{item.quantity}</span>{" "}
                                   <span className="text-muted-foreground">-</span>{" "}
-                                  <span className="font-semibold">{formatPriceLocale(item.salePrice * item.quantity)}</span>
+                                  <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(item.salePrice * item.quantity)}</span>
                                 </div>
                               ))}
                             </div>
                             <div className="flex gap-4 text-sm">
                               <div>
                                 <span className="text-muted-foreground">Toplam:</span>{" "}
-                                <span className="font-semibold">{formatPriceLocale(sale.totalPrice)}</span>
+                                <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(sale.totalPrice)}</span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground">Kâr:</span>{" "}
-                                <span className="font-semibold text-green-600">{formatPriceLocale(sale.totalProfit)}</span>
+                                <span className={`font-semibold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(sale.totalProfit)}</span>
                               </div>
                             </div>
                             <p className="text-xs text-muted-foreground mt-2">
@@ -598,19 +600,19 @@ export function SalesManagementView({
                 <Card className="bg-red-50 dark:bg-red-950/30">
                   <CardContent className="p-4">
                     <p className="text-sm text-muted-foreground">Toplam Alacak</p>
-                    <p className="text-2xl font-bold text-red-600">{formatPriceLocale(cariStats.totalDebt)}</p>
+                    <p className={`text-2xl font-bold text-red-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(cariStats.totalDebt)}</p>
                   </CardContent>
                 </Card>
                 <Card className="bg-blue-50 dark:bg-blue-950/30">
                   <CardContent className="p-4">
                     <p className="text-sm text-muted-foreground">Toplam Borç</p>
-                    <p className="text-2xl font-bold text-blue-600">{formatPriceLocale(cariStats.totalCredit)}</p>
+                    <p className={`text-2xl font-bold text-blue-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(cariStats.totalCredit)}</p>
                   </CardContent>
                 </Card>
                 <Card className={cariStats.balance >= 0 ? "bg-green-50 dark:bg-green-950/30" : "bg-red-50 dark:bg-red-950/30"}>
                   <CardContent className="p-4">
                     <p className="text-sm text-muted-foreground">Bakiye</p>
-                    <p className={`text-2xl font-bold ${cariStats.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    <p className={`text-2xl font-bold ${cariStats.balance >= 0 ? 'text-green-600' : 'text-red-600'} ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                       {formatPriceLocale(cariStats.balance)}
                     </p>
                   </CardContent>
@@ -632,11 +634,11 @@ export function SalesManagementView({
                           <div className="text-right space-y-1">
                             <div className="text-sm">
                               <span className="text-muted-foreground">Alacak:</span>{" "}
-                              <span className="font-semibold text-red-600">{formatPriceLocale(customer.debt)}</span>
+                              <span className={`font-semibold text-red-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(customer.debt)}</span>
                             </div>
                             <div className="text-sm">
                               <span className="text-muted-foreground">Borç:</span>{" "}
-                              <span className="font-semibold text-blue-600">{formatPriceLocale(customer.credit)}</span>
+                              <span className={`font-semibold text-blue-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(customer.credit)}</span>
                             </div>
                           </div>
                         </div>
@@ -664,19 +666,19 @@ export function SalesManagementView({
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-sm">Ürün Satışları</span>
-                          <span className="font-semibold">{formatPriceLocale(productSaleStats.revenue)}</span>
+                          <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(productSaleStats.revenue)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">Tamir Gelirleri</span>
-                          <span className="font-semibold">{formatPriceLocale(repairStats.revenue)}</span>
+                          <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repairStats.revenue)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">Telefon Satışları</span>
-                          <span className="font-semibold">{formatPriceLocale(phoneSaleStats.revenue)}</span>
+                          <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(phoneSaleStats.revenue)}</span>
                         </div>
                         <div className="flex justify-between border-t pt-2">
                           <span className="font-medium">Toplam Gelir</span>
-                          <span className="font-bold text-blue-600">{formatPriceLocale(profitLossStats.totalRevenue)}</span>
+                          <span className={`font-bold text-blue-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(profitLossStats.totalRevenue)}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -688,19 +690,19 @@ export function SalesManagementView({
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-sm">Ürün Maliyetleri</span>
-                          <span className="font-semibold">{formatPriceLocale(productSaleStats.revenue - productSaleStats.profit)}</span>
+                          <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(productSaleStats.revenue - productSaleStats.profit)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">Tamir Maliyetleri</span>
-                          <span className="font-semibold">{formatPriceLocale(repairStats.revenue - repairStats.profit)}</span>
+                          <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repairStats.revenue - repairStats.profit)}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-sm">Telefon Maliyetleri</span>
-                          <span className="font-semibold">{formatPriceLocale(phoneSaleStats.cost)}</span>
+                          <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(phoneSaleStats.cost)}</span>
                         </div>
                         <div className="flex justify-between border-t pt-2">
                           <span className="font-medium">Toplam Maliyet</span>
-                          <span className="font-bold text-red-600">{formatPriceLocale(profitLossStats.totalCost)}</span>
+                          <span className={`font-bold text-red-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(profitLossStats.totalCost)}</span>
                         </div>
                       </div>
                     </CardContent>
@@ -712,13 +714,13 @@ export function SalesManagementView({
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm text-muted-foreground mb-1">Net Kar/Zarar</p>
-                        <p className="text-4xl font-bold text-green-600">
+                        <p className={`text-4xl font-bold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                           {formatPriceLocale(profitLossStats.totalProfit)}
                         </p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-muted-foreground mb-1">Kar Marjı</p>
-                        <p className="text-3xl font-bold text-green-600">
+                        <p className={`text-3xl font-bold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                           {profitLossStats.totalRevenue > 0 ? ((profitLossStats.totalProfit / profitLossStats.totalRevenue) * 100).toFixed(1) : 0}%
                         </p>
                       </div>
@@ -738,7 +740,7 @@ export function SalesManagementView({
                       </div>
                       <div className="flex justify-between">
                         <span>Ortalama Satış</span>
-                        <span className="font-semibold">
+                        <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                           ₺{productSaleStats.count > 0 ? (productSaleStats.revenue / productSaleStats.count).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '0.00'}
                         </span>
                       </div>
@@ -762,7 +764,7 @@ export function SalesManagementView({
                       </div>
                       <div className="flex justify-between">
                         <span>Ortalama Gelir</span>
-                        <span className="font-semibold">
+                        <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                           ₺{repairStats.count > 0 ? (repairStats.revenue / repairStats.count).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '0.00'}
                         </span>
                       </div>
@@ -810,7 +812,7 @@ export function SalesManagementView({
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number) => `₺${value.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
+                        formatter={(value: number) => isPrivacyMode ? "****" : `₺${value.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
                       />
                       <Legend />
                     </PieChart>
@@ -842,19 +844,19 @@ export function SalesManagementView({
                 <div className="border-t pt-4 space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Ürün Satış Kârı</span>
-                    <span className="font-semibold text-blue-600">
+                    <span className={`font-semibold text-blue-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                       {formatPriceLocale(productSaleStats.profit)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Tamir Kârı</span>
-                    <span className="font-semibold text-orange-600">
+                    <span className={`font-semibold text-orange-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                       {formatPriceLocale(repairStats.profit)}
                     </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
                     <span className="font-medium">Toplam Kâr</span>
-                    <span className="text-xl font-bold text-green-600">
+                    <span className={`text-xl font-bold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                       {formatPriceLocale(profitLossStats.totalProfit)}
                     </span>
                   </div>
@@ -923,7 +925,7 @@ export function SalesManagementView({
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="text-right">
-                            <p className="font-semibold">
+                            <p className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                               {formatPriceLocale(
                                 isSale
                                   ? item.totalPrice
@@ -932,7 +934,7 @@ export function SalesManagementView({
                                     : item.repairCost
                               )}
                             </p>
-                            <p className="text-sm text-green-600">
+                            <p className={`text-sm text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                               +{formatPriceLocale(
                                 isSale
                                   ? item.totalProfit

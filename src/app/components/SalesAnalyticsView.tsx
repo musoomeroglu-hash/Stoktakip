@@ -9,9 +9,10 @@ interface SalesAnalyticsViewProps {
   products: Product[];
   categories: Category[];
   formatPrice: (price: number) => string;
+  isPrivacyMode: boolean;
 }
 
-export function SalesAnalyticsView({ sales, products, categories, formatPrice }: SalesAnalyticsViewProps) {
+export function SalesAnalyticsView({ sales, products, categories, formatPrice, isPrivacyMode }: SalesAnalyticsViewProps) {
   // This month's sales
   const now = new Date();
   const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -19,7 +20,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice }:
 
   // Calculate best selling products (this month)
   const productSalesMap = new Map<string, { name: string; quantity: number; revenue: number }>();
-  
+
   thisMonthSales.forEach(sale => {
     sale.items.forEach(item => {
       const existing = productSalesMap.get(item.productId);
@@ -47,14 +48,14 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice }:
 
   // Category analysis
   const categorySalesMap = new Map<string, { name: string; quantity: number; revenue: number }>();
-  
+
   thisMonthSales.forEach(sale => {
     sale.items.forEach(item => {
       if (!item.categoryId) return;
-      
+
       const category = categories.find(c => c.id === item.categoryId);
       const categoryName = category?.name || "Diğer";
-      
+
       const existing = categorySalesMap.get(item.categoryId);
       if (existing) {
         existing.quantity += item.quantity;
@@ -75,7 +76,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice }:
 
   // Hourly sales analysis
   const hourlySalesMap = new Map<number, number>();
-  
+
   thisMonthSales.forEach(sale => {
     const hour = new Date(sale.date).getHours();
     hourlySalesMap.set(hour, (hourlySalesMap.get(hour) || 0) + 1);
@@ -125,18 +126,21 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice }:
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={bestSellingProducts}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name" 
-                    angle={-45} 
-                    textAnchor="end" 
+                  <XAxis
+                    dataKey="name"
+                    angle={-45}
+                    textAnchor="end"
                     height={100}
                     tick={{ fontSize: 12 }}
                   />
                   <YAxis />
-                  <Tooltip 
+                  <Tooltip
                     formatter={(value: any, name: string) => {
                       if (name === "quantity") return [value, "Adet"];
-                      if (name === "revenue") return [formatPrice(value as number), "Gelir"];
+                      if (name === "revenue") {
+                        const val = formatPrice(value as number);
+                        return [isPrivacyMode ? "****" : val, "Gelir"];
+                      }
                       return [value, name];
                     }}
                   />
@@ -162,7 +166,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice }:
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-blue-600">
+                      <p className={`font-semibold text-blue-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                         {formatPrice(product.revenue)}
                       </p>
                       <p className="text-xs text-muted-foreground">Toplam gelir</p>
@@ -217,7 +221,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice }:
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground">Satış fiyatı</p>
-                      <p className="font-semibold text-orange-600">
+                      <p className={`font-semibold text-orange-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                         {formatPrice(product.salePrice)}
                       </p>
                     </div>
@@ -270,7 +274,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice }:
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value: any) => formatPrice(value as number)}
+                      formatter={(value: any) => isPrivacyMode ? "****" : formatPrice(value as number)}
                     />
                   </PieChart>
                 </ResponsiveContainer>
@@ -290,7 +294,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice }:
                       </div>
                       <div className="text-right text-sm">
                         <p className="font-semibold">{category.quantity} adet</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className={`text-xs text-muted-foreground ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                           {formatPrice(category.revenue)}
                         </p>
                       </div>
@@ -325,7 +329,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice }:
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="hour" />
                     <YAxis />
-                    <Tooltip 
+                    <Tooltip
                       formatter={(value: any) => [value, "Satış Sayısı"]}
                     />
                     <Bar dataKey="count" fill="#10b981" />

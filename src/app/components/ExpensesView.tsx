@@ -7,7 +7,7 @@ import { Receipt, Plus, X, TrendingDown, DollarSign, AlertTriangle, Calendar } f
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { api } from "@/app/utils/api";
+import { api, type Sale, type RepairRecord, type PhoneSale } from "@/app/utils/api";
 
 interface Expense {
   id: string;
@@ -17,15 +17,18 @@ interface Expense {
 }
 
 interface ExpensesViewProps {
-  totalProfit: number; // Toplam kâr
+  sales: Sale[];
+  repairs: RepairRecord[];
+  phoneSales: PhoneSale[];
+  isPrivacyMode: boolean;
 }
 
 const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#06b6d4', '#84cc16'];
 
-export function ExpensesView({ totalProfit }: ExpensesViewProps) {
+export function ExpensesView({ sales, repairs, phoneSales, isPrivacyMode }: ExpensesViewProps) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [showForm, setShowForm] = useState(false);
-  
+
   // Form states
   const [expenseName, setExpenseName] = useState("");
   const [expenseAmount, setExpenseAmount] = useState("");
@@ -40,7 +43,7 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
     const day = String(firstDay.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   });
-  
+
   const [endDate, setEndDate] = useState<string>(() => {
     // Default: ayın son günü (local time)
     const now = new Date();
@@ -75,12 +78,12 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
     const now = new Date();
     const firstDayOfWeek = new Date(now);
     firstDayOfWeek.setDate(now.getDate() - now.getDay() + 1); // Pazartesi
-    
+
     const startYear = firstDayOfWeek.getFullYear();
     const startMonth = String(firstDayOfWeek.getMonth() + 1).padStart(2, '0');
     const startDay = String(firstDayOfWeek.getDate()).padStart(2, '0');
     setStartDate(`${startYear}-${startMonth}-${startDay}`);
-    
+
     const endYear = now.getFullYear();
     const endMonth = String(now.getMonth() + 1).padStart(2, '0');
     const endDay = String(now.getDate()).padStart(2, '0');
@@ -91,12 +94,12 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Ayın son günü
-    
+
     const startYear = firstDay.getFullYear();
     const startMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
     const startDay = String(firstDay.getDate()).padStart(2, '0');
     setStartDate(`${startYear}-${startMonth}-${startDay}`);
-    
+
     const endYear = lastDay.getFullYear();
     const endMonth = String(lastDay.getMonth() + 1).padStart(2, '0');
     const endDay = String(lastDay.getDate()).padStart(2, '0');
@@ -107,12 +110,12 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
     const now = new Date();
     const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastDayPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-    
+
     const startYear = firstDayPrevMonth.getFullYear();
     const startMonth = String(firstDayPrevMonth.getMonth() + 1).padStart(2, '0');
     const startDay = String(firstDayPrevMonth.getDate()).padStart(2, '0');
     setStartDate(`${startYear}-${startMonth}-${startDay}`);
-    
+
     const endYear = lastDayPrevMonth.getFullYear();
     const endMonth = String(lastDayPrevMonth.getMonth() + 1).padStart(2, '0');
     const endDay = String(lastDayPrevMonth.getDate()).padStart(2, '0');
@@ -183,7 +186,7 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
       await api.deleteExpense(id);
       const updatedExpenses = expenses.filter(exp => exp.id !== id);
       setExpenses(updatedExpenses);
-      console.log("✅ Gider Supabase'den silindi");
+      console.log("✅ Gider Supabase'Silindi");
       toast.success("Gider silindi");
     } catch (error) {
       console.error("❌ Gider silinemedi:", error);
@@ -196,13 +199,36 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
     return expenses.filter(exp => isDateInRange(exp.createdAt));
   }, [expenses, startDate, endDate]);
 
+  // Toplam kâr (filtrelenmiş) - SalesManagementView ile senkronize edildi
+  const totalProfitInPeriod = useMemo(() => {
+    const salesProfit = sales
+      .filter(s =>
+        !s.items.some(item => item.productId.startsWith('repair-')) &&
+        isDateInRange(s.date)
+      )
+      .reduce((sum, s) => sum + s.totalProfit, 0);
+
+    const repairsProfit = repairs
+      .filter(r =>
+        (r.status === "completed" || r.status === "delivered") &&
+        isDateInRange(r.createdAt)
+      )
+      .reduce((sum, r) => sum + (r.repairCost - r.partsCost), 0);
+
+    const phoneSalesProfit = phoneSales
+      .filter(ps => isDateInRange(ps.date))
+      .reduce((sum, ps) => sum + ps.profit, 0);
+
+    return salesProfit + repairsProfit + phoneSalesProfit;
+  }, [sales, repairs, phoneSales, startDate, endDate]);
+
   // Toplam gider (filtrelenmiş)
   const totalExpenses = useMemo(() => {
     return filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
   }, [filteredExpenses]);
 
-  // Net kâr (Toplam Kâr - Toplam Gider)
-  const netProfit = totalProfit - totalExpenses;
+  // Net kâr (Seçili Dönem Kârı - Toplam Gider)
+  const netProfit = totalProfitInPeriod - totalExpenses;
 
   // Pasta grafiği için veri (filtrelenmiş)
   const chartData = useMemo(() => {
@@ -254,7 +280,7 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
               <Calendar className="w-5 h-5 text-orange-600 dark:text-orange-400" />
               <span className="font-semibold text-orange-900 dark:text-orange-100">Tarih Aralığı:</span>
             </div>
-            
+
             <div className="flex flex-wrap items-center gap-3 flex-1">
               {/* Date Inputs */}
               <div className="flex items-center gap-2">
@@ -275,41 +301,41 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
 
               {/* Quick Filters */}
               <div className="flex flex-wrap gap-2">
-                <Button 
-                  onClick={setToday} 
-                  variant="outline" 
+                <Button
+                  onClick={setToday}
+                  variant="outline"
                   size="sm"
                   className="bg-white dark:bg-gray-800 border-orange-200 dark:border-orange-700"
                 >
                   Bugün
                 </Button>
-                <Button 
-                  onClick={setThisWeek} 
-                  variant="outline" 
+                <Button
+                  onClick={setThisWeek}
+                  variant="outline"
                   size="sm"
                   className="bg-white dark:bg-gray-800 border-orange-200 dark:border-orange-700"
                 >
                   Bu Hafta
                 </Button>
-                <Button 
-                  onClick={setCurrentMonth} 
-                  variant="outline" 
+                <Button
+                  onClick={setCurrentMonth}
+                  variant="outline"
                   size="sm"
                   className="bg-white dark:bg-gray-800 border-orange-200 dark:border-orange-700"
                 >
                   Bu Ay
                 </Button>
-                <Button 
-                  onClick={setPreviousMonth} 
-                  variant="outline" 
+                <Button
+                  onClick={setPreviousMonth}
+                  variant="outline"
                   size="sm"
                   className="bg-white dark:bg-gray-800 border-orange-200 dark:border-orange-700"
                 >
                   Geçen Ay
                 </Button>
-                <Button 
-                  onClick={setAllTime} 
-                  variant="outline" 
+                <Button
+                  onClick={setAllTime}
+                  variant="outline"
                   size="sm"
                   className="bg-white dark:bg-gray-800 border-orange-200 dark:border-orange-700"
                 >
@@ -320,8 +346,8 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
 
             {/* Selected Period Display */}
             <div className="text-sm text-muted-foreground bg-white dark:bg-gray-800 px-3 py-2 rounded-md border-2 border-orange-200 dark:border-orange-700">
-              📅 {new Date(startDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })} 
-              {' - '} 
+              📅 {new Date(startDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })}
+              {' - '}
               {new Date(endDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })}
             </div>
           </div>
@@ -329,11 +355,10 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
       </Card>
 
       {/* Net Kâr Özet Kartı */}
-      <Card className={`border-2 shadow-lg ${
-        netProfit >= 0 
-          ? 'border-green-300 dark:border-green-800' 
-          : 'border-red-300 dark:border-red-800'
-      }`}>
+      <Card className={`border-2 shadow-lg ${netProfit >= 0
+        ? 'border-green-300 dark:border-green-800'
+        : 'border-red-300 dark:border-red-800'
+        }`}>
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Toplam Kâr */}
@@ -342,8 +367,8 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
                 <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                 <span className="text-sm font-medium text-muted-foreground">Toplam Kâr</span>
               </div>
-              <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                ₺{totalProfit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              <div className={`text-2xl font-bold text-blue-600 dark:text-blue-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+                ₺{totalProfitInPeriod.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
 
@@ -353,17 +378,16 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
                 <TrendingDown className="w-5 h-5 text-orange-600 dark:text-orange-400" />
                 <span className="text-sm font-medium text-muted-foreground">Toplam Gider</span>
               </div>
-              <div className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+              <div className={`text-2xl font-bold text-orange-600 dark:text-orange-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                 ₺{totalExpenses.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
             </div>
 
             {/* Net Kâr */}
-            <div className={`text-center p-4 rounded-lg border-2 ${
-              netProfit >= 0 
-                ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800' 
-                : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
-            }`}>
+            <div className={`text-center p-4 rounded-lg border-2 ${netProfit >= 0
+              ? 'bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800'
+              : 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800'
+              }`}>
               <div className="flex items-center justify-center gap-2 mb-2">
                 {netProfit >= 0 ? (
                   <DollarSign className="w-5 h-5 text-green-600 dark:text-green-400" />
@@ -372,11 +396,10 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
                 )}
                 <span className="text-sm font-medium text-muted-foreground">Net Kâr</span>
               </div>
-              <div className={`text-2xl font-bold ${
-                netProfit >= 0 
-                  ? 'text-green-600 dark:text-green-400' 
-                  : 'text-red-600 dark:text-red-400'
-              }`}>
+              <div className={`text-2xl font-bold ${netProfit >= 0
+                ? 'text-green-600 dark:text-green-400'
+                : 'text-red-600 dark:text-red-400'
+                } ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                 {netProfit >= 0 ? '₺' : '-₺'}
                 {Math.abs(netProfit).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
@@ -426,11 +449,10 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
                         onClick={() => setExpenseName(name)}
                         variant="outline"
                         size="sm"
-                        className={`${
-                          expenseName === name 
-                            ? 'bg-orange-100 dark:bg-orange-900 border-orange-300 dark:border-orange-700' 
-                            : ''
-                        }`}
+                        className={`${expenseName === name
+                          ? 'bg-orange-100 dark:bg-orange-900 border-orange-300 dark:border-orange-700'
+                          : ''
+                          }`}
                       >
                         {name}
                       </Button>
@@ -515,13 +537,13 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <div 
-                            className="w-3 h-3 rounded-full" 
+                          <div
+                            className="w-3 h-3 rounded-full"
                             style={{ backgroundColor: COLORS[index % COLORS.length] }}
                           />
                           <span className="font-semibold">{expense.name}</span>
                         </div>
-                        <div className="text-xl font-bold text-orange-600 dark:text-orange-400 mb-1">
+                        <div className={`text-xl font-bold text-orange-600 dark:text-orange-400 mb-1 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                           ₺{expense.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -569,9 +591,9 @@ export function ExpensesView({ totalProfit }: ExpensesViewProps) {
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip 
-                    formatter={(value: number) => 
-                      `₺${value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  <Tooltip
+                    formatter={(value: number) =>
+                      isPrivacyMode ? "****" : `₺${value.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                     }
                   />
                   <Legend />

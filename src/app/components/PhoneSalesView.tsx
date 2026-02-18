@@ -9,9 +9,10 @@ import { useEffect } from "react";
 interface PhoneSalesViewProps {
   phoneSales: PhoneSale[];
   onDeletePhoneSale: (id: string) => void;
+  isPrivacyMode: boolean;
 }
 
-export function PhoneSalesView({ phoneSales, onDeletePhoneSale }: PhoneSalesViewProps) {
+export function PhoneSalesView({ phoneSales, onDeletePhoneSale, isPrivacyMode }: PhoneSalesViewProps) {
   // Debug: Telefon satışları listesini kontrol et
   useEffect(() => {
     console.log("📱 PhoneSalesView - Mevcut telefon satışları:", phoneSales.length);
@@ -32,7 +33,7 @@ export function PhoneSalesView({ phoneSales, onDeletePhoneSale }: PhoneSalesView
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Toplam Ciro</p>
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                <p className={`text-2xl font-bold text-purple-600 dark:text-purple-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                   ₺{totalRevenue.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
@@ -49,7 +50,7 @@ export function PhoneSalesView({ phoneSales, onDeletePhoneSale }: PhoneSalesView
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Toplam Kâr</p>
-                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                <p className={`text-2xl font-bold text-green-600 dark:text-green-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                   ₺{totalProfit.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
@@ -66,7 +67,7 @@ export function PhoneSalesView({ phoneSales, onDeletePhoneSale }: PhoneSalesView
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Toplam Yatırım</p>
-                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
+                <p className={`text-2xl font-bold text-orange-600 dark:text-orange-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                   ₺{totalInvestment.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </p>
               </div>
@@ -112,7 +113,7 @@ export function PhoneSalesView({ phoneSales, onDeletePhoneSale }: PhoneSalesView
                         <h3 className="font-bold text-lg">
                           {sale.brand} {sale.model}
                         </h3>
-                        <Badge variant="secondary" className="ml-2">
+                        <Badge variant="secondary" className={`ml-2 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                           {sale.profit >= 0 ? (
                             <span className="text-green-600 dark:text-green-400">
                               +₺{sale.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
@@ -136,13 +137,13 @@ export function PhoneSalesView({ phoneSales, onDeletePhoneSale }: PhoneSalesView
                       <div className="grid grid-cols-2 gap-4 mb-3">
                         <div className="bg-orange-100 dark:bg-orange-900/20 p-2 rounded border border-orange-200 dark:border-orange-800">
                           <p className="text-xs text-muted-foreground">Alış Fiyatı</p>
-                          <p className="font-semibold text-orange-600 dark:text-orange-400">
+                          <p className={`font-semibold text-orange-600 dark:text-orange-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                             ₺{sale.purchasePrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                           </p>
                         </div>
                         <div className="bg-green-100 dark:bg-green-900/20 p-2 rounded border border-green-200 dark:border-green-800">
                           <p className="text-xs text-muted-foreground">Satış Fiyatı</p>
-                          <p className="font-semibold text-green-600 dark:text-green-400">
+                          <p className={`font-semibold text-green-600 dark:text-green-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                             ₺{sale.salePrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
                           </p>
                         </div>

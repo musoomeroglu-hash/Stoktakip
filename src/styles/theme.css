@@ -186,3 +186,17 @@
     line-height: 1.5;
   }
 }
+
+/* Privacy Mode Styles */
+.privacy-mode-blur {
+  filter: blur(8px) !important;
+  user-select: none !important;
+  pointer-events: none;
+  transition: filter 0.3s ease-in-out;
+}
+
+.privacy-mode-hide {
+  opacity: 0 !important;
+  user-select: none !important;
+  pointer-events: none;
+}

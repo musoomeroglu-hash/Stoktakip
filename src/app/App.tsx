@@ -65,6 +65,7 @@ import {
   TrendingUp,
   DollarSign,
   Eye,
+  EyeOff,
   Calculator,
   ClipboardList,
   Receipt,
@@ -197,6 +198,8 @@ function App() {
     // Check system preference
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
+
+  const [isPrivacyMode, setIsPrivacyMode] = useState(true);
 
   // Apply dark mode class to document
   useEffect(() => {
@@ -840,6 +843,18 @@ function App() {
     }
   };
 
+  const handleDeleteRepair = async (id: string) => {
+    if (!window.confirm("Bu tamir kaydını silmek istediğinize emin misiniz?")) return;
+    try {
+      await api.deleteRepair(id);
+      setRepairs(repairs.filter((r) => r.id !== id));
+      toast.success("Tamir kaydı silindi");
+    } catch (error) {
+      console.error("Error deleting repair:", error);
+      toast.error("Tamir kaydı silinemedi");
+    }
+  };
+
   // Handle sales type selection
   const handleSalesTypeSelect = (type: "sale" | "repair" | "phone") => {
     if (type === "sale") {
@@ -1175,6 +1190,20 @@ function App() {
               <Button
                 variant="outline"
                 size="icon"
+                onClick={() => setIsPrivacyMode(!isPrivacyMode)}
+                className={`h-9 w-9 rounded-xl border-slate-200 dark:border-slate-800 transition-all ${isPrivacyMode ? "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900" : "hover:bg-slate-100 dark:hover:bg-slate-900"}`}
+                title={isPrivacyMode ? "Gizlilik Modunu Kapat" : "Gizlilik Modunu Aç"}
+              >
+                {isPrivacyMode ? (
+                  <EyeOff className="w-4 h-4 text-amber-600 dark:text-amber-500" />
+                ) : (
+                  <Eye className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 className="h-9 w-9 rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900"
               >
@@ -1209,6 +1238,7 @@ function App() {
                     phoneSales={phoneSales}
                     formatPrice={formatPrice}
                     onOpenAnalysis={() => setStokAnalizOpen(true)}
+                    isPrivacyMode={isPrivacyMode}
                   />
 
                   {/* Kasa Durumu Widget */}
@@ -1217,6 +1247,7 @@ function App() {
                     repairs={repairs}
                     phoneSales={phoneSales}
                     formatPrice={formatPrice}
+                    isPrivacyMode={isPrivacyMode}
                   />
 
                   {/* Search and Quick Filters */}
@@ -1291,6 +1322,7 @@ function App() {
                       }}
                       getCategoryName={getCategoryName}
                       formatPrice={formatPrice}
+                      isPrivacyMode={isPrivacyMode}
                     />
                   </div>
                 </motion.div>
@@ -1343,19 +1375,20 @@ function App() {
                     onDeleteSale={handleDeleteSale}
                     onUpdateSale={handleUpdateSale}
                     onUpdateRepair={handleUpdateRepair}
+                    onDeleteRepair={handleDeleteRepair}
                     onDeletePhoneSale={handleDeletePhoneSale}
                     currency={currency}
                     usdRate={usdRate}
                     formatPrice={formatPrice}
+                    isPrivacyMode={isPrivacyMode}
                   />
                 </motion.div>
               ) : activeView === "repairs" ? (
-                // Tamirler Görünümü
                 <motion.div
                   key="repairs"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   className="space-y-6"
                 >
@@ -1364,9 +1397,11 @@ function App() {
                     repairs={repairs}
                     onUpdateStatus={handleUpdateRepairStatus}
                     onUpdateRepair={handleUpdateRepair}
+                    onDeleteRepair={handleDeleteRepair}
                     currency={currency}
                     usdRate={usdRate}
                     formatPrice={formatPrice}
+                    isPrivacyMode={isPrivacyMode}
                   />
                 </motion.div>
               ) : activeView === "phoneSales" ? (
@@ -1383,15 +1418,15 @@ function App() {
                   <PhoneSalesView
                     phoneSales={phoneSales}
                     onDeletePhoneSale={handleDeletePhoneSale}
+                    isPrivacyMode={isPrivacyMode}
                   />
                 </motion.div>
               ) : activeView === "caris" ? (
-                // Cariler Görünümü
                 <motion.div
                   key="caris"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3, ease: "easeInOut" }}
                   className="space-y-6"
                 >
@@ -1402,6 +1437,7 @@ function App() {
                     onUpdateCustomer={handleUpdateCustomer}
                     onDeleteCustomer={handleDeleteCustomer}
                     onAddTransaction={handleAddCustomerTransaction}
+                    isPrivacyMode={isPrivacyMode}
                   />
                 </motion.div>
               ) : activeView === "calculator" ? (
@@ -1447,12 +1483,10 @@ function App() {
                 >
                   <h2 className="text-2xl font-bold">Giderler</h2>
                   <ExpensesView
-                    totalProfit={
-                      sales.reduce((sum, s) => sum + s.totalProfit, 0) +
-                      repairs.filter(r => r.status === "completed" || r.status === "delivered")
-                        .reduce((sum, r) => sum + (r.repairCost - r.partsCost), 0) +
-                      phoneSales.reduce((sum, ps) => sum + ps.profit, 0)
-                    }
+                    sales={sales}
+                    repairs={repairs}
+                    phoneSales={phoneSales}
+                    isPrivacyMode={isPrivacyMode}
                   />
                 </motion.div>
               ) : activeView === "salesAnalytics" ? (
@@ -1469,6 +1503,7 @@ function App() {
                     products={products}
                     categories={categories}
                     formatPrice={formatPrice}
+                    isPrivacyMode={isPrivacyMode}
                   />
                 </motion.div>
               ) : activeView === "customers" ? (
@@ -1488,6 +1523,7 @@ function App() {
                     onUpdateSale={handleUpdateSale}
                     onUpdateRepair={handleUpdateRepair}
                     onUpdatePhoneSale={handleUpdatePhoneSale}
+                    isPrivacyMode={isPrivacyMode}
                   />
                 </motion.div>
               ) : (
@@ -1506,6 +1542,7 @@ function App() {
                     categories={categories}
                     onDeleteSale={handleDeleteSale}
                     onUpdateRepair={handleUpdateRepair}
+                    isPrivacyMode={isPrivacyMode}
                   />
                 </motion.div>
               )}
@@ -1598,6 +1635,7 @@ function App() {
         products={products}
         categories={categories}
         formatPrice={formatPrice}
+        isPrivacyMode={isPrivacyMode}
       />
     </div>
   );

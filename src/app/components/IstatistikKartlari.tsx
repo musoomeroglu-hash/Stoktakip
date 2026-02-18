@@ -23,6 +23,7 @@ interface IstatistikProps {
     phoneSales: PhoneSale[];
     formatPrice: (price: number) => string;
     onOpenAnalysis: () => void;
+    isPrivacyMode: boolean;
 }
 
 export function IstatistikKartlari({
@@ -32,6 +33,7 @@ export function IstatistikKartlari({
     phoneSales,
     formatPrice,
     onOpenAnalysis,
+    isPrivacyMode,
 }: IstatistikProps) {
     const lowStockProducts = products.filter((p) => p.stock <= p.minStock);
     const totalInventoryValue = products.reduce((sum, p) => sum + (p.stock * p.purchasePrice), 0);
@@ -105,7 +107,7 @@ export function IstatistikKartlari({
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50">
+                        <div className={`text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                             {stat.value}
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
