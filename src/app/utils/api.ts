@@ -1,3 +1,4 @@
+// Deployment trigger: v1.0.1
 import { projectId, publicAnonKey } from "../../../utils/supabase/info";
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-929c4905`;
