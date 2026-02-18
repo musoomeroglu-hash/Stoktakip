@@ -51,9 +51,9 @@ export function PhoneStockDialog({ open, onOpenChange, onSave }: PhoneStockDialo
                     );
 
                     scannerRunningRef.current = true;
-                } catch (err: any) {
-                    if (process.env.NODE_ENV === 'development') console.error("Scanner error:", err);
-                    alert("Kamera erişimi sağlanamadı.");
+                } catch (err) {
+                    console.error("Scanner error:", err);
+                    toast.error("Kamera erişimi sağlanamadı.");
                     setScannerActive(false);
                     html5QrCodeRef.current = null;
                     scannerRunningRef.current = false;

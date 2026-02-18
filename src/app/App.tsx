@@ -800,9 +800,10 @@ function App() {
         createdAt: new Date().toISOString()
       });
       setPhoneStocks([newStock, ...phoneStocks]);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error adding phone stock:", error);
-      toast.error(`Stok eklenirken hata oluştu: ${error.message}`);
+      const message = error instanceof Error ? error.message : "Bilinmeyen hata";
+      toast.error(`Stok eklenirken hata oluştu: ${message}`);
     }
   };
 

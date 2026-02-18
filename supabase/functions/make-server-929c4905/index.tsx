@@ -1,4 +1,4 @@
-import { Hono } from "npm:hono";
+import { Hono, type Context } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
 import * as kv from "./kv_store.tsx";
@@ -22,7 +22,7 @@ app.use(
 );
 
 // Helper to define routes both with and without prefix to ensure 100% compatibility
-const defineRoute = (method: string, path: string, handler: any) => {
+const defineRoute = (method: string, path: string, handler: (c: Context) => any) => {
   const fullPath = path.startsWith("/") ? path : `/${path}`;
   const prefixedPath = `${prefix}${fullPath}`;
 
@@ -42,10 +42,10 @@ const defineRoute = (method: string, path: string, handler: any) => {
 };
 
 // Health check
-defineRoute("GET", "/health", (c) => c.json({ status: "ok", version: "2.1", received_path: c.req.path }));
+defineRoute("GET", "/health", (c: Context) => c.json({ status: "ok", version: "2.1", received_path: c.req.path }));
 
 // Categories
-defineRoute("GET", "/categories", async (c) => {
+defineRoute("GET", "/categories", async (c: Context) => {
   try {
     const categories = await kv.getByPrefix("category:");
     return c.json({ success: true, data: categories });
@@ -54,7 +54,7 @@ defineRoute("GET", "/categories", async (c) => {
   }
 });
 
-defineRoute("POST", "/categories", async (c) => {
+defineRoute("POST", "/categories", async (c: Context) => {
   try {
     const category = await c.req.json();
     const id = category.id || Date.now().toString();
@@ -65,7 +65,7 @@ defineRoute("POST", "/categories", async (c) => {
   }
 });
 
-defineRoute("PUT", "/categories/:id", async (c) => {
+defineRoute("PUT", "/categories/:id", async (c: Context) => {
   try {
     const id = c.req.param("id");
     const category = await c.req.json();
@@ -76,7 +76,7 @@ defineRoute("PUT", "/categories/:id", async (c) => {
   }
 });
 
-defineRoute("DELETE", "/categories/:id", async (c) => {
+defineRoute("DELETE", "/categories/:id", async (c: Context) => {
   try {
     const id = c.req.param("id");
     await kv.del(`category:${id}`);
@@ -87,7 +87,7 @@ defineRoute("DELETE", "/categories/:id", async (c) => {
 });
 
 // Products
-defineRoute("GET", "/products", async (c) => {
+defineRoute("GET", "/products", async (c: Context) => {
   try {
     const products = await kv.getByPrefix("product:");
     return c.json({ success: true, data: products });
@@ -96,7 +96,7 @@ defineRoute("GET", "/products", async (c) => {
   }
 });
 
-defineRoute("POST", "/products", async (c) => {
+defineRoute("POST", "/products", async (c: Context) => {
   try {
     const product = await c.req.json();
     const id = product.id || Date.now().toString();
@@ -107,7 +107,7 @@ defineRoute("POST", "/products", async (c) => {
   }
 });
 
-defineRoute("PUT", "/products/:id", async (c) => {
+defineRoute("PUT", "/products/:id", async (c: Context) => {
   try {
     const id = c.req.param("id");
     const product = await c.req.json();
@@ -118,7 +118,7 @@ defineRoute("PUT", "/products/:id", async (c) => {
   }
 });
 
-defineRoute("DELETE", "/products/:id", async (c) => {
+defineRoute("DELETE", "/products/:id", async (c: Context) => {
   try {
     const id = c.req.param("id");
     await kv.del(`product:${id}`);
@@ -128,7 +128,7 @@ defineRoute("DELETE", "/products/:id", async (c) => {
   }
 });
 
-defineRoute("POST", "/products/bulk", async (c) => {
+defineRoute("POST", "/products/bulk", async (c: Context) => {
   try {
     const { products } = await c.req.json();
     const results = [];
@@ -143,7 +143,7 @@ defineRoute("POST", "/products/bulk", async (c) => {
   }
 });
 
-defineRoute("GET", "/products/search", async (c) => {
+defineRoute("GET", "/products/search", async (c: Context) => {
   try {
     const query = c.req.query("q")?.toLowerCase() || "";
     if (!query) return c.json({ success: false, error: "Query required" }, 400);
@@ -156,7 +156,7 @@ defineRoute("GET", "/products/search", async (c) => {
 });
 
 // Sales
-defineRoute("GET", "/sales", async (c) => {
+defineRoute("GET", "/sales", async (c: Context) => {
   try {
     const sales = await kv.getByPrefix("sale:");
     return c.json({ success: true, data: sales });
@@ -165,7 +165,7 @@ defineRoute("GET", "/sales", async (c) => {
   }
 });
 
-defineRoute("POST", "/sales", async (c) => {
+defineRoute("POST", "/sales", async (c: Context) => {
   try {
     const sale = await c.req.json();
     const id = Date.now().toString();
@@ -183,7 +183,7 @@ defineRoute("POST", "/sales", async (c) => {
   }
 });
 
-defineRoute("DELETE", "/sales/:id", async (c) => {
+defineRoute("DELETE", "/sales/:id", async (c: Context) => {
   try {
     const id = c.req.param("id");
     const sale = await kv.get(`sale:${id}`);
@@ -204,7 +204,7 @@ defineRoute("DELETE", "/sales/:id", async (c) => {
 });
 
 // Reports
-defineRoute("GET", "/reports/summary", async (c) => {
+defineRoute("GET", "/reports/summary", async (c: Context) => {
   try {
     const period = c.req.query("period") || "daily";
     const sales = await kv.getByPrefix("sale:");
@@ -226,7 +226,7 @@ defineRoute("GET", "/reports/summary", async (c) => {
 });
 
 // Repairs
-defineRoute("GET", "/repairs", async (c) => {
+defineRoute("GET", "/repairs", async (c: Context) => {
   try {
     const repairs = await kv.getByPrefix("repair:");
     return c.json({ success: true, data: repairs });
@@ -235,7 +235,7 @@ defineRoute("GET", "/repairs", async (c) => {
   }
 });
 
-defineRoute("POST", "/repairs", async (c) => {
+defineRoute("POST", "/repairs", async (c: Context) => {
   try {
     const repair = await c.req.json();
     const id = Date.now().toString();
@@ -246,7 +246,7 @@ defineRoute("POST", "/repairs", async (c) => {
   }
 });
 
-defineRoute("PUT", "/repairs/:id/status", async (c) => {
+defineRoute("PUT", "/repairs/:id/status", async (c: Context) => {
   try {
     const id = c.req.param("id");
     const { status } = await c.req.json();
@@ -260,7 +260,7 @@ defineRoute("PUT", "/repairs/:id/status", async (c) => {
   }
 });
 
-defineRoute("PUT", "/repairs/:id", async (c) => {
+defineRoute("PUT", "/repairs/:id", async (c: Context) => {
   try {
     const id = c.req.param("id");
     const data = await c.req.json();
@@ -274,7 +274,7 @@ defineRoute("PUT", "/repairs/:id", async (c) => {
   }
 });
 
-defineRoute("DELETE", "/repairs/:id", async (c) => {
+defineRoute("DELETE", "/repairs/:id", async (c: Context) => {
   try {
     const id = c.req.param("id");
     await kv.del(`repair:${id}`);
@@ -285,7 +285,7 @@ defineRoute("DELETE", "/repairs/:id", async (c) => {
 });
 
 // Customers
-defineRoute("GET", "/customers", async (c) => {
+defineRoute("GET", "/customers", async (c: Context) => {
   try {
     const customers = await kv.getByPrefix("customer:");
     return c.json({ success: true, data: customers });
@@ -294,7 +294,7 @@ defineRoute("GET", "/customers", async (c) => {
   }
 });
 
-defineRoute("POST", "/customers", async (c) => {
+defineRoute("POST", "/customers", async (c: Context) => {
   try {
     const customer = await c.req.json();
     const id = customer.id || Date.now().toString();
@@ -305,7 +305,7 @@ defineRoute("POST", "/customers", async (c) => {
   }
 });
 
-defineRoute("PUT", "/customers/:id", async (c) => {
+defineRoute("PUT", "/customers/:id", async (c: Context) => {
   try {
     const id = c.req.param("id");
     const customer = await c.req.json();
@@ -316,7 +316,7 @@ defineRoute("PUT", "/customers/:id", async (c) => {
   }
 });
 
-defineRoute("DELETE", "/customers/:id", async (c) => {
+defineRoute("DELETE", "/customers/:id", async (c: Context) => {
   try {
     const id = c.req.param("id");
     await kv.del(`customer:${id}`);
@@ -327,14 +327,14 @@ defineRoute("DELETE", "/customers/:id", async (c) => {
 });
 
 // Phone Sales & Stocks
-defineRoute("GET", "/phone-sales", async (c) => {
+defineRoute("GET", "/phone-sales", async (c: Context) => {
   try {
     const data = await kv.getByPrefix("phonesale:");
     return c.json({ success: true, data });
   } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
 });
 
-defineRoute("POST", "/phone-sales", async (c) => {
+defineRoute("POST", "/phone-sales", async (c: Context) => {
   try {
     const data = await c.req.json();
     const id = data.id || Date.now().toString();
@@ -343,14 +343,14 @@ defineRoute("POST", "/phone-sales", async (c) => {
   } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
 });
 
-defineRoute("GET", "/phone-stocks", async (c) => {
+defineRoute("GET", "/phone-stocks", async (c: Context) => {
   try {
     const data = await kv.getByPrefix("phonestock:");
     return c.json({ success: true, data });
   } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
 });
 
-defineRoute("POST", "/phone-stocks", async (c) => {
+defineRoute("POST", "/phone-stocks", async (c: Context) => {
   try {
     const data = await c.req.json();
     const id = data.id || Date.now().toString();
@@ -362,7 +362,7 @@ defineRoute("POST", "/phone-stocks", async (c) => {
   }
 });
 
-defineRoute("PUT", "/phone-stocks/:id", async (c) => {
+defineRoute("PUT", "/phone-stocks/:id", async (c: Context) => {
   try {
     const id = c.req.param("id");
     const data = await c.req.json();
@@ -371,7 +371,7 @@ defineRoute("PUT", "/phone-stocks/:id", async (c) => {
   } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
 });
 
-defineRoute("DELETE", "/phone-stocks/:id", async (c) => {
+defineRoute("DELETE", "/phone-stocks/:id", async (c: Context) => {
   try {
     const id = c.req.param("id");
     await kv.del(`phonestock:${id}`);
@@ -380,14 +380,14 @@ defineRoute("DELETE", "/phone-stocks/:id", async (c) => {
 });
 
 // Expenses
-defineRoute("GET", "/expenses", async (c) => {
+defineRoute("GET", "/expenses", async (c: Context) => {
   try {
     const data = await kv.getByPrefix("expense:");
     return c.json({ success: true, data });
   } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
 });
 
-defineRoute("POST", "/expenses", async (c) => {
+defineRoute("POST", "/expenses", async (c: Context) => {
   try {
     const data = await c.req.json();
     const id = data.id || Date.now().toString();
@@ -397,14 +397,14 @@ defineRoute("POST", "/expenses", async (c) => {
 });
 
 // Customer Requests
-defineRoute("GET", "/customer-requests", async (c) => {
+defineRoute("GET", "/customer-requests", async (c: Context) => {
   try {
     const requests = await kv.getByPrefix("customer-request:");
     return c.json({ success: true, data: requests });
   } catch (error) { return c.json({ success: false, error: String(error) }, 500); }
 });
 
-defineRoute("POST", "/customer-requests", async (c) => {
+defineRoute("POST", "/customer-requests", async (c: Context) => {
   try {
     const request = await c.req.json();
     const id = request.id || Date.now().toString();
@@ -414,7 +414,7 @@ defineRoute("POST", "/customer-requests", async (c) => {
 });
 
 // Not Found Handler - DEBUG MODE
-app.notFound((c) => {
+app.notFound((c: Context) => {
   console.log(`⚠️ 404 NOT FOUND: ${c.req.method} ${c.req.path}`);
   return c.json({
     success: false,
