@@ -7,6 +7,7 @@ import { Textarea } from "./ui/textarea";
 import { Smartphone, Plus, Camera, X } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
+import { api } from "../utils/api";
 import type { PhoneStock } from "../utils/api";
 
 interface PhoneStockDialogProps {
@@ -105,6 +106,17 @@ export function PhoneStockDialog({ open, onOpenChange, onSave }: PhoneStockDialo
 
         setLoading(true);
         try {
+            // DIAGNOSTIC TEST: Call categories (which we know works)
+            console.log("DIAGNOSTIC: Testing API connection to /categories...");
+            try {
+                const test = await api.getCategories();
+                console.log("DIAGNOSTIC SUCCESS:", test);
+                toast.info("Ağ Testi Başarılı: /categories erişilebilir.");
+            } catch (diagsError) {
+                console.error("DIAGNOSTIC FAILED:", diagsError);
+                toast.error(`Ağ Testi BAŞARISIZ: ${String(diagsError)}`);
+            }
+
             await onSave({
                 brand: brand.trim(),
                 model: model.trim(),
