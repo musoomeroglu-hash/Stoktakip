@@ -668,11 +668,54 @@ export const api = {
   },
 
   async addPurchase(purchase: Omit<Purchase, "id" | "created_at">): Promise<Purchase> {
+    const { items, ...purchaseData } = purchase as any;
+
+    // 1. Insert main purchase
     const result = await fetchSupabase("/purchases", {
       method: "POST",
-      body: JSON.stringify(purchase),
+      body: JSON.stringify(purchaseData),
     });
-    return Array.isArray(result.data) ? result.data[0] : result.data;
+
+    const newPurchase = Array.isArray(result.data) ? result.data[0] : result.data;
+
+    if (newPurchase && newPurchase.id && items && items.length > 0) {
+      // 2. Insert items (mapped to snake_case)
+      const mappedItems = items.map((item: any) => ({
+        purchase_id: newPurchase.id,
+        product_id: item.productId,
+        quantity: item.quantity,
+        unit_cost: item.unitCost,
+        total_cost: item.totalCost
+      }));
+
+      await fetchSupabase("/purchase_items", {
+        method: "POST",
+        body: JSON.stringify(mappedItems),
+      });
+
+      // 3. Update product stocks
+      for (const item of items) {
+        try {
+          // Get current product
+          const prodRes = await fetchSupabase(`/products?id=eq.${item.productId}`);
+          const product = Array.isArray(prodRes.data) ? prodRes.data[0] : prodRes.data;
+
+          if (product) {
+            await fetchSupabase(`/products?id=eq.${item.productId}`, {
+              method: "PATCH",
+              body: JSON.stringify({
+                stock: (product.stock || 0) + item.quantity,
+                purchasePrice: item.unitCost // Update purchase price to latest
+              }),
+            });
+          }
+        } catch (err) {
+          console.error(`Stock update failed for product ${item.productId}:`, err);
+        }
+      }
+    }
+
+    return newPurchase;
   },
 
   async updatePurchase(id: string, purchase: Partial<Purchase>): Promise<Purchase> {
