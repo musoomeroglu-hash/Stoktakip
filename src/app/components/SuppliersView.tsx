@@ -137,9 +137,11 @@ export function SuppliersView({ isPrivacyMode }: SuppliersViewProps) {
     };
 
     const filteredSuppliers = suppliers.filter(s =>
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.contact_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.city?.toLowerCase().includes(searchQuery.toLowerCase())
+        (s.is_active !== false) && (
+            s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            s.contact_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            s.city?.toLowerCase().includes(searchQuery.toLowerCase())
+        )
     );
 
     const totalDebt = suppliers.reduce((sum, s) => sum + s.balance, 0);
