@@ -127,17 +127,21 @@ export function SuppliersView({ isPrivacyMode }: SuppliersViewProps) {
     const handleDelete = async (id: string, name: string) => {
         if (window.confirm(`${name} tedarikçisini silmek istediğinize emin misiniz?`)) {
             try {
+                // Optimistik silme veya anında state güncelleme
+                setSuppliers(prev => prev.filter(s => s.id !== id));
                 await api.deleteSupplier(id);
                 toast.success("Tedarikçi silindi");
+            } catch (error: any) {
+                toast.error(`Silinirken bir hata oluştu: ${error.message}`);
+                // Hata durumunda listeyi geri yükle
                 loadSuppliers();
-            } catch (error) {
-                toast.error("Silinirken bir hata oluştu");
             }
         }
     };
 
     const filteredSuppliers = suppliers.filter(s =>
         (s.is_active !== false) && (
+            !searchQuery ||
             s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
             s.contact_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             s.city?.toLowerCase().includes(searchQuery.toLowerCase())
