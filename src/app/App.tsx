@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+// Vercel deployment trigger
+import { useState, useEffect, useMemo, useRef } from "react";
 import { LoginScreen } from "./components/LoginScreen";
 import { RepairsView } from "./components/RepairsView";
 import { PhoneSalesView } from "./components/PhoneSalesView";
