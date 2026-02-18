@@ -92,17 +92,25 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
 
   filteredSales.forEach(sale => {
     sale.items.forEach(item => {
-      if (!item.categoryId) return;
+      let categoryId = item.categoryId;
 
-      const category = categories.find(c => c.id === item.categoryId);
+      // Fallback: If categoryId is missing in sale item, try to find it from product data
+      if (!categoryId) {
+        const product = products.find(p => p.id === item.productId);
+        categoryId = product?.categoryId;
+      }
+
+      if (!categoryId) return;
+
+      const category = categories.find(c => c.id === categoryId);
       const categoryName = category?.name || "Diğer";
 
-      const existing = categorySalesMap.get(item.categoryId);
+      const existing = categorySalesMap.get(categoryId);
       if (existing) {
         existing.quantity += item.quantity;
         existing.revenue += item.salePrice * item.quantity;
       } else {
-        categorySalesMap.set(item.categoryId, {
+        categorySalesMap.set(categoryId, {
           name: categoryName,
           quantity: item.quantity,
           revenue: item.salePrice * item.quantity,
@@ -407,7 +415,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
               </div>
             ) : (
               <div className="text-center py-8 text-muted-foreground">
-                Bu ay henüz satış yok
+                Seçili aralıkta henüz kayıt yok
               </div>
             )}
           </CardContent>
