@@ -2,8 +2,37 @@
 import { projectId, publicAnonKey } from "../../../utils/supabase/info";
 
 const API_URL = `https://${projectId}.supabase.co/functions/v1/make-server-929c4905`;
+const SUPABASE_REST_URL = `https://${projectId}.supabase.co/rest/v1`;
 
 export { projectId, API_URL };
+
+async function fetchSupabase(table: string, options: RequestInit = {}) {
+  const url = `${SUPABASE_REST_URL}${table}`;
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": publicAnonKey,
+        "Authorization": `Bearer ${publicAnonKey}`,
+        "Prefer": "return=representation",
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Supabase REST Hatası (${response.status}): ${errorText}`);
+    }
+
+    const data = await response.json();
+    return { data };
+  } catch (error: any) {
+    console.error(`❌ Supabase REST Error [${table}]:`, error);
+    throw error;
+  }
+}
 
 async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   const url = `${API_URL}${endpoint}`;
@@ -598,59 +627,60 @@ export const api = {
     });
   },
 
-  // Suppliers
+  // Suppliers (Direct to Supabase REST)
   async getSuppliers(): Promise<Supplier[]> {
-    const result = await fetchAPI("/suppliers");
+    const result = await fetchSupabase("/suppliers?select=*&order=created_at.desc");
     return result.data || [];
   },
 
   async addSupplier(supplier: Omit<Supplier, "id" | "created_at" | "total_purchased" | "total_paid" | "balance">): Promise<Supplier> {
-    const result = await fetchAPI("/suppliers", {
+    const result = await fetchSupabase("/suppliers", {
       method: "POST",
       body: JSON.stringify(supplier),
     });
-    return result.data;
+    return Array.isArray(result.data) ? result.data[0] : result.data;
   },
 
   async updateSupplier(id: string, supplier: Partial<Supplier>): Promise<Supplier> {
-    const result = await fetchAPI(`/suppliers/${id}`, {
-      method: "PUT",
+    const result = await fetchSupabase(`/suppliers?id=eq.${id}`, {
+      method: "PATCH",
       body: JSON.stringify(supplier),
     });
-    return result.data;
+    return Array.isArray(result.data) ? result.data[0] : result.data;
   },
 
   async deleteSupplier(id: string): Promise<void> {
-    await fetchAPI(`/suppliers/${id}`, {
-      method: "DELETE",
+    await fetchSupabase(`/suppliers?id=eq.${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ is_active: false }),
     });
   },
 
-  // Purchases
+  // Purchases (Direct to Supabase REST)
   async getPurchases(): Promise<Purchase[]> {
-    const result = await fetchAPI("/purchases");
+    const result = await fetchSupabase("/purchases?select=*,supplier:suppliers(*)&order=created_at.desc");
     return result.data || [];
   },
 
   async getPurchaseById(id: string): Promise<Purchase> {
-    const result = await fetchAPI(`/purchases/${id}`);
-    return result.data;
+    const result = await fetchSupabase(`/purchases?id=eq.${id}&select=*,supplier:suppliers(*),items:purchase_items(*)`);
+    return Array.isArray(result.data) ? result.data[0] : result.data;
   },
 
   async addPurchase(purchase: Omit<Purchase, "id" | "created_at">): Promise<Purchase> {
-    const result = await fetchAPI("/purchases", {
+    const result = await fetchSupabase("/purchases", {
       method: "POST",
       body: JSON.stringify(purchase),
     });
-    return result.data;
+    return Array.isArray(result.data) ? result.data[0] : result.data;
   },
 
   async updatePurchase(id: string, purchase: Partial<Purchase>): Promise<Purchase> {
-    const result = await fetchAPI(`/purchases/${id}`, {
-      method: "PUT",
+    const result = await fetchSupabase(`/purchases?id=eq.${id}`, {
+      method: "PATCH",
       body: JSON.stringify(purchase),
     });
-    return result.data;
+    return Array.isArray(result.data) ? result.data[0] : result.data;
   },
 
   async deletePurchase(id: string): Promise<void> {

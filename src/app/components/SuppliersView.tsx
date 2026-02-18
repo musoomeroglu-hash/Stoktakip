@@ -56,8 +56,8 @@ export function SuppliersView({ isPrivacyMode }: SuppliersViewProps) {
             setLoading(true);
             const data = await api.getSuppliers();
             setSuppliers(data);
-        } catch (error) {
-            toast.error("Tedarikçiler yüklenirken bir hata oluştu");
+        } catch (error: any) {
+            toast.error(`Tedarikçiler yüklenirken bir hata oluştu: ${error.message || "Bilinmeyen hata"}`);
         } finally {
             setLoading(false);
         }
@@ -115,8 +115,9 @@ export function SuppliersView({ isPrivacyMode }: SuppliersViewProps) {
             }
             setDialogOpen(false);
             loadSuppliers();
-        } catch (error) {
-            toast.error("Kaydedilirken bir hata oluştu");
+        } catch (error: any) {
+            toast.error(`Kaydedilirken bir hata oluştu: ${error.message || "Bilinmeyen hata"}`);
+            console.error("Tedarikçi kaydetme hatası:", error);
         }
     };
 
