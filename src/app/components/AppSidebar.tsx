@@ -70,12 +70,7 @@ const menuItems = [
         icon: BarChart3,
         color: "text-emerald-500"
     },
-    {
-        title: "Giderler",
-        view: "expenses",
-        icon: Receipt,
-        color: "text-red-500"
-    },
+
     {
         title: "İstek & Siparişler",
         view: "requests",
@@ -91,7 +86,8 @@ const menuItems = [
 ];
 
 // Satın Alma & Cari grubundaki view'lar
-const GROUP_VIEWS = ["purchases", "suppliers", "caris"];
+// Satın Alma & Cari grubundaki view'lar
+const GROUP_VIEWS = ["purchases", "suppliers", "caris", "expenses"];
 
 export function AppSidebar({
     activeView,
@@ -123,6 +119,7 @@ export function AppSidebar({
 
     const subMenuItems = [
         { title: "Alışlar", view: "purchases", icon: ShoppingCart, color: "text-orange-600" },
+        { title: "Giderler", view: "expenses", icon: Receipt, color: "text-red-500" },
         { title: "Tedarikçiler", view: "suppliers", icon: Building2, color: "text-blue-600" },
         { title: "Cariler", view: "caris", icon: Users, color: "text-indigo-500" },
     ];
