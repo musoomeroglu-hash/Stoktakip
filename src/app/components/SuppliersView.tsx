@@ -20,10 +20,11 @@ import {
     MapPin,
     CreditCard,
     User,
-    ExternalLink
+    ExternalLink,
+    BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
-import { api, type Supplier } from "../utils/api";
+import { api, type Supplier, type CariHareket } from "../utils/api";
 
 interface SuppliersViewProps {
     isPrivacyMode: boolean;
@@ -36,6 +37,11 @@ export function SuppliersView({ isPrivacyMode, onNavigate }: SuppliersViewProps)
     const [searchQuery, setSearchQuery] = useState("");
     const [dialogOpen, setDialogOpen] = useState(false);
     const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+
+    const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
+    const [hareketDialogOpen, setHareketDialogOpen] = useState(false);
+    const [hareketler, setHareketler] = useState<CariHareket[]>([]);
+    const [hareketLoading, setHareketLoading] = useState(false);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -53,6 +59,31 @@ export function SuppliersView({ isPrivacyMode, onNavigate }: SuppliersViewProps)
     useEffect(() => {
         loadSuppliers();
     }, []);
+
+    const handleOpenHareketModal = async (supplier: Supplier) => {
+        setSelectedSupplier(supplier);
+        setHareketDialogOpen(true);
+        setHareketLoading(true);
+        try {
+            const data = await api.getCariHareketler(supplier.id);
+            setHareketler(data);
+        } catch (error: any) {
+            toast.error("Cari hareketler yüklenemedi: " + error.message);
+        } finally {
+            setHareketLoading(false);
+        }
+    };
+
+    const getHareketBadge = (type: CariHareket['islem_tipi']) => {
+        switch (type) {
+            case 'alis': return <Badge variant="secondary" className="bg-orange-100 text-orange-700">Alış</Badge>;
+            case 'odeme': return <Badge variant="secondary" className="bg-green-100 text-green-700">Ödeme</Badge>;
+            case 'iade': return <Badge variant="secondary" className="bg-red-100 text-red-700">İade</Badge>;
+            case 'borc_ekleme': return <Badge variant="secondary" className="bg-amber-100 text-amber-700">Borç +</Badge>;
+            case 'alacak_ekleme': return <Badge variant="secondary" className="bg-blue-100 text-blue-700">Alacak +</Badge>;
+            default: return <Badge variant="secondary">İşlem</Badge>;
+        }
+    };
 
     const loadSuppliers = async () => {
         try {
@@ -250,6 +281,9 @@ export function SuppliersView({ isPrivacyMode, onNavigate }: SuppliersViewProps)
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" title="Alış Geçmişi" onClick={() => onNavigate ? onNavigate("purchases") : toast.info("Alışlar sayfasına gidin")}>
                                             <History className="h-4 w-4" />
                                         </Button>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-purple-600" title="Cari Hareketler" onClick={() => handleOpenHareketModal(supplier)}>
+                                            <BarChart3 className="h-4 w-4" />
+                                        </Button>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600" onClick={() => handleOpenDialog(supplier)}>
                                             <Edit className="h-4 w-4" />
                                         </Button>
@@ -365,6 +399,144 @@ export function SuppliersView({ isPrivacyMode, onNavigate }: SuppliersViewProps)
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setDialogOpen(false)}>İptal</Button>
                         <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">Kaydet</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            {/* Cari Hareketler Dialog */}
+            <Dialog open={hareketDialogOpen} onOpenChange={setHareketDialogOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+                    <DialogHeader className="p-6 border-b">
+                        <DialogTitle className="flex items-center gap-2">
+                            <BarChart3 className="w-5 h-5 text-purple-600" />
+                            Cari Hesap Ekstresi: {selectedSupplier?.name}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Tedarikçi ile yapılan tüm mali hareketlerin dökümü.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto p-6">
+                        {hareketLoading ? (
+                            <div className="flex items-center justify-center py-12">
+                                <span className="animate-spin h-8 w-8 border-4 border-purple-600 border-t-transparent rounded-full"></span>
+                            </div>
+                        ) : hareketler.length > 0 ? (
+                            <div className="border rounded-lg overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 dark:bg-slate-900 border-b">
+                                        <tr>
+                                            <th className="text-left p-3 font-semibold">Tarih</th>
+                                            <th className="text-left p-3 font-semibold">İşlem</th>
+                                            <th className="text-left p-3 font-semibold">Açıklama / Fatura</th>
+                                            <th className="text-right p-3 font-semibold">Tutar</th>
+                                            <th className="text-right p-3 font-semibold">Bakiye Etkisi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {hareketler.map((h) => (
+                                            <tr key={h.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                                                <td className="p-3 whitespace-nowrap text-slate-500">
+                                                    {new Date(h.islem_tarihi).toLocaleDateString('tr-TR')}
+                                                </td>
+                                                <td className="p-3">
+                                                    {getHareketBadge(h.islem_tipi)}
+                                                </td>
+                                                <td className="p-3">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">{h.aciklama}</span>
+                                                        {h.fatura_no && <span className="text-[10px] text-slate-400 font-mono">No: {h.fatura_no}</span>}
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 text-right font-bold">
+                                                    ₺{h.miktar.toLocaleString('tr-TR')}
+                                                </td>
+                                                <td className={`p-3 text-right font-bold ${h.bakiye_etkisi > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                    {h.bakiye_etkisi > 0 ? '+' : ''}₺{h.bakiye_etkisi.toLocaleString('tr-TR')}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 text-slate-400">
+                                <BarChart3 className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                <p>Henüz bir hareket kaydı bulunmuyor.</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="p-4 border-t bg-slate-50/50">
+                        <Button variant="outline" onClick={() => setHareketDialogOpen(false)}>Kapat</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            {/* Cari Hareketler Dialog */}
+            <Dialog open={hareketDialogOpen} onOpenChange={setHareketDialogOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+                    <DialogHeader className="p-6 border-b">
+                        <DialogTitle className="flex items-center gap-2">
+                            <BarChart3 className="w-5 h-5 text-purple-600" />
+                            Cari Hesap Ekstresi: {selectedSupplier?.name}
+                        </DialogTitle>
+                        <DialogDescription>
+                            Tedarikçi ile yapılan tüm mali hareketlerin dökümü.
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto p-6">
+                        {hareketLoading ? (
+                            <div className="flex items-center justify-center py-12">
+                                <span className="animate-spin h-8 w-8 border-4 border-purple-600 border-t-transparent rounded-full"></span>
+                            </div>
+                        ) : hareketler.length > 0 ? (
+                            <div className="border rounded-lg overflow-hidden">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 dark:bg-slate-900 border-b">
+                                        <tr>
+                                            <th className="text-left p-3 font-semibold">Tarih</th>
+                                            <th className="text-left p-3 font-semibold">İşlem</th>
+                                            <th className="text-left p-3 font-semibold">Açıklama / Fatura</th>
+                                            <th className="text-right p-3 font-semibold">Tutar</th>
+                                            <th className="text-right p-3 font-semibold">Bakiye Etkisi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y">
+                                        {hareketler.map((h) => (
+                                            <tr key={h.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-900/50 transition-colors">
+                                                <td className="p-3 whitespace-nowrap text-slate-500">
+                                                    {new Date(h.islem_tarihi).toLocaleDateString('tr-TR')}
+                                                </td>
+                                                <td className="p-3">
+                                                    {getHareketBadge(h.islem_tipi)}
+                                                </td>
+                                                <td className="p-3">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium">{h.aciklama}</span>
+                                                        {h.fatura_no && <span className="text-[10px] text-slate-400 font-mono">No: {h.fatura_no}</span>}
+                                                    </div>
+                                                </td>
+                                                <td className="p-3 text-right font-bold">
+                                                    ₺{h.miktar.toLocaleString('tr-TR')}
+                                                </td>
+                                                <td className={`p-3 text-right font-bold ${h.bakiye_etkisi > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                                                    {h.bakiye_etkisi > 0 ? '+' : ''}₺{h.bakiye_etkisi.toLocaleString('tr-TR')}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 text-slate-400">
+                                <BarChart3 className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                <p>Henüz bir hareket kaydı bulunmuyor.</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="p-4 border-t bg-slate-50/50">
+                        <Button variant="outline" onClick={() => setHareketDialogOpen(false)}>Kapat</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

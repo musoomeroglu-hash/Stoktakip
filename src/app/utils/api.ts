@@ -279,6 +279,19 @@ export type PurchaseItem = {
   notes?: string;
 };
 
+export type CariHareket = {
+  id: string;
+  supplier_id: string;
+  islem_tarihi: string;
+  islem_tipi: 'alis' | 'odeme' | 'iade' | 'borc_ekleme' | 'alacak_ekleme';
+  miktar: number;
+  aciklama?: string;
+  ilgili_id?: string;
+  fatura_no?: string;
+  bakiye_etkisi: number;
+  created_at: string;
+};
+
 export type Payment = {
   id: string;
   purchase_id: string;
@@ -781,5 +794,19 @@ export const api = {
       body: JSON.stringify(payment),
     });
     return result.data;
+  },
+
+  // Cari Hareketler
+  async getCariHareketler(supplierId: string): Promise<CariHareket[]> {
+    const result = await fetchSupabase(`/cari_hareketler?supplier_id=eq.${supplierId}&order=islem_tarihi.desc`);
+    return Array.isArray(result.data) ? result.data : [];
+  },
+
+  async addCariHareket(hareket: Partial<CariHareket>): Promise<CariHareket> {
+    const result = await fetchSupabase("/cari_hareketler", {
+      method: "POST",
+      body: JSON.stringify(hareket),
+    });
+    return Array.isArray(result.data) ? result.data[0] : result.data;
   },
 };
