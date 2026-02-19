@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test - Stok Yönetim Sistemi</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.danger {
+            background: #f44336;
+        }
+        button.danger:hover {
+            background: #da190b;
+        }
+        #results {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .info { color: #2196F3; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔧 API Bağlantı Test Aracı</h1>
+        <p>Bu araç, stok yönetim sisteminin API bağlantılarını test eder.</p>
+        
+        <div>
+            <button onclick="testConnection()">🔍 Bağlantıyı Test Et</button>
+            <button onclick="testRead()">📖 Okuma İşlemlerini Test Et</button>
+            <button onclick="testWrite()">✍️ Yazma İşlemlerini Test Et</button>
+            <button class="danger" onclick="clearResults()">🗑️ Temizle</button>
+        </div>
+
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const projectId = "xtjvbkhappiceyrlovkx";
+        const publicAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh0anZia2hhcHBpY2V5cmxvdmt4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY2NTUzNTksImV4cCI6MjA4MjIzMTM1OX0.bUSQ4nkoasOVQdtQwGSxtXiLGbyV9Ih8qlf-sGg3LCg";
+        const API_URL = `https://${projectId}.supabase.co/functions/v1`;
+
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : 'info';
+            results.innerHTML += `<span class="${className}">${message}</span>\n`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function fetchAPI(endpoint) {
+            const url = `${API_URL}${endpoint}`;
+            log(`📡 İstek gönderiliyor: ${url}`, 'info');
+            
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${publicAnonKey}`
+                    }
+                });
+
+                log(`📡 Yanıt durumu: ${response.status} ${response.statusText}`, 
+                    response.ok ? 'success' : 'error');
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`❌ Hata: ${errorText}`, 'error');
+                    return null;
+                }
+
+                const data = await response.json();
+                log(`✅ Yanıt alındı: ${JSON.stringify(data, null, 2)}`, 'success');
+                return data;
+            } catch (error) {
+                log(`❌ Bağlantı hatası: ${error.message}`, 'error');
+                return null;
+            }
+        }
+
+        async function testConnection() {
+            clearResults();
+            log('🔍 API bağlantısı test ediliyor...', 'info');
+            log('', 'info');
+            
+            const result = await fetchAPI('/make-server-929c4905/health');
+            
+            if (result) {
+                log('', 'info');
+                log('🎉 API bağlantısı başarılı!', 'success');
+            } else {
+                log('', 'info');
+                log('⚠️ API bağlantısı başarısız. Supabase Edge Function deploy edilmemiş olabilir.', 'error');
+            }
+        }
+
+        async function testRead() {
+            clearResults();
+            log('📖 Okuma işlemleri test ediliyor...', 'info');
+            log('', 'info');
+
+            const endpoints = [
+                '/make-server-929c4905/categories',
+                '/make-server-929c4905/products',
+                '/make-server-929c4905/sales',
+                '/make-server-929c4905/repairs',
+                '/make-server-929c4905/phone-sales',
+                '/make-server-929c4905/expenses',
+                '/make-server-929c4905/customer-requests'
+            ];
+
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const endpoint of endpoints) {
+                const result = await fetchAPI(endpoint);
+                if (result) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+                log('', 'info');
+            }
+
+            log(`📊 Sonuç: ${successCount} başarılı, ${failCount} başarısız`, 
+                failCount === 0 ? 'success' : 'error');
+        }
+
+        async function testWrite() {
+            clearResults();
+            log('✍️ Yazma işlemleri test ediliyor...', 'info');
+            log('', 'info');
+
+            try {
+                // Test gider ekleme
+                log('📝 Test gider ekleniyor...', 'info');
+                const url = `${API_URL}/make-server-929c4905/expenses`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${publicAnonKey}`
+                    },
+                    body: JSON.stringify({
+                        name: "TEST GİDER - API Test",
+                        amount: 1.00,
+                        createdAt: new Date().toISOString()
+                    })
+                });
+
+                log(`📡 Yanıt durumu: ${response.status}`, 'info');
+
+                if (response.ok) {
+                    const data = await response.json();
+                    log(`✅ Test gider eklendi: ${JSON.stringify(data, null, 2)}`, 'success');
+                    
+                    // Test gider silme
+                    if (data.data && data.data.id) {
+                        log('', 'info');
+                        log('🗑️ Test gider siliniyor...', 'info');
+                        const deleteResponse = await fetch(`${API_URL}/make-server-929c4905/expenses/${data.data.id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${publicAnonKey}`
+                            }
+                        });
+                        
+                        if (deleteResponse.ok) {
+                            log('✅ Test gider silindi', 'success');
+                            log('', 'info');
+                            log('🎉 Yazma işlemleri başarılı!', 'success');
+                        } else {
+                            log('❌ Test gider silinemedi', 'error');
+                        }
+                    }
+                } else {
+                    const errorText = await response.text();
+                    log(`❌ Test gider eklenemedi: ${errorText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Hata: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
