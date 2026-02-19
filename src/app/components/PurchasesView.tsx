@@ -11,7 +11,13 @@ import {
     Image as ImageIcon,
     Eye,
     Building2,
-    BarChart3
+    BarChart3,
+    ShoppingCart,
+    Plus,
+    Trash2,
+    FileText,
+    Calendar,
+    Package
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, type Purchase, type Supplier, type Product, type PurchaseStatus, type PurchasePaymentMethod } from "../utils/api";

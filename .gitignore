@@ -25,3 +25,5 @@ App_fixed.tsx
 *.fixed.tsx
 .vercel
 .env*.local
+
+.vercel
