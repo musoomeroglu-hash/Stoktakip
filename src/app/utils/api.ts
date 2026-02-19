@@ -58,13 +58,21 @@ async function fetchAPI(endpoint: string, options: RequestInit = {}) {
 
     if (!response.ok) {
       const errorText = await response.text();
+      let debugMessage = "";
+      try {
+        const parsed = JSON.parse(errorText);
+        if (parsed.debug) {
+          debugMessage = ` (Route: ${parsed.debug.received_path}, Method: ${parsed.debug.received_method})`;
+        }
+      } catch (e) { }
+
       console.error('❌ API Error:', {
         url,
         status: response.status,
         statusText: response.statusText,
         error: errorText
       });
-      throw new Error(`API Hatası (${response.status}): ${errorText || response.statusText}`);
+      throw new Error(`API Hatası (${response.status}): ${errorText || response.statusText}${debugMessage}`);
     }
 
     const data = await response.json();
@@ -537,8 +545,16 @@ export const api = {
 
   // Phone Sales
   async getPhoneSales(): Promise<PhoneSale[]> {
-    const result = await fetchAPI("/phone-sales");
-    return result.data || [];
+    try {
+      const result = await fetchAPI("/phone-sales");
+      return result.data || [];
+    } catch (error: any) {
+      if (error.message.includes("404")) {
+        const result = await fetchAPI("/make-server/phone-sales");
+        return result.data || [];
+      }
+      throw error;
+    }
   },
 
   async addPhoneSale(phoneSale: Omit<PhoneSale, "id">): Promise<PhoneSale> {
@@ -565,16 +581,37 @@ export const api = {
 
   // Phone Stocks
   async getPhoneStocks(): Promise<PhoneStock[]> {
-    const result = await fetchAPI("/phone-stocks");
-    return result.data || [];
+    try {
+      const result = await fetchAPI("/phone-stocks");
+      return result.data || [];
+    } catch (error: any) {
+      if (error.message.includes("404")) {
+        const result = await fetchAPI("/make-server/phone-stocks");
+        return result.data || [];
+      }
+      throw error;
+    }
   },
 
   async addPhoneStock(phoneStock: Omit<PhoneStock, "id">): Promise<PhoneStock> {
-    const result = await fetchAPI("/phone-stocks", {
-      method: "POST",
-      body: JSON.stringify(phoneStock),
-    });
-    return result.data;
+    try {
+      const result = await fetchAPI("/phone-stocks", {
+        method: "POST",
+        body: JSON.stringify(phoneStock),
+      });
+      return result.data;
+    } catch (error: any) {
+      // 404 durumunda alternatif rotayı dene (bazı deployment'larda prefix gerekebiliyor)
+      if (error.message.includes("404")) {
+        console.warn("Retrying with fallback prefix...");
+        const result = await fetchAPI("/make-server/phone-stocks", {
+          method: "POST",
+          body: JSON.stringify(phoneStock),
+        });
+        return result.data;
+      }
+      throw error;
+    }
   },
 
   async updatePhoneStock(id: string, phoneStock: Partial<PhoneStock>): Promise<PhoneStock> {
