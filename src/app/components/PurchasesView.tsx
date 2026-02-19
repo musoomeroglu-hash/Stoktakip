@@ -26,9 +26,10 @@ import { api, type Purchase, type Supplier, type Product, type PurchaseStatus, t
 
 interface PurchasesViewProps {
     isPrivacyMode: boolean;
+    onNavigate?: (view: string) => void;
 }
 
-export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
+export function PurchasesView({ isPrivacyMode, onNavigate }: PurchasesViewProps) {
     const [purchases, setPurchases] = useState<Purchase[]>([]);
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
@@ -242,7 +243,19 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
                                             {new Date(p.purchase_date).toLocaleDateString('tr-TR')}
                                         </div>
                                     </td>
-                                    <td className="p-4 font-medium">{p.supplier?.name || "Bilinmeyen"}</td>
+                                    <td className="p-4 font-medium">
+                                        {onNavigate && p.supplier ? (
+                                            <button
+                                                className="text-blue-600 hover:underline font-medium text-left"
+                                                onClick={() => onNavigate("suppliers")}
+                                                title="Tedarikçiye Git"
+                                            >
+                                                {p.supplier.name}
+                                            </button>
+                                        ) : (
+                                            p.supplier?.name || "Bilinmeyen"
+                                        )}
+                                    </td>
                                     <td className="p-4 text-muted-foreground">{p.invoice_number || "—"}</td>
                                     <td className={`p-4 text-right font-bold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                                         ₺{p.total.toLocaleString('tr-TR')}

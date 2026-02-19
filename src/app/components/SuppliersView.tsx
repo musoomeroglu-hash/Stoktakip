@@ -27,9 +27,10 @@ import { api, type Supplier } from "../utils/api";
 
 interface SuppliersViewProps {
     isPrivacyMode: boolean;
+    onNavigate?: (view: string) => void;
 }
 
-export function SuppliersView({ isPrivacyMode }: SuppliersViewProps) {
+export function SuppliersView({ isPrivacyMode, onNavigate }: SuppliersViewProps) {
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -246,7 +247,7 @@ export function SuppliersView({ isPrivacyMode }: SuppliersViewProps) {
 
                                 <div className="pt-2 flex justify-between items-center border-t">
                                     <div className="flex gap-1">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" onClick={() => toast.info("Yakında: Alış Geçmişi")}>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" title="Alış Geçmişi" onClick={() => onNavigate ? onNavigate("purchases") : toast.info("Alışlar sayfasına gidin")}>
                                             <History className="h-4 w-4" />
                                         </Button>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600" onClick={() => handleOpenDialog(supplier)}>

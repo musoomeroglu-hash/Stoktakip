@@ -1195,6 +1195,7 @@ function App() {
           setActiveView={setActiveView}
           onLogout={handleLogout}
           onOpenCategoryManagement={() => setCategoryManagementOpen(true)}
+          suppliers={suppliers}
         />
         <SidebarInset className="flex flex-col min-h-screen bg-slate-50/30 dark:bg-slate-950/50">
           {/* Header */}
@@ -1514,7 +1515,7 @@ function App() {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <PurchasesView isPrivacyMode={isPrivacyMode} />
+                  <PurchasesView isPrivacyMode={isPrivacyMode} onNavigate={(v) => setActiveView(v as any)} />
                 </motion.div>
               ) : activeView === "suppliers" ? (
                 <motion.div
@@ -1524,7 +1525,7 @@ function App() {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <SuppliersView isPrivacyMode={isPrivacyMode} />
+                  <SuppliersView isPrivacyMode={isPrivacyMode} onNavigate={(v) => setActiveView(v as any)} />
                 </motion.div>
               ) : activeView === "calculator" ? (
                 // Hesap Makinesi Görünümü
