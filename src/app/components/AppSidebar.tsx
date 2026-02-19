@@ -27,13 +27,18 @@ import {
     ChevronLeft,
     ChevronRight,
     Building2,
+    Briefcase,
+    ChevronDown,
 } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
+import { useEffect, useState } from "react";
 
 interface AppSidebarProps {
     activeView: string;
     setActiveView: (view: any) => void;
     onLogout: () => void;
     onOpenCategoryManagement: () => void;
+    suppliers?: any[];
 }
 
 const menuItems = [
@@ -42,18 +47,6 @@ const menuItems = [
         view: "products",
         icon: Package,
         color: "text-blue-500"
-    },
-    {
-        title: "Alışlar",
-        view: "purchases",
-        icon: ShoppingCart,
-        color: "text-orange-600"
-    },
-    {
-        title: "Tedarikçiler",
-        view: "suppliers",
-        icon: Building2,
-        color: "text-blue-600"
     },
     {
         title: "Satış & Raporlar",
@@ -72,12 +65,6 @@ const menuItems = [
         view: "phoneSales",
         icon: Smartphone,
         color: "text-pink-500"
-    },
-    {
-        title: "Cariler",
-        view: "caris",
-        icon: Users,
-        color: "text-indigo-500"
     },
     {
         title: "Analizler",
@@ -105,12 +92,44 @@ const menuItems = [
     },
 ];
 
+const subMenuItems = [
+    {
+        title: "Alışlar",
+        view: "purchases",
+        icon: ShoppingCart,
+        color: "text-orange-600"
+    },
+    {
+        title: "Tedarikçiler",
+        view: "suppliers",
+        icon: Building2,
+        color: "text-blue-600"
+    },
+    {
+        title: "Cariler",
+        view: "caris",
+        icon: Users,
+        color: "text-indigo-500"
+    },
+];
+
 export function AppSidebar({
     activeView,
     setActiveView,
     onLogout,
-    onOpenCategoryManagement
+    onOpenCategoryManagement,
+    suppliers = []
 }: AppSidebarProps) {
+    const isSubViewActive = subMenuItems.some(item => item.view === activeView);
+    const [isFinanceOpen, setIsFinanceOpen] = useState(isSubViewActive);
+
+    // Auto-open if a subview is selected externally
+    useEffect(() => {
+        if (isSubViewActive) setIsFinanceOpen(true);
+    }, [activeView, isSubViewActive]);
+
+    const totalDebt = suppliers.reduce((sum, s) => sum + (s.balance || 0), 0);
+
     return (
         <Sidebar collapsible="icon" className="max-md:hidden border-r border-slate-200 dark:border-slate-800">
             <SidebarHeader className="p-4">

@@ -1195,6 +1195,7 @@ function App() {
           setActiveView={setActiveView}
           onLogout={handleLogout}
           onOpenCategoryManagement={() => setCategoryManagementOpen(true)}
+          suppliers={suppliers}
         />
         <SidebarInset className="flex flex-col min-h-screen bg-slate-50/30 dark:bg-slate-950/50">
           {/* Header */}
