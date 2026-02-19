@@ -10,6 +10,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        maximumFileSizeToCacheInBytes: 4000000 // 4MB limit
+      },
       manifest: {
         name: 'Stok Takip',
         short_name: 'Stok Takip',

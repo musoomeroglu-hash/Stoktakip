@@ -58,13 +58,21 @@ async function fetchAPI(endpoint: string, options: RequestInit = {}) {
 
     if (!response.ok) {
       const errorText = await response.text();
+      let debugMessage = "";
+      try {
+        const parsed = JSON.parse(errorText);
+        if (parsed.debug) {
+          debugMessage = ` (Route: ${parsed.debug.received_path}, Method: ${parsed.debug.received_method})`;
+        }
+      } catch (e) { }
+
       console.error('❌ API Error:', {
         url,
         status: response.status,
         statusText: response.statusText,
         error: errorText
       });
-      throw new Error(`API Hatası (${response.status}): ${errorText || response.statusText}`);
+      throw new Error(`API Hatası (${response.status}): ${errorText || response.statusText}${debugMessage}`);
     }
 
     const data = await response.json();
@@ -277,6 +285,19 @@ export type PurchaseItem = {
   unit_cost: number;
   total_cost: number;
   notes?: string;
+};
+
+export type CariHareket = {
+  id: string;
+  supplier_id: string;
+  islem_tarihi: string;
+  islem_tipi: 'alis' | 'odeme' | 'iade' | 'borc_ekleme' | 'alacak_ekleme';
+  miktar: number;
+  aciklama?: string;
+  ilgili_id?: string;
+  fatura_no?: string;
+  bakiye_etkisi: number;
+  created_at: string;
 };
 
 export type Payment = {
@@ -524,8 +545,16 @@ export const api = {
 
   // Phone Sales
   async getPhoneSales(): Promise<PhoneSale[]> {
-    const result = await fetchAPI("/phone-sales");
-    return result.data || [];
+    try {
+      const result = await fetchAPI("/phone-sales");
+      return result.data || [];
+    } catch (error: any) {
+      if (error.message.includes("404")) {
+        const result = await fetchAPI("/make-server/phone-sales");
+        return result.data || [];
+      }
+      throw error;
+    }
   },
 
   async addPhoneSale(phoneSale: Omit<PhoneSale, "id">): Promise<PhoneSale> {
@@ -552,16 +581,37 @@ export const api = {
 
   // Phone Stocks
   async getPhoneStocks(): Promise<PhoneStock[]> {
-    const result = await fetchAPI("/phone-stocks");
-    return result.data || [];
+    try {
+      const result = await fetchAPI("/phone-stocks");
+      return result.data || [];
+    } catch (error: any) {
+      if (error.message.includes("404")) {
+        const result = await fetchAPI("/make-server/phone-stocks");
+        return result.data || [];
+      }
+      throw error;
+    }
   },
 
   async addPhoneStock(phoneStock: Omit<PhoneStock, "id">): Promise<PhoneStock> {
-    const result = await fetchAPI("/phone-stocks", {
-      method: "POST",
-      body: JSON.stringify(phoneStock),
-    });
-    return result.data;
+    try {
+      const result = await fetchAPI("/phone-stocks", {
+        method: "POST",
+        body: JSON.stringify(phoneStock),
+      });
+      return result.data;
+    } catch (error: any) {
+      // 404 durumunda alternatif rotayı dene (bazı deployment'larda prefix gerekebiliyor)
+      if (error.message.includes("404")) {
+        console.warn("Retrying with fallback prefix...");
+        const result = await fetchAPI("/make-server/phone-stocks", {
+          method: "POST",
+          body: JSON.stringify(phoneStock),
+        });
+        return result.data;
+      }
+      throw error;
+    }
   },
 
   async updatePhoneStock(id: string, phoneStock: Partial<PhoneStock>): Promise<PhoneStock> {
@@ -781,5 +831,19 @@ export const api = {
       body: JSON.stringify(payment),
     });
     return result.data;
+  },
+
+  // Cari Hareketler
+  async getCariHareketler(supplierId: string): Promise<CariHareket[]> {
+    const result = await fetchSupabase(`/cari_hareketler?supplier_id=eq.${supplierId}&order=islem_tarihi.desc`);
+    return Array.isArray(result.data) ? result.data : [];
+  },
+
+  async addCariHareket(hareket: Partial<CariHareket>): Promise<CariHareket> {
+    const result = await fetchSupabase("/cari_hareketler", {
+      method: "POST",
+      body: JSON.stringify(hareket),
+    });
+    return Array.isArray(result.data) ? result.data[0] : result.data;
   },
 };

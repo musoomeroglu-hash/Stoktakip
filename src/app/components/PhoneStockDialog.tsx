@@ -106,17 +106,6 @@ export function PhoneStockDialog({ open, onOpenChange, onSave }: PhoneStockDialo
 
         setLoading(true);
         try {
-            // DIAGNOSTIC TEST: Call categories (which we know works)
-            console.log("DIAGNOSTIC: Testing API connection to /categories...");
-            try {
-                const test = await api.getCategories();
-                console.log("DIAGNOSTIC SUCCESS:", test);
-                toast.info("Ağ Testi Başarılı: /categories erişilebilir.");
-            } catch (diagsError) {
-                console.error("DIAGNOSTIC FAILED:", diagsError);
-                toast.error(`Ağ Testi BAŞARISIZ: ${String(diagsError)}`);
-            }
-
             await onSave({
                 brand: brand.trim(),
                 model: model.trim(),
@@ -130,7 +119,8 @@ export function PhoneStockDialog({ open, onOpenChange, onSave }: PhoneStockDialo
             onOpenChange(false);
             toast.success("Telefon stoğu başarıyla eklendi!");
         } catch (error) {
-            // Error is already handled in App.tsx toast
+            console.error("Phone stock save failed:", error);
+            // Hata zaten App.tsx'de toast ile gösteriliyor
         } finally {
             setLoading(false);
         }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import {
     Sidebar,
     SidebarContent,
@@ -24,21 +25,18 @@ import {
     BarChart3,
     Settings,
     LogOut,
-    ChevronLeft,
-    ChevronRight,
     Building2,
     Briefcase,
     ChevronDown,
 } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collapsible";
-import { useEffect, useState } from "react";
+import type { Supplier } from "../utils/api";
 
 interface AppSidebarProps {
     activeView: string;
     setActiveView: (view: any) => void;
     onLogout: () => void;
     onOpenCategoryManagement: () => void;
-    suppliers?: any[];
+    suppliers?: Supplier[];
 }
 
 const menuItems = [
@@ -72,12 +70,7 @@ const menuItems = [
         icon: BarChart3,
         color: "text-emerald-500"
     },
-    {
-        title: "Giderler",
-        view: "expenses",
-        icon: Receipt,
-        color: "text-red-500"
-    },
+
     {
         title: "İstek & Siparişler",
         view: "requests",
@@ -92,43 +85,44 @@ const menuItems = [
     },
 ];
 
-const subMenuItems = [
-    {
-        title: "Alışlar",
-        view: "purchases",
-        icon: ShoppingCart,
-        color: "text-orange-600"
-    },
-    {
-        title: "Tedarikçiler",
-        view: "suppliers",
-        icon: Building2,
-        color: "text-blue-600"
-    },
-    {
-        title: "Cariler",
-        view: "caris",
-        icon: Users,
-        color: "text-indigo-500"
-    },
-];
+// Satın Alma & Cari grubundaki view'lar
+// Satın Alma & Cari grubundaki view'lar
+const GROUP_VIEWS = ["purchases", "suppliers", "caris", "expenses"];
 
 export function AppSidebar({
     activeView,
     setActiveView,
     onLogout,
     onOpenCategoryManagement,
-    suppliers = []
+    suppliers = [],
 }: AppSidebarProps) {
-    const isSubViewActive = subMenuItems.some(item => item.view === activeView);
-    const [isFinanceOpen, setIsFinanceOpen] = useState(isSubViewActive);
+    // Gruptaki bir sayfadaysak otomatik açık başlat
+    const [groupOpen, setGroupOpen] = useState(() =>
+        GROUP_VIEWS.includes(activeView)
+    );
 
-    // Auto-open if a subview is selected externally
+    // Aktif view değiştiğinde grubu kontrol et
     useEffect(() => {
-        if (isSubViewActive) setIsFinanceOpen(true);
-    }, [activeView, isSubViewActive]);
+        if (GROUP_VIEWS.includes(activeView)) {
+            setGroupOpen(true);
+        }
+    }, [activeView]);
 
-    const totalDebt = suppliers.reduce((sum, s) => sum + (s.balance || 0), 0);
+    // Toplam tedarikçi borcu
+    const totalDebt = suppliers.reduce(
+        (sum, s) => sum + (s.balance > 0 ? s.balance : 0),
+        0
+    );
+
+    const formatCurrency = (amount: number) =>
+        `₺${amount.toLocaleString("tr-TR", { maximumFractionDigits: 0 })}`;
+
+    const subMenuItems = [
+        { title: "Alışlar", view: "purchases", icon: ShoppingCart, color: "text-orange-600" },
+        { title: "Giderler", view: "expenses", icon: Receipt, color: "text-red-500" },
+        { title: "Tedarikçiler", view: "suppliers", icon: Building2, color: "text-blue-600" },
+        { title: "Cariler", view: "caris", icon: Users, color: "text-indigo-500" },
+    ];
 
     return (
         <Sidebar collapsible="icon" className="max-md:hidden border-r border-slate-200 dark:border-slate-800">
@@ -155,6 +149,7 @@ export function AppSidebar({
                     </SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu className="px-2 gap-1">
+                            {/* Normal menü öğeleri */}
                             {menuItems.map((item) => (
                                 <SidebarMenuItem key={item.view}>
                                     <SidebarMenuButton
@@ -176,6 +171,64 @@ export function AppSidebar({
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             ))}
+
+                            {/* ── Satın Alma & Cari Accordion Grubu ── */}
+                            <SidebarMenuItem>
+                                {/* Grup başlığı */}
+                                <SidebarMenuButton
+                                    onClick={() => setGroupOpen((o) => !o)}
+                                    isActive={GROUP_VIEWS.includes(activeView)}
+                                    tooltip="Satın Alma & Cari"
+                                    className={`
+                    transition-all duration-200 w-full
+                    ${GROUP_VIEWS.includes(activeView)
+                                            ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-semibold'
+                                            : 'hover:bg-slate-100 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400'
+                                        }
+                  `}
+                                >
+                                    <Briefcase className={`h-4 w-4 flex-shrink-0 ${GROUP_VIEWS.includes(activeView) ? 'text-amber-600' : ''}`} />
+                                    <span className="ml-2 flex-1 group-data-[collapsible=icon]:hidden">
+                                        Satın Alma & Cari
+                                    </span>
+                                    {/* Borç badge */}
+                                    {totalDebt > 0 && (
+                                        <span className="ml-1 group-data-[collapsible=icon]:hidden text-[10px] font-bold bg-red-100 dark:bg-red-950/40 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded-full leading-none">
+                                            {formatCurrency(totalDebt)}
+                                        </span>
+                                    )}
+                                    <ChevronDown
+                                        className={`h-3 w-3 ml-1 group-data-[collapsible=icon]:hidden flex-shrink-0 transition-transform duration-200 ${groupOpen ? 'rotate-180' : ''}`}
+                                    />
+                                </SidebarMenuButton>
+
+                                {/* Alt menü (animasyonlu) */}
+                                <div
+                                    className={`overflow-hidden transition-all duration-200 ease-in-out group-data-[collapsible=icon]:hidden ${groupOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}
+                                >
+                                    <SidebarMenu className="pl-5 pr-1 pt-1 gap-0.5">
+                                        {subMenuItems.map((item) => (
+                                            <SidebarMenuItem key={item.view}>
+                                                <SidebarMenuButton
+                                                    onClick={() => setActiveView(item.view)}
+                                                    isActive={activeView === item.view}
+                                                    tooltip={item.title}
+                                                    className={`
+                                transition-all duration-200 h-8
+                                ${activeView === item.view
+                                                            ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-semibold'
+                                                            : 'hover:bg-slate-100 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400'
+                                                        }
+                              `}
+                                                >
+                                                    <item.icon className={`h-3.5 w-3.5 ${activeView === item.view ? item.color : ''}`} />
+                                                    <span className="ml-2 text-[13px]">{item.title}</span>
+                                                </SidebarMenuButton>
+                                            </SidebarMenuItem>
+                                        ))}
+                                    </SidebarMenu>
+                                </div>
+                            </SidebarMenuItem>
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>

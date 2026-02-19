@@ -833,6 +833,7 @@ function App() {
       console.error("Error adding phone stock:", error);
       const message = error instanceof Error ? error.message : "Bilinmeyen hata";
       toast.error(`Stok eklenirken hata oluştu: ${message}`);
+      throw error;
     }
   };
 
@@ -1515,7 +1516,7 @@ function App() {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <PurchasesView isPrivacyMode={isPrivacyMode} />
+                  <PurchasesView isPrivacyMode={isPrivacyMode} onNavigate={(v) => setActiveView(v as any)} />
                 </motion.div>
               ) : activeView === "suppliers" ? (
                 <motion.div
@@ -1525,7 +1526,7 @@ function App() {
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <SuppliersView isPrivacyMode={isPrivacyMode} />
+                  <SuppliersView isPrivacyMode={isPrivacyMode} onNavigate={(v) => setActiveView(v as any)} />
                 </motion.div>
               ) : activeView === "calculator" ? (
                 // Hesap Makinesi Görünümü

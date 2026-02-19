@@ -7,34 +7,31 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
 import {
-    ShoppingCart,
-    Plus,
-    Search,
-    Calendar,
-    FileText,
-    ChevronRight,
-    Trash2,
-    Package,
-    CheckCircle2,
-    Clock,
-    AlertCircle,
     TrendingDown,
-    Image as ImageIcon
+    Image as ImageIcon,
+    Eye,
+    Building2,
+    BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
 import { api, type Purchase, type Supplier, type Product, type PurchaseStatus, type PurchasePaymentMethod } from "../utils/api";
 
 interface PurchasesViewProps {
     isPrivacyMode: boolean;
+    onNavigate?: (view: string) => void;
 }
 
-export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
+export function PurchasesView({ isPrivacyMode, onNavigate }: PurchasesViewProps) {
     const [purchases, setPurchases] = useState<Purchase[]>([]);
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+    const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null);
+    const [purchaseItemsData, setPurchaseItemsData] = useState<PurchaseItem[]>([]);
+    const [detailLoading, setDetailLoading] = useState(false);
 
     // Form State
     const [selectedSupplierId, setSelectedSupplierId] = useState("");
@@ -142,6 +139,20 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
         }
     };
 
+    const handleOpenDetail = async (purchase: Purchase) => {
+        setSelectedPurchase(purchase);
+        setDetailDialogOpen(true);
+        setDetailLoading(true);
+        try {
+            const items = await api.getPurchaseItems(purchase.id);
+            setPurchaseItemsData(items);
+        } catch (error: any) {
+            toast.error("Alış detayları yüklenemedi: " + error.message);
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
     const resetForm = () => {
         setSelectedSupplierId("");
         setPurchaseDate(new Date().toISOString().split('T')[0]);
@@ -242,15 +253,27 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
                                             {new Date(p.purchase_date).toLocaleDateString('tr-TR')}
                                         </div>
                                     </td>
-                                    <td className="p-4 font-medium">{p.supplier?.name || "Bilinmeyen"}</td>
+                                    <td className="p-4 font-medium">
+                                        {onNavigate && p.supplier ? (
+                                            <button
+                                                className="text-blue-600 hover:underline font-medium text-left"
+                                                onClick={() => onNavigate("suppliers")}
+                                                title="Tedarikçiye Git"
+                                            >
+                                                {p.supplier.name}
+                                            </button>
+                                        ) : (
+                                            p.supplier?.name || "Bilinmeyen"
+                                        )}
+                                    </td>
                                     <td className="p-4 text-muted-foreground">{p.invoice_number || "—"}</td>
                                     <td className={`p-4 text-right font-bold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                                         ₺{p.total.toLocaleString('tr-TR')}
                                     </td>
                                     <td className="p-4 text-center">{getStatusBadge(p.status)}</td>
                                     <td className="p-4 text-right">
-                                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toast.info("Yakında: Fatura Detayı")}>
-                                            <ChevronRight className="w-4 h-4" />
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-blue-600" title="Detay Gör" onClick={() => handleOpenDetail(p)}>
+                                            <Eye className="w-4 h-4" />
                                         </Button>
                                     </td>
                                 </tr>
@@ -466,6 +489,114 @@ export function PurchasesView({ isPrivacyMode }: PurchasesViewProps) {
                         <Button onClick={handleSavePurchase} className="bg-orange-600 hover:bg-orange-700 min-w-[150px]">
                             Faturayı Kaydet
                         </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            {/* Purchase Detail Dialog */}
+            <Dialog open={detailDialogOpen} onOpenChange={setDetailDialogOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col p-0">
+                    <DialogHeader className="p-6 border-b">
+                        <div className="flex justify-between items-start w-full pr-8">
+                            <div>
+                                <DialogTitle className="text-xl flex items-center gap-2">
+                                    <FileText className="w-5 h-5 text-blue-600" />
+                                    Fatura Detayı: {selectedPurchase?.invoice_number || "No Yok"}
+                                </DialogTitle>
+                                <DialogDescription>
+                                    {selectedPurchase?.purchase_date && new Date(selectedPurchase.purchase_date).toLocaleDateString('tr-TR')} tarihinde yapılan alış.
+                                </DialogDescription>
+                            </div>
+                            {getStatusBadge(selectedPurchase?.status || 'odenmedi' as any)}
+                        </div>
+                    </DialogHeader>
+
+                    <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                        {/* Summary Info */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <Card className="bg-slate-50 dark:bg-slate-900 border-none">
+                                <CardContent className="p-4">
+                                    <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Tedarikçi</div>
+                                    <div className="font-bold text-lg">{selectedPurchase?.supplier?.name || "Bilinmeyen"}</div>
+                                    <div className="mt-2 flex gap-2">
+                                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => onNavigate?.("suppliers")}>
+                                            <Building2 className="w-3 h-3" /> Tedarikçiye Git
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-slate-50 dark:bg-slate-900 border-none">
+                                <CardContent className="p-4">
+                                    <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Mali Durum</div>
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <div className="text-xs text-muted-foreground">Toplam Tutar</div>
+                                            <div className="font-bold text-lg text-blue-600">₺{selectedPurchase?.total.toLocaleString('tr-TR')}</div>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-xs text-muted-foreground">Kalan Borç</div>
+                                            <div className="font-bold text-lg text-red-600">₺{selectedPurchase?.remaining.toLocaleString('tr-TR')}</div>
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                            <Card className="bg-slate-50 dark:bg-slate-900 border-none">
+                                <CardContent className="p-4">
+                                    <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider mb-1">Hızlı Erişim</div>
+                                    <Button size="sm" variant="secondary" className="w-full h-9 gap-1 mt-2 bg-purple-100 text-purple-700 hover:bg-purple-200 border-none" onClick={() => onNavigate?.("suppliers")}>
+                                        <BarChart3 className="w-4 h-4" /> Cari Hareketleri Gör
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        {/* Items Table */}
+                        <div className="space-y-3">
+                            <h4 className="font-bold flex items-center gap-2">
+                                <Package className="w-4 h-4 text-blue-500" />
+                                Alınan Ürünler
+                            </h4>
+                            {detailLoading ? (
+                                <div className="py-12 flex justify-center">
+                                    <span className="animate-spin h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full"></span>
+                                </div>
+                            ) : (
+                                <div className="border rounded-lg overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-slate-50 dark:bg-slate-900 border-b">
+                                            <tr>
+                                                <th className="text-left p-3">Ürün</th>
+                                                <th className="text-center p-3">Miktar</th>
+                                                <th className="text-right p-3">Birim Maliyet</th>
+                                                <th className="text-right p-3">Toplam</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y">
+                                            {purchaseItemsData.map((item, idx) => (
+                                                <tr key={idx} className="hover:bg-slate-50/50">
+                                                    <td className="p-3 font-medium">
+                                                        {products.find(pr => pr.id === item.product_id)?.name || "Silinmiş Ürün"}
+                                                    </td>
+                                                    <td className="p-3 text-center">{item.quantity}</td>
+                                                    <td className="p-3 text-right">₺{item.unit_cost.toLocaleString('tr-TR')}</td>
+                                                    <td className="p-3 text-right font-bold">₺{item.total_cost.toLocaleString('tr-TR')}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+
+                        {selectedPurchase?.notes && (
+                            <div className="bg-amber-50 dark:bg-amber-950/20 p-4 rounded-lg border border-amber-100 dark:border-amber-900/50">
+                                <div className="text-[10px] uppercase font-bold text-amber-700 dark:text-amber-400 mb-1">Notlar</div>
+                                <p className="text-sm italic">{selectedPurchase.notes}</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <DialogFooter className="p-4 border-t bg-slate-50/50">
+                        <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>Kapat</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
