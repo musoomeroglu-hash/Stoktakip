@@ -586,8 +586,16 @@ export const api = {
       return result.data || [];
     } catch (error: any) {
       if (error.message.includes("404")) {
-        const result = await fetchAPI("/make-server/phone-stocks");
-        return result.data || [];
+        try {
+          const result = await fetchAPI("/make-server/phone-stocks");
+          return result.data || [];
+        } catch (fallbackError: any) {
+          if (fallbackError.message.includes("404")) {
+            console.warn("⚠️ phone-stocks endpoint not found on server, returning empty array.");
+            return [];
+          }
+          throw fallbackError;
+        }
       }
       throw error;
     }
