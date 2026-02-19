@@ -117,46 +117,59 @@ export function CariView({ customers, onAddCustomer, onUpdateCustomer, onDeleteC
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-950 dark:to-red-900/50 border-red-200 dark:border-red-800">
+        <Card className="bg-gradient-to-br from-red-50 to-red-100/50 dark:from-red-950 dark:to-red-900/50 border-red-200 dark:border-red-800 hover:shadow-md transition-shadow cursor-default">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-red-700 dark:text-red-300">Toplam Borç</div>
+                <div className="text-sm text-red-700 dark:text-red-300 font-medium">Toplam Borç</div>
                 <div className={`text-3xl font-bold text-red-900 dark:text-red-100 mt-2 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{totalDebt.toLocaleString('tr-TR')}</div>
-                <div className="text-xs text-red-600 dark:text-red-400 mt-1">Müşteriler bize borçlu</div>
+                <div className="text-xs text-red-600 dark:text-red-400 mt-1 flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" />
+                  Müşteriler bize borçlu
+                </div>
               </div>
-              <TrendingUp className="w-10 h-10 text-red-500" />
+              <div className="p-3 bg-red-100 dark:bg-red-900/50 rounded-full">
+                <TrendingUp className="w-6 h-6 text-red-600 dark:text-red-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950 dark:to-green-900/50 border-green-200 dark:border-green-800">
+        <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950 dark:to-green-900/50 border-green-200 dark:border-green-800 hover:shadow-md transition-shadow cursor-default">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-green-700 dark:text-green-300">Toplam Alacak</div>
+                <div className="text-sm text-green-700 dark:text-green-300 font-medium">Toplam Alacak</div>
                 <div className={`text-3xl font-bold text-green-900 dark:text-green-100 mt-2 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>₺{totalCredit.toLocaleString('tr-TR')}</div>
-                <div className="text-xs text-green-600 dark:text-green-400 mt-1">Biz müşterilere borçluyuz</div>
+                <div className="text-xs text-green-600 dark:text-green-400 mt-1 flex items-center gap-1">
+                  <TrendingDown className="w-3 h-3" />
+                  Biz müşterilere borçluyuz
+                </div>
               </div>
-              <TrendingDown className="w-10 h-10 text-green-500" />
+              <div className="p-3 bg-green-100 dark:bg-green-900/50 rounded-full">
+                <TrendingDown className="w-6 h-6 text-green-600 dark:text-green-400" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className={`bg-gradient-to-br ${balance >= 0 ? 'from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/50 border-blue-200 dark:border-blue-800' : 'from-orange-50 to-orange-100/50 dark:from-orange-950 dark:to-orange-900/50 border-orange-200 dark:border-orange-800'}`}>
+        <Card className={`bg-gradient-to-br ${balance >= 0 ? 'from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/50 border-blue-200 dark:border-blue-800' : 'from-orange-50 to-orange-100/50 dark:from-orange-950 dark:to-orange-900/50 border-orange-200 dark:border-orange-800'} hover:shadow-md transition-shadow cursor-default`}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className={`text-sm ${balance >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-orange-700 dark:text-orange-300'}`}>Net Durum</div>
+                <div className={`text-sm font-medium ${balance >= 0 ? 'text-blue-700 dark:text-blue-300' : 'text-orange-700 dark:text-orange-300'}`}>Net Durum</div>
                 <div className={`text-3xl font-bold mt-2 ${balance >= 0 ? 'text-blue-900 dark:text-blue-100' : 'text-orange-900 dark:text-orange-100'} ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                   ₺{Math.abs(balance).toLocaleString('tr-TR')}
                 </div>
-                <div className={`text-xs mt-1 ${balance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
+                <div className={`text-xs mt-1 font-medium ${balance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`}>
                   {balance >= 0 ? 'Lehimizde' : 'Aleyhimizde'}
                 </div>
               </div>
-              <DollarSign className={`w-10 h-10 ${balance >= 0 ? 'text-blue-500' : 'text-orange-500'}`} />
+              <div className={`p-3 rounded-full ${balance >= 0 ? 'bg-blue-100 dark:bg-blue-900/50' : 'bg-orange-100 dark:bg-orange-900/50'}`}>
+                <DollarSign className={`w-6 h-6 ${balance >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'}`} />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -199,11 +212,16 @@ export function CariView({ customers, onAddCustomer, onUpdateCustomer, onDeleteC
                   return (
                     <tr key={customer.id} className={`border-b ${rowColor} hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition-colors`}>
                       <td className="p-3">
-                        <div>
-                          <p className="font-medium">{customer.name}</p>
-                          {customer.notes && (
-                            <p className="text-xs text-muted-foreground">{customer.notes}</p>
-                          )}
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-bold border-2 border-white dark:border-gray-800 shadow-sm">
+                            {customer.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-900 dark:text-gray-100">{customer.name}</p>
+                            {customer.notes && (
+                              <p className="text-xs text-muted-foreground truncate max-w-[150px]">{customer.notes}</p>
+                            )}
+                          </div>
                         </div>
                       </td>
                       <td className="p-3">
@@ -271,8 +289,16 @@ export function CariView({ customers, onAddCustomer, onUpdateCustomer, onDeleteC
               </tbody>
             </table>
             {customers.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                Henüz cari hesap eklenmemiş
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/30 rounded-full flex items-center justify-center mb-4">
+                  <User className="w-8 h-8 text-indigo-400" />
+                </div>
+                <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">Henüz Cari Hesap Yok</h3>
+                <p className="text-sm mb-4">Müşterilerinizi ekleyerek borç/alacak takibi yapabilirsiniz.</p>
+                <Button onClick={() => handleOpenDialog()} variant="outline" className="border-indigo-200 text-indigo-600 hover:bg-indigo-50">
+                  <Plus className="w-4 h-4 mr-2" />
+                  İlk Cariyi Ekle
+                </Button>
               </div>
             )}
           </div>

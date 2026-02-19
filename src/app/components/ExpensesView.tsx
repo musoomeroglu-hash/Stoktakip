@@ -3,11 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
-import { Receipt, Plus, X, TrendingDown, DollarSign, AlertTriangle, Calendar } from "lucide-react";
+import { Receipt, Plus, X, TrendingDown, DollarSign, AlertTriangle, Calendar, Phone, Zap, Wifi, Home, Truck, Users } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { api, type Sale, type RepairRecord, type PhoneSale } from "@/app/utils/api";
+import { api, type Sale, type RepairRecord, type PhoneSale, type SaleItem } from "../utils/api";
 
 interface Expense {
   id: string;
@@ -203,7 +203,7 @@ export function ExpensesView({ sales, repairs, phoneSales, isPrivacyMode }: Expe
   const totalProfitInPeriod = useMemo(() => {
     const salesProfit = sales
       .filter(s =>
-        !s.items.some(item => item.productId.startsWith('repair-')) &&
+        !s.items.some((item: SaleItem) => item.productId.startsWith('repair-')) &&
         isDateInRange(s.date)
       )
       .reduce((sum, s) => sum + s.totalProfit, 0);
@@ -249,6 +249,17 @@ export function ExpensesView({ sales, repairs, phoneSales, isPrivacyMode }: Expe
     "Malzeme",
     "Kargo"
   ];
+
+  const getExpenseIcon = (name: string) => {
+    const n = name.toLowerCase();
+    if (n.includes("telefon")) return <Phone className="w-5 h-5" />;
+    if (n.includes("elektrik") || n.includes("enerji")) return <Zap className="w-5 h-5" />;
+    if (n.includes("internet") || n.includes("wifi")) return <Wifi className="w-5 h-5" />;
+    if (n.includes("kira") || n.includes("aidat")) return <Home className="w-5 h-5" />;
+    if (n.includes("kargo") || n.includes("nakliye")) return <Truck className="w-5 h-5" />;
+    if (n.includes("maaş") || n.includes("personel")) return <Users className="w-5 h-5" />;
+    return <Receipt className="w-5 h-5" />;
+  };
 
   return (
     <div className="space-y-6">
@@ -537,11 +548,12 @@ export function ExpensesView({ sales, repairs, phoneSales, isPrivacyMode }: Expe
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <div
-                            className="w-3 h-3 rounded-full"
-                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                          />
-                          <span className="font-semibold">{expense.name}</span>
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold shadow-sm`} style={{ backgroundColor: COLORS[index % COLORS.length] }}>
+                            {getExpenseIcon(expense.name)}
+                          </div>
+                          <div>
+                            <span className="font-semibold block">{expense.name}</span>
+                          </div>
                         </div>
                         <div className={`text-xl font-bold text-orange-600 dark:text-orange-400 mb-1 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                           ₺{expense.amount.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -583,12 +595,14 @@ export function ExpensesView({ sales, repairs, phoneSales, isPrivacyMode }: Expe
                     cy="50%"
                     labelLine={false}
                     label={({ name, percent }) => `${name}: %${(percent * 100).toFixed(0)}`}
+                    innerRadius={80}
                     outerRadius={120}
+                    paddingAngle={5}
                     fill="#8884d8"
                     dataKey="value"
                   >
                     {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
                     ))}
                   </Pie>
                   <Tooltip

@@ -124,9 +124,21 @@ export function PhoneSalesView({ phoneSales, phoneStocks, onDeletePhoneSale, onD
         </CardHeader>
         <CardContent className="pt-6">
           {phoneStocks.length === 0 ? (
-            <div className="text-center py-8">
-              <Smartphone className="w-12 h-12 mx-auto mb-3 text-gray-400 opacity-50" />
-              <p className="text-sm text-muted-foreground">Henüz stokta telefon bulunmuyor.</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="bg-indigo-50 dark:bg-indigo-900/30 p-6 rounded-full mb-4 animate-pulse">
+                <Smartphone className="w-12 h-12 text-indigo-400 dark:text-indigo-500" />
+              </div>
+              <h3 className="font-semibold text-lg text-slate-800 dark:text-slate-100 mb-2">Stokta Telefon Yok</h3>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto mb-6">
+                Henüz envanterinizde satılacak telefon bulunmuyor. Yeni cihaz ekleyerek başlayın.
+              </p>
+              <Button
+                onClick={onAddPhoneStock}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white shadow-lg shadow-indigo-500/30"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Telefon Stoğu Ekle
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -291,118 +303,136 @@ export function PhoneSalesView({ phoneSales, phoneStocks, onDeletePhoneSale, onD
       </div>
 
       {/* Phone Sales List */}
-      <Card className="border-2 border-purple-300 dark:border-purple-800 shadow-lg">
-        <CardHeader className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-950/30 dark:to-indigo-950/30">
-          <CardTitle className="flex items-center gap-2">
-            <Smartphone className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+      <Card className="border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <CardHeader className="bg-slate-50/50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-800">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Smartphone className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             <span>Telefon Satışları ({filteredPhoneSales.length})</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
           {filteredPhoneSales.length === 0 ? (
-            <div className="text-center py-12">
-              <Smartphone className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <h3 className="font-semibold text-lg mb-2">Henüz Telefon Satışı Yok</h3>
-              <p className="text-sm text-muted-foreground">
-                İkinci el telefon satışlarınızı buradan takip edebilirsiniz
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-full mb-4">
+                <Smartphone className="w-12 h-12 text-slate-400 dark:text-slate-500" />
+              </div>
+              <h3 className="font-semibold text-xl mb-2 text-slate-900 dark:text-slate-100">Henüz Telefon Satışı Yok</h3>
+              <p className="text-sm text-slate-500 max-w-sm mx-auto mb-6">
+                Gerçekleşen telefon satışlarınız burada listelenecek. Stoktan satış yaparak başlayabilirsiniz.
               </p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {filteredPhoneSales.map((sale) => (
-                <motion.div
-                  key={sale.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="border-2 border-purple-200 dark:border-purple-800 rounded-lg p-4 bg-purple-50/50 dark:bg-purple-950/10 hover:shadow-lg transition-shadow"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      {/* Brand & Model */}
-                      <div className="flex items-center gap-2 mb-2">
-                        <Smartphone className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                        <h3 className="font-bold text-lg">
-                          {sale.brand} {sale.model}
-                        </h3>
-                        <Badge variant="secondary" className={`ml-2 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                          {sale.profit >= 0 ? (
-                            <span className="text-green-600 dark:text-green-400">
-                              +₺{sale.profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredPhoneSales.map((sale) => {
+                // Determine brand color
+                const brand = sale.brand.toLowerCase();
+                let brandColor = "bg-slate-500";
+                let brandBg = "bg-slate-50";
+
+                if (brand.includes("apple") || brand.includes("iphone")) {
+                  brandColor = "bg-slate-800 dark:bg-slate-200";
+                  brandBg = "bg-slate-100 dark:bg-slate-800";
+                } else if (brand.includes("samsung")) {
+                  brandColor = "bg-blue-600";
+                  brandBg = "bg-blue-50 dark:bg-blue-900/20";
+                } else if (brand.includes("xiaomi") || brand.includes("redmi")) {
+                  brandColor = "bg-orange-500";
+                  brandBg = "bg-orange-50 dark:bg-orange-900/20";
+                } else if (brand.includes("huawei")) {
+                  brandColor = "bg-red-600";
+                  brandBg = "bg-red-50 dark:bg-red-900/20";
+                }
+
+                return (
+                  <motion.div
+                    key={sale.id}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    whileHover={{ scale: 1.02 }}
+                    className="group relative border border-slate-200 dark:border-slate-800 rounded-xl p-0 bg-white dark:bg-slate-950 hover:shadow-lg transition-all overflow-hidden"
+                  >
+                    {/* Brand Color Strip */}
+                    <div className={`absolute left-0 top-0 bottom-0 w-1 ${brandColor}`} />
+
+                    <div className="p-4 pl-5">
+                      <div className="flex items-start justify-between gap-4 mb-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-full ${brandBg} ${brandColor.replace('bg-', 'text-')}`}>
+                              {sale.brand}
                             </span>
+                          </div>
+                          <h3 className="font-bold text-lg leading-tight text-slate-900 dark:text-slate-100">
+                            {sale.model}
+                          </h3>
+                        </div>
+                        <div className={`flex flex-col items-end ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+                          <span className="text-xs text-slate-400 font-medium uppercase">Kâr</span>
+                          <span className={`text-lg font-bold ${sale.profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600"}`}>
+                            {sale.profit >= 0 ? "+" : ""}{sale.profit.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}₺
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* IMEI & Date */}
+                      <div className="flex items-center justify-between text-xs text-muted-foreground mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                        <span className="font-mono bg-slate-100 dark:bg-slate-900 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-400">
+                          {sale.imei || "IMEI Yok"}
+                        </span>
+                        <span>{new Date(sale.date).toLocaleDateString('tr-TR')}</span>
+                      </div>
+
+                      {/* Financials */}
+                      <div className="grid grid-cols-2 gap-2 mb-3">
+                        <div className="bg-slate-50 dark:bg-slate-900 p-2 rounded-lg border border-slate-100 dark:border-slate-800">
+                          <span className="text-[10px] text-slate-400 block mb-0.5">Alış</span>
+                          <span className={`text-sm font-semibold text-slate-700 dark:text-slate-300 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+                            {sale.purchasePrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}₺
+                          </span>
+                        </div>
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded-lg border border-blue-100 dark:border-blue-800/50">
+                          <span className="text-[10px] text-blue-500 dark:text-blue-400 block mb-0.5">Satış</span>
+                          <span className={`text-sm font-bold text-blue-700 dark:text-blue-300 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+                            {sale.salePrice.toLocaleString('tr-TR', { maximumFractionDigits: 0 })}₺
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Customer & Delete */}
+                      <div className="flex items-center justify-between mt-2 pt-2">
+                        <div className="flex items-center gap-2 max-w-[80%]">
+                          {sale.customerName ? (
+                            <>
+                              <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold">
+                                {sale.customerName.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="text-xs text-slate-600 dark:text-slate-400 truncate font-medium">
+                                {sale.customerName}
+                              </span>
+                            </>
                           ) : (
-                            <span className="text-red-600 dark:text-red-400">
-                              -₺{Math.abs(sale.profit).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                            </span>
-                          )}
-                        </Badge>
-                      </div>
-
-                      {/* IMEI */}
-                      {sale.imei && (
-                        <div className="text-sm text-muted-foreground mb-2">
-                          IMEI: {sale.imei}
-                        </div>
-                      )}
-
-                      {/* Prices */}
-                      <div className="grid grid-cols-2 gap-4 mb-3">
-                        <div className="bg-orange-100 dark:bg-orange-900/20 p-2 rounded border border-orange-200 dark:border-orange-800">
-                          <p className="text-xs text-muted-foreground">Alış Fiyatı</p>
-                          <p className={`font-semibold text-orange-600 dark:text-orange-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                            ₺{sale.purchasePrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                          </p>
-                        </div>
-                        <div className="bg-green-100 dark:bg-green-900/20 p-2 rounded border border-green-200 dark:border-green-800">
-                          <p className="text-xs text-muted-foreground">Satış Fiyatı</p>
-                          <p className={`font-semibold text-green-600 dark:text-green-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                            ₺{sale.salePrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Customer Info */}
-                      {(sale.customerName || sale.customerPhone) && (
-                        <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded mb-2">
-                          <p className="text-xs text-muted-foreground mb-1">Müşteri Bilgileri</p>
-                          {sale.customerName && (
-                            <p className="text-sm font-medium">{sale.customerName}</p>
-                          )}
-                          {sale.customerPhone && (
-                            <p className="text-sm text-muted-foreground">{sale.customerPhone}</p>
+                            <span className="text-xs text-slate-400 italic">Müşteri kaydı yok</span>
                           )}
                         </div>
-                      )}
 
-                      {/* Notes */}
-                      {sale.notes && (
-                        <div className="text-sm text-muted-foreground bg-gray-50 dark:bg-gray-900 p-2 rounded mb-2">
-                          <p className="text-xs mb-1">Notlar:</p>
-                          <p>{sale.notes}</p>
-                        </div>
-                      )}
-
-                      {/* Date */}
-                      <div className="text-xs text-muted-foreground">
-                        📅 {new Date(sale.date).toLocaleString('tr-TR')}
+                        <Button
+                          onClick={() => {
+                            if (window.confirm("Bu telefon satışını silmek istediğinize emin misiniz?")) {
+                              onDeletePhoneSale(sale.id);
+                            }
+                          }}
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
                       </div>
+
                     </div>
-
-                    {/* Delete Button */}
-                    <Button
-                      onClick={() => {
-                        if (window.confirm("Bu telefon satışını silmek istediğinize emin misiniz?")) {
-                          onDeletePhoneSale(sale.id);
-                        }
-                      }}
-                      variant="ghost"
-                      size="sm"
-                      className="text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           )}
         </CardContent>

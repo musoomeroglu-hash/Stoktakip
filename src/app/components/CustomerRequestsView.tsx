@@ -7,7 +7,8 @@ import { Textarea } from "./ui/textarea";
 import { ClipboardList, Plus, X, Phone, User, Package, Calendar, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
-import { api } from "@/app/utils/api";
+import { api } from "../utils/api";
+import { Trash2 } from "lucide-react";
 
 interface CustomerRequest {
   id: string;
@@ -22,7 +23,7 @@ interface CustomerRequest {
 export function CustomerRequestsView() {
   const [requests, setRequests] = useState<CustomerRequest[]>([]);
   const [showForm, setShowForm] = useState(false);
-  
+
   // Form states
   const [customerName, setCustomerName] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
@@ -82,7 +83,7 @@ export function CustomerRequestsView() {
     try {
       const request = requests.find(req => req.id === id);
       if (!request) return;
-      
+
       const updated = await api.updateCustomerRequest(id, { ...request, status: 'completed' });
       const updatedRequests = requests.map(req => req.id === id ? updated : req);
       setRequests(updatedRequests);
@@ -248,139 +249,121 @@ export function CustomerRequestsView() {
 
       {/* Bekleyen İstekler */}
       {pendingRequests.length > 0 && (
-        <Card>
-          <CardHeader className="bg-yellow-50 dark:bg-yellow-950/20">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Calendar className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-              Bekleyen İstekler ({pendingRequests.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="space-y-3">
-              {pendingRequests.map((request) => (
-                <motion.div
-                  key={request.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 bg-yellow-50/50 dark:bg-yellow-950/10 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                      {/* Müşteri Bilgileri */}
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                        <span className="font-semibold">{request.customerName}</span>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-yellow-200 dark:border-yellow-800">
+            <Calendar className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+            <h3 className="font-semibold text-lg text-yellow-700 dark:text-yellow-400">Bekleyen İstekler ({pendingRequests.length})</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {pendingRequests.map((request) => (
+              <motion.div
+                key={request.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="group relative bg-white dark:bg-gray-950 border border-yellow-200 dark:border-yellow-900/50 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden"
+              >
+                <div className="absolute top-0 left-0 w-1 h-full bg-yellow-400"></div>
+                <div className="p-5 pl-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-600 dark:text-yellow-400 font-bold border-2 border-white dark:border-gray-900 shadow-sm">
+                        {request.customerName.charAt(0).toUpperCase()}
                       </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
-                        <a
-                          href={`tel:${request.phoneNumber}`}
-                          className="text-sm hover:underline"
-                        >
+                      <div>
+                        <h4 className="font-bold text-gray-900 dark:text-gray-100">{request.customerName}</h4>
+                        <a href={`tel:${request.phoneNumber}`} className="text-xs text-gray-500 hover:text-blue-500 transition-colors flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
                           {request.phoneNumber}
                         </a>
                       </div>
-
-                      <div className="flex items-center gap-2">
-                        <Package className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
-                        <span className="text-sm font-medium">{request.productName}</span>
-                      </div>
-
-                      {request.notes && (
-                        <div className="pl-6 text-sm text-muted-foreground border-l-2 border-blue-200 dark:border-blue-800 ml-2">
-                          {request.notes}
-                        </div>
-                      )}
-
-                      <div className="text-xs text-muted-foreground pt-1">
-                        📅 {new Date(request.createdAt).toLocaleString('tr-TR')}
-                      </div>
                     </div>
-
-                    {/* Aksiyon Butonları */}
-                    <div className="flex flex-col gap-2">
-                      <Button
-                        onClick={() => handleMarkCompleted(request.id)}
-                        size="sm"
-                        className="bg-green-600 hover:bg-green-700 whitespace-nowrap"
-                      >
-                        <Check className="w-4 h-4 mr-1" />
-                        Tamamla
-                      </Button>
-                      <Button
-                        onClick={() => handleDeleteRequest(request.id)}
-                        variant="outline"
-                        size="sm"
-                        className="border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/20"
-                      >
-                        <X className="w-4 h-4 mr-1" />
-                        Sil
-                      </Button>
+                    <div className="text-xs font-medium text-gray-400 bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded">
+                      {new Date(request.createdAt).toLocaleDateString('tr-TR')}
                     </div>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Tamamlanan İstekler */}
-      {completedRequests.length > 0 && (
-        <Card>
-          <CardHeader className="bg-green-50 dark:bg-green-950/20">
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
-              Tamamlanan İstekler ({completedRequests.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="space-y-3">
-              {completedRequests.map((request) => (
-                <motion.div
-                  key={request.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="border border-green-200 dark:border-green-800 rounded-lg p-4 bg-green-50/50 dark:bg-green-950/10 opacity-75"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                        <span className="font-semibold line-through decoration-green-500">
-                          {request.customerName}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
-                        <span className="text-sm">{request.phoneNumber}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Package className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
-                        <span className="text-sm">{request.productName}</span>
-                      </div>
-
-                      <div className="text-xs text-muted-foreground">
-                        ✅ Tamamlandı: {new Date(request.createdAt).toLocaleString('tr-TR')}
-                      </div>
+                  <div className="mb-4">
+                    <div className="flex items-start gap-2">
+                      <Package className="w-4 h-4 text-orange-500 mt-1 flex-shrink-0" />
+                      <span className="font-bold text-lg text-gray-800 dark:text-gray-200 leading-tight">
+                        {request.productName}
+                      </span>
                     </div>
+                    {request.notes && (
+                      <div className="mt-3 text-sm text-gray-600 dark:text-gray-400 bg-yellow-50/50 dark:bg-yellow-950/10 p-3 rounded-lg border border-yellow-100 dark:border-yellow-900/20 italic">
+                        "{request.notes}"
+                      </div>
+                    )}
+                  </div>
 
+                  <div className="flex gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                    <Button
+                      onClick={() => handleMarkCompleted(request.id)}
+                      className="flex-1 bg-green-600 hover:bg-green-700 text-white shadow-sm hover:shadow transition-all"
+                      size="sm"
+                    >
+                      <Check className="w-4 h-4 mr-1" />
+                      Tamamla
+                    </Button>
                     <Button
                       onClick={() => handleDeleteRequest(request.id)}
                       variant="ghost"
                       size="sm"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/20"
                     >
-                      <X className="w-4 h-4" />
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
-                </motion.div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tamamlanan İstekler */}
+      {completedRequests.length > 0 && (
+        <div className="space-y-4 pt-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-green-200 dark:border-green-800">
+            <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <h3 className="font-semibold text-lg text-green-700 dark:text-green-400">Tamamlanan İstekler ({completedRequests.length})</h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {completedRequests.map((request) => (
+              <motion.div
+                key={request.id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg p-3 opacity-75 hover:opacity-100 transition-opacity"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-gray-900 dark:text-gray-100 line-through decoration-gray-400">{request.customerName}</span>
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400 truncate mb-1">
+                      {request.productName}
+                    </div>
+                    <div className="text-xs text-green-600 dark:text-green-500 flex items-center gap-1">
+                      <Check className="w-3 h-3" />
+                      Tamamlandı
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => handleDeleteRequest(request.id)}
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Boş Durum */}

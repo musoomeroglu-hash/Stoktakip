@@ -1222,22 +1222,17 @@ function App() {
 
             <div className="flex items-center gap-2">
               <div className="flex bg-slate-100 dark:bg-slate-900 rounded-full p-1 border border-slate-200 dark:border-slate-800">
-                <Button
-                  variant={currency === "TRY" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setCurrency("TRY")}
-                  className={`h-7 px-3 rounded-full text-[10px] uppercase font-bold transition-all ${currency === "TRY" ? "shadow-sm" : "text-slate-500"}`}
+                <button
+                  onClick={toggleCurrency}
+                  className="relative flex items-center cursor-pointer"
                 >
-                  ₺ TL
-                </Button>
-                <Button
-                  variant={currency === "USD" ? "secondary" : "ghost"}
-                  size="sm"
-                  onClick={() => setCurrency("USD")}
-                  className={`h-7 px-3 rounded-full text-[10px] uppercase font-bold transition-all ${currency === "USD" ? "shadow-sm" : "text-slate-500"}`}
-                >
-                  $ USD
-                </Button>
+                  <div className={`
+                    absolute left-0 top-0 bottom-0 w-1/2 rounded-full bg-white dark:bg-slate-800 shadow-sm border border-slate-200/50 dark:border-slate-700 transition-all duration-300 ease-out
+                    ${currency === "USD" ? "translate-x-full" : "translate-x-0"}
+                  `} />
+                  <span className={`relative z-10 px-3 py-1 text-[10px] font-bold transition-colors duration-300 ${currency === "TRY" ? "text-slate-900 dark:text-slate-100" : "text-slate-500"}`}>₺ TL</span>
+                  <span className={`relative z-10 px-3 py-1 text-[10px] font-bold transition-colors duration-300 ${currency === "USD" ? "text-slate-900 dark:text-slate-100" : "text-slate-500"}`}>$ USD</span>
+                </button>
               </div>
 
               {usdRate > 0 && (

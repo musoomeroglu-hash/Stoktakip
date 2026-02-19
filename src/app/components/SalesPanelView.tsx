@@ -396,14 +396,13 @@ export function SalesPanelView({
                         data={pieChartData}
                         cx="50%"
                         cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        innerRadius={60}
                         outerRadius={80}
-                        fill="#8884d8"
+                        paddingAngle={5}
                         dataKey="value"
                       >
                         {pieChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                          <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
                         ))}
                       </Pie>
                       <Tooltip
@@ -422,18 +421,31 @@ export function SalesPanelView({
                 <CardTitle>Özet İstatistikler</CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-                    <span className="text-sm font-medium">Ürün Satışları</span>
-                    <span className="font-semibold">{productSaleStats.count} adet</span>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Ürün Satışları</span>
+                      <span className="font-medium">{productSaleStats.count} / {combinedStats.totalCount}</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-blue-500 rounded-full"
+                        style={{ width: `${combinedStats.totalCount > 0 ? (productSaleStats.count / combinedStats.totalCount) * 100 : 0}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg">
-                    <span className="text-sm font-medium">Tamir İşlemleri</span>
-                    <span className="font-semibold">{repairStats.count} adet</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
-                    <span className="text-sm font-medium">Toplam İşlem</span>
-                    <span className="font-semibold">{combinedStats.totalCount} adet</span>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Tamir İşlemleri</span>
+                      <span className="font-medium">{repairStats.count} / {combinedStats.totalCount}</span>
+                    </div>
+                    <div className="h-2 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-orange-500 rounded-full"
+                        style={{ width: `${combinedStats.totalCount > 0 ? (repairStats.count / combinedStats.totalCount) * 100 : 0}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
 

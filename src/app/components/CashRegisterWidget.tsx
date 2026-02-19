@@ -106,67 +106,107 @@ export function CashRegisterWidget({ sales, repairs, phoneSales, formatPrice, is
   const totalRevenue = totalCash + totalCard + totalTransfer;
 
   return (
-    <Card className="bg-gradient-to-br from-emerald-50 to-green-100/50 dark:from-emerald-950 dark:to-green-900/50 border-emerald-200 dark:border-emerald-800">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-emerald-600" />
-          Bu Ayki Kasa Durumu
-        </CardTitle>
+    <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+      <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg flex items-center gap-2 text-slate-700 dark:text-slate-200">
+            <TrendingUp className="w-5 h-5 text-emerald-500" />
+            Bu Ayki Kasa Durumu
+          </CardTitle>
+          <div className="text-right">
+            <p className="text-xs text-slate-400 font-medium">Toplam Gelir</p>
+            <p className={`text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+              {formatPrice(totalRevenue)}
+            </p>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="grid grid-cols-3 gap-3">
+      <CardContent className="space-y-6 pt-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Nakit */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-green-200 dark:border-green-800">
-            <div className="flex items-center gap-2 mb-1">
-              <Banknote className="w-4 h-4 text-green-600" />
-              <span className="text-xs font-medium text-muted-foreground">Nakit</span>
+          <div className="group p-4 rounded-xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/50 hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-colors">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400">
+                  <Banknote className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Nakit</span>
+              </div>
+              <span className={`text-sm font-bold text-orange-600 dark:text-orange-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+                {formatPrice(totalCash)}
+              </span>
             </div>
-            <p className={`text-lg font-bold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-              {formatPrice(totalCash)}
+            <div className="w-full bg-orange-100 dark:bg-orange-950/50 rounded-full h-1.5 mb-1">
+              <div
+                className="bg-orange-500 h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${totalRevenue > 0 ? (totalCash / totalRevenue) * 100 : 0}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-orange-600/70 dark:text-orange-400/70 font-medium text-right">
+              %{totalRevenue > 0 ? ((totalCash / totalRevenue) * 100).toFixed(1) : "0.0"}
             </p>
           </div>
 
           {/* Kart */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-blue-200 dark:border-blue-800">
-            <div className="flex items-center gap-2 mb-1">
-              <CreditCard className="w-4 h-4 text-blue-600" />
-              <span className="text-xs font-medium text-muted-foreground">Kart</span>
+          <div className="group p-4 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
+                  <CreditCard className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Kart</span>
+              </div>
+              <span className={`text-sm font-bold text-blue-600 dark:text-blue-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+                {formatPrice(totalCard)}
+              </span>
             </div>
-            <p className={`text-lg font-bold text-blue-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-              {formatPrice(totalCard)}
+            <div className="w-full bg-blue-100 dark:bg-blue-950/50 rounded-full h-1.5 mb-1">
+              <div
+                className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${totalRevenue > 0 ? (totalCard / totalRevenue) * 100 : 0}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70 font-medium text-right">
+              %{totalRevenue > 0 ? ((totalCard / totalRevenue) * 100).toFixed(1) : "0.0"}
             </p>
           </div>
 
           {/* Havale */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-2 border-purple-200 dark:border-purple-800">
-            <div className="flex items-center gap-2 mb-1">
-              <Landmark className="w-4 h-4 text-purple-600" />
-              <span className="text-xs font-medium text-muted-foreground">Havale</span>
+          <div className="group p-4 rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/50 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400">
+                  <Landmark className="w-4 h-4" />
+                </div>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Havale</span>
+              </div>
+              <span className={`text-sm font-bold text-purple-600 dark:text-purple-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+                {formatPrice(totalTransfer)}
+              </span>
             </div>
-            <p className={`text-lg font-bold text-purple-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-              {formatPrice(totalTransfer)}
+            <div className="w-full bg-purple-100 dark:bg-purple-950/50 rounded-full h-1.5 mb-1">
+              <div
+                className="bg-purple-500 h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${totalRevenue > 0 ? (totalTransfer / totalRevenue) * 100 : 0}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-purple-600/70 dark:text-purple-400/70 font-medium text-right">
+              %{totalRevenue > 0 ? ((totalTransfer / totalRevenue) * 100).toFixed(1) : "0.0"}
             </p>
           </div>
         </div>
 
-        {/* Toplam */}
-        <div className="bg-gradient-to-r from-emerald-100 to-green-100 dark:from-emerald-900/50 dark:to-green-900/50 rounded-lg p-3 border-2 border-emerald-300 dark:border-emerald-700">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-emerald-900 dark:text-emerald-100">
-              Toplam Gelir
-            </span>
-            <span className={`text-xl font-bold text-emerald-600 dark:text-emerald-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-              {formatPrice(totalRevenue)}
-            </span>
+        {/* Global Progress */}
+        <div className="pt-2">
+          <div className="flex h-2 w-full rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+            <div className="bg-orange-500 transition-all duration-500 hover:opacity-90" style={{ width: `${totalRevenue > 0 ? (totalCash / totalRevenue) * 100 : 0}%` }} title="Nakit" />
+            <div className="bg-blue-500 transition-all duration-500 hover:opacity-90" style={{ width: `${totalRevenue > 0 ? (totalCard / totalRevenue) * 100 : 0}%` }} title="Kart" />
+            <div className="bg-purple-500 transition-all duration-500 hover:opacity-90" style={{ width: `${totalRevenue > 0 ? (totalTransfer / totalRevenue) * 100 : 0}%` }} title="Havale" />
           </div>
-        </div>
-
-        {/* İşlem Sayısı */}
-        <div className="text-center pt-2 border-t border-emerald-200 dark:border-emerald-800">
-          <p className="text-xs text-muted-foreground">Toplam İşlem</p>
-          <p className="text-sm font-semibold">
-            {thisMonthSales.length + thisMonthRepairs.length + thisMonthPhoneSales.length} adet
-          </p>
+          <div className="flex justify-between mt-2 text-xs text-slate-400">
+            <span>Distribüsyon</span>
+            <span>{thisMonthSales.length + thisMonthRepairs.length + thisMonthPhoneSales.length} işlem</span>
+          </div>
         </div>
       </CardContent>
     </Card>

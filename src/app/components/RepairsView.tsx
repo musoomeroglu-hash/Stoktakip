@@ -159,26 +159,26 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/50 border-blue-200 dark:border-blue-800">
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950 dark:to-orange-900/50 border-orange-200 dark:border-orange-800">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-blue-700 dark:text-blue-300">Tamir Ediliyor</div>
-                <div className="text-3xl font-bold text-blue-900 dark:text-blue-100 mt-2">{inProgressRepairs.length}</div>
+                <div className="text-sm text-orange-700 dark:text-orange-300">Tamir Ediliyor</div>
+                <div className="text-3xl font-bold text-orange-900 dark:text-orange-100 mt-2">{inProgressRepairs.length}</div>
               </div>
-              <Wrench className="w-10 h-10 text-blue-500" />
+              <Wrench className="w-10 h-10 text-orange-500" />
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950 dark:to-green-900/50 border-green-200 dark:border-green-800">
+        <Card className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-950 dark:to-slate-900/50 border-slate-200 dark:border-slate-800">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-green-700 dark:text-green-300">Tamir Edildi</div>
-                <div className="text-3xl font-bold text-green-900 dark:text-green-100 mt-2">{completedRepairs.length}</div>
+                <div className="text-sm text-slate-700 dark:text-slate-300">Teslim Bekleyen</div>
+                <div className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">{completedRepairs.length}</div>
               </div>
-              <CheckCircle className="w-10 h-10 text-green-500" />
+              <CheckCircle className="w-10 h-10 text-slate-500" />
             </div>
           </CardContent>
         </Card>
@@ -195,14 +195,14 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950 dark:to-orange-900/50 border-orange-200 dark:border-orange-800">
+        <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950 dark:to-green-900/50 border-green-200 dark:border-green-800">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-sm text-orange-700 dark:text-orange-300">Toplam Kâr</div>
-                <div className={`text-3xl font-bold text-orange-900 dark:text-orange-100 mt-2 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(totalProfit)}</div>
+                <div className="text-sm text-green-700 dark:text-green-300">Toplam Kâr</div>
+                <div className={`text-3xl font-bold text-green-900 dark:text-green-100 mt-2 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(totalProfit)}</div>
               </div>
-              <Package className="w-10 h-10 text-orange-500" />
+              <Package className="w-10 h-10 text-green-500" />
             </div>
           </CardContent>
         </Card>
@@ -272,15 +272,15 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
 
       {/* Repairs List */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* In Progress */}
-        <Card className="bg-gradient-to-br from-white to-blue-50/30 dark:from-gray-900 dark:to-blue-950/30">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
-            <CardTitle className="flex items-center gap-2">
-              <Wrench className="w-5 h-5 text-blue-600" />
+        {/* In Progress - Orange */}
+        <Card className="bg-gradient-to-b from-orange-50/50 to-white dark:from-orange-950/20 dark:to-gray-900 border-t-4 border-t-orange-500">
+          <CardHeader className="bg-orange-50/50 dark:bg-orange-950/30 pb-2">
+            <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
+              <Wrench className="w-5 h-5" />
               Tamir Ediliyor ({inProgressRepairs.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
+          <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
             {inProgressRepairs.map((repair) => (
               <RepairCard
                 key={repair.id}
@@ -293,22 +293,23 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
               />
             ))}
             {inProgressRepairs.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                Tamir edilen cihaz yok
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground opacity-50">
+                <Wrench className="w-12 h-12 mb-2" />
+                <p>Tamir işleminde cihaz yok</p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Completed */}
-        <Card className="bg-gradient-to-br from-white to-green-50/30 dark:from-gray-900 dark:to-green-950/30">
-          <CardHeader className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
-            <CardTitle className="flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-600" />
-              Tamir Edildi ({completedRepairs.length})
+        {/* Completed (Waiting) - Slate */}
+        <Card className="bg-gradient-to-b from-slate-50/50 to-white dark:from-slate-950/20 dark:to-gray-900 border-t-4 border-t-slate-500">
+          <CardHeader className="bg-slate-50/50 dark:bg-slate-950/30 pb-2">
+            <CardTitle className="flex items-center gap-2 text-slate-700 dark:text-slate-400">
+              <CheckCircle className="w-5 h-5" />
+              Teslim Bekleyen ({completedRepairs.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
+          <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
             {completedRepairs.map((repair) => (
               <RepairCard
                 key={repair.id}
@@ -321,22 +322,23 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
               />
             ))}
             {completedRepairs.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                Tamamlanan tamir yok
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground opacity-50">
+                <CheckCircle className="w-12 h-12 mb-2" />
+                <p>Teslim bekleyen cihaz yok</p>
               </div>
             )}
           </CardContent>
         </Card>
 
-        {/* Delivered */}
-        <Card className="bg-gradient-to-br from-white to-gray-50/30 dark:from-gray-900 dark:to-gray-800/30">
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-950 dark:to-gray-900">
-            <CardTitle className="flex items-center gap-2">
-              <Truck className="w-5 h-5 text-gray-600" />
+        {/* Delivered - Green */}
+        <Card className="bg-gradient-to-b from-green-50/50 to-white dark:from-green-950/20 dark:to-gray-900 border-t-4 border-t-green-500">
+          <CardHeader className="bg-green-50/50 dark:bg-green-950/30 pb-2">
+            <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
+              <Truck className="w-5 h-5" />
               Teslim Edildi ({deliveredRepairs.length})
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto">
+          <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
             {deliveredRepairs.map((repair) => (
               <RepairCard
                 key={repair.id}
@@ -349,8 +351,9 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
               />
             ))}
             {deliveredRepairs.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                Teslim edilen cihaz yok
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground opacity-50">
+                <Truck className="w-12 h-12 mb-2" />
+                <p>Teslim edilen cihaz yok</p>
               </div>
             )}
           </CardContent>
@@ -482,9 +485,12 @@ function RepairCard({
         {/* Header */}
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <h3 className="font-bold text-lg">{repair.deviceInfo}</h3>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-sm text-muted-foreground">{repair.customerName}</span>
+            <h3 className="font-bold text-lg leading-tight">{repair.deviceInfo}</h3>
+            <div className="flex items-center gap-2 mt-2">
+              <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-400">
+                {repair.customerName.charAt(0).toUpperCase()}
+              </div>
+              <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">{repair.customerName}</span>
               {getStatusBadge(repair.status)}
             </div>
           </div>
@@ -577,18 +583,18 @@ function RepairCard({
 function getStatusBadge(status: RepairRecord["status"]) {
   switch (status) {
     case "in_progress":
-      return <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">Tamir Ediliyor</Badge>;
+      return <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 border-orange-200">Tamir Ediliyor</Badge>;
     case "completed":
-      return <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">Tamir Edildi</Badge>;
+      return <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300 border-slate-200">Teslim Bekliyor</Badge>;
     case "delivered":
-      return <Badge className="bg-gray-100 text-gray-700 dark:bg-gray-900 dark:text-gray-300">Teslim Edildi</Badge>;
+      return <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 border-green-200">Teslim Edildi</Badge>;
   }
 }
 
 function getNextStatus(currentStatus: RepairRecord["status"]) {
   switch (currentStatus) {
     case "in_progress":
-      return { status: "completed" as const, label: "Tamir Edildi", icon: CheckCircle };
+      return { status: "completed" as const, label: "Tamamlandı", icon: CheckCircle };
     case "completed":
       return { status: "delivered" as const, label: "Teslim Et", icon: Truck };
     default:

@@ -144,81 +144,65 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
   return (
     <div className="space-y-6">
       {/* Date Range Filter */}
-      <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 border-2 border-emerald-200 dark:border-emerald-800">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-              <span className="font-semibold text-emerald-900 dark:text-emerald-100">Tarih Aralığı:</span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3 flex-1">
-              <div className="flex items-center gap-2">
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-auto border-2 border-emerald-300 dark:border-emerald-700"
-                />
-                <span className="text-muted-foreground">-</span>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-auto border-2 border-emerald-300 dark:border-emerald-700"
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={setCurrentMonth}
-                  variant="outline"
-                  size="sm"
-                  className="bg-white dark:bg-gray-800 border-emerald-200 dark:border-emerald-700"
-                >
-                  Bu Ay
-                </Button>
-                <Button
-                  onClick={setPreviousMonth}
-                  variant="outline"
-                  size="sm"
-                  className="bg-white dark:bg-gray-800 border-emerald-200 dark:border-emerald-700"
-                >
-                  Geçen Ay
-                </Button>
-                <Button
-                  onClick={setAllTime}
-                  variant="outline"
-                  size="sm"
-                  className="bg-white dark:bg-gray-800 border-emerald-200 dark:border-emerald-700"
-                >
-                  Tüm Zamanlar
-                </Button>
-              </div>
-
-              <div className="ml-auto bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-full border border-emerald-200 dark:border-emerald-800 text-xs font-medium text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-                <Calendar className="w-3.5 h-3.5" />
-                {format(new Date(startDate), "dd MMM yyyy", { locale: tr })} - {format(new Date(endDate), "dd MMM yyyy", { locale: tr })}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Header & Date Filter */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 p-4 rounded-xl border border-emerald-100 dark:border-emerald-800/50">
         <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
             Satış Analizi
           </h2>
-          <p className="text-muted-foreground mt-1">
-            Seçili tarih aralığı performansı ve trendler
+          <p className="text-muted-foreground text-sm mt-1 flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            {format(new Date(startDate), "dd MMM yyyy", { locale: tr })} - {format(new Date(endDate), "dd MMM yyyy", { locale: tr })}
           </p>
         </div>
-        <Badge variant="outline" className="text-sm px-4 py-2">
-          {filteredSales.length} satış bulundu
-        </Badge>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <div className="flex items-center gap-2 bg-white dark:bg-gray-800 p-1 rounded-lg border shadow-sm">
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-auto h-8 border-none focus-visible:ring-0 px-2"
+            />
+            <span className="text-muted-foreground">-</span>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-auto h-8 border-none focus-visible:ring-0 px-2"
+            />
+          </div>
+
+          <div className="flex gap-1">
+            <Button
+              onClick={setCurrentMonth}
+              variant="ghost"
+              size="sm"
+              className="h-9 px-2 text-xs font-normal"
+            >
+              Bu Ay
+            </Button>
+            <Button
+              onClick={setPreviousMonth}
+              variant="ghost"
+              size="sm"
+              className="h-9 px-2 text-xs font-normal"
+            >
+              Geçen Ay
+            </Button>
+            <Button
+              onClick={setAllTime}
+              variant="ghost"
+              size="sm"
+              className="h-9 px-2 text-xs font-normal"
+            >
+              Tüm Zamanlar
+            </Button>
+          </div>
+        </div>
       </div>
+
+
 
       {/* Top 10 Best Selling Products */}
       <Card className="bg-gradient-to-br from-blue-50 to-indigo-50/50 dark:from-blue-950 dark:to-indigo-950/50 border-blue-200 dark:border-blue-800">
@@ -255,7 +239,11 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
                       return [value, name];
                     }}
                   />
-                  <Bar dataKey="quantity" fill="#3b82f6" name="quantity" />
+                  <Bar dataKey="quantity" name="Satış Adedi" radius={[4, 4, 0, 0]}>
+                    {bestSellingProducts.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
 
@@ -263,24 +251,29 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
                 {bestSellingProducts.map((product, index) => (
                   <div
                     key={product.id}
-                    className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border"
+                    className="relative flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-lg border overflow-hidden group hover:shadow-md transition-shadow"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-white font-bold text-sm">
+                    <div
+                      className="absolute left-0 top-0 bottom-0 bg-blue-50 dark:bg-blue-900/20 transition-all duration-500"
+                      style={{ width: `${(product.quantity / bestSellingProducts[0].quantity) * 100}%` }}
+                    />
+                    <div className="relative flex items-center gap-3 z-10">
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 text-white font-bold text-sm shadow-sm ring-2 ring-white dark:ring-gray-800">
                         {index + 1}
                       </div>
                       <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {product.quantity} adet satıldı
-                        </p>
+                        <p className="font-medium text-gray-900 dark:text-gray-100">{product.name}</p>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="h-5 px-1.5 text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 hover:bg-blue-200">
+                            {product.quantity} Adet
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`font-semibold text-blue-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+                    <div className="relative text-right z-10">
+                      <p className={`font-bold text-blue-600 dark:text-blue-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                         {formatPrice(product.revenue)}
                       </p>
-                      <p className="text-xs text-muted-foreground">Toplam gelir</p>
                     </div>
                   </div>
                 ))}
@@ -374,14 +367,13 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
                       data={categorySales}
                       cx="50%"
                       cy="50%"
-                      labelLine={false}
-                      label={(entry) => `${entry.name} (${entry.quantity})`}
+                      innerRadius={60}
                       outerRadius={80}
-                      fill="#8884d8"
+                      paddingAngle={2}
                       dataKey="revenue"
                     >
                       {categorySales.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
                       ))}
                     </Pie>
                     <Tooltip
@@ -443,7 +435,7 @@ export function SalesAnalyticsView({ sales, products, categories, formatPrice, i
                     <Tooltip
                       formatter={(value: any) => [value, "Satış Sayısı"]}
                     />
-                    <Bar dataKey="count" fill="#10b981" />
+                    <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
 

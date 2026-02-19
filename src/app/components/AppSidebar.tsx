@@ -44,7 +44,7 @@ const menuItems = [
         title: "Ürünler",
         view: "products",
         icon: Package,
-        color: "text-blue-500"
+        color: "text-indigo-500"
     },
     {
         title: "Satış & Raporlar",
@@ -62,26 +62,26 @@ const menuItems = [
         title: "Telefon Satışları",
         view: "phoneSales",
         icon: Smartphone,
-        color: "text-pink-500"
+        color: "text-cyan-500"
     },
     {
         title: "Analizler",
         view: "salesAnalytics",
         icon: BarChart3,
-        color: "text-emerald-500"
+        color: "text-pink-500"
     },
 
     {
         title: "İstek & Siparişler",
         view: "requests",
         icon: ClipboardList,
-        color: "text-sky-500"
+        color: "text-blue-500"
     },
     {
         title: "Hesap Makinesi",
         view: "calculator",
         icon: Calculator,
-        color: "text-green-500"
+        color: "text-gray-500"
     },
 ];
 
@@ -120,8 +120,8 @@ export function AppSidebar({
     const subMenuItems = [
         { title: "Alışlar", view: "purchases", icon: ShoppingCart, color: "text-orange-600" },
         { title: "Giderler", view: "expenses", icon: Receipt, color: "text-red-500" },
-        { title: "Tedarikçiler", view: "suppliers", icon: Building2, color: "text-blue-600" },
-        { title: "Cariler", view: "caris", icon: Users, color: "text-indigo-500" },
+        { title: "Tedarikçiler", view: "suppliers", icon: Building2, color: "text-teal-500" },
+        { title: "Cariler", view: "caris", icon: Users, color: "text-yellow-500" },
     ];
 
     return (

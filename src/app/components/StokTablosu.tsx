@@ -23,6 +23,12 @@ import { Button } from "./ui/button";
 import { Checkbox } from "./ui/checkbox";
 import { ArrowUpDown, Edit, Trash2, Eye } from "lucide-react";
 import { StokBadge } from "./StokBadge";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "./ui/tooltip";
 import type { Product, Category } from "../utils/api";
 
 interface StokTablosuProps {
@@ -135,30 +141,59 @@ export function StokTablosu({
                 const product = row.original;
                 return (
                     <div className="flex items-center justify-center gap-2">
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/50 hover:bg-blue-50 dark:hover:bg-blue-950/30"
-                            onClick={() => onViewDetail(product)}
-                        >
-                            <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/50 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                            onClick={() => onEdit(product)}
-                        >
-                            <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-8 w-8 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/30"
-                            onClick={() => onDelete(product.id)}
-                        >
-                            <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/50 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                        onClick={() => onViewDetail(product)}
+                                    >
+                                        <Eye className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Detayları Gör</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/50 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                        onClick={() => onEdit(product)}
+                                    >
+                                        <Edit className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Düzenle</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        className="h-8 w-8 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                        onClick={() => onDelete(product.id)}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    <p>Sil</p>
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     </div>
                 );
             },
@@ -189,9 +224,9 @@ export function StokTablosu({
             {/* Desktop Table View */}
             <div className="hidden md:block rounded-xl border border-slate-200/60 dark:border-slate-800 bg-white/40 dark:bg-slate-950/50 overflow-hidden shadow-sm">
                 <Table>
-                    <TableHeader className="bg-slate-50/40 dark:bg-slate-900/50">
+                    <TableHeader className="bg-slate-50/40 dark:bg-slate-900/50 sticky top-0 z-10 backdrop-blur-sm">
                         {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id}>
+                            <TableRow key={headerGroup.id} className="hover:bg-transparent border-slate-200 dark:border-slate-800">
                                 {headerGroup.headers.map((header) => (
                                     <TableHead key={header.id} className="h-12 text-slate-900 dark:text-slate-100 font-semibold text-center whitespace-nowrap px-4">
                                         {header.isPlaceholder
@@ -211,7 +246,10 @@ export function StokTablosu({
                                 <TableRow
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
-                                    className="hover:bg-slate-50/50 dark:hover:bg-slate-900/30 transition-colors"
+                                    className={`
+                                        hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-colors even:bg-slate-50/50 dark:even:bg-slate-900/20
+                                        ${row.original.stock <= row.original.minStock ? "border-l-4 border-l-red-500 dark:border-l-red-600" : ""}
+                                    `}
                                 >
                                     {row.getVisibleCells().map((cell) => (
                                         <TableCell key={cell.id} className="py-3 px-4 text-center">

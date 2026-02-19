@@ -60,35 +60,41 @@ export function IstatistikKartlari({
             value: formatPrice(totalSupplierDebt),
             description: `${suppliers.filter(s => s.balance > 0).length} tedarikçiye borç var`,
             icon: Building2,
-            color: "text-red-600",
-            bg: "bg-red-50 dark:bg-red-950/30",
+            gradient: "from-red-50 to-red-100 dark:from-red-950/40 dark:to-red-900/40",
+            iconColor: "text-red-600 dark:text-red-400",
+            iconBg: "bg-red-200 dark:bg-red-900/50",
+            borderColor: "border-red-200 dark:border-red-800"
         },
         {
             title: "Aylık Alış",
             value: formatPrice(monthlyPurchaseTotal),
             description: `${monthlyPurchases.length} adet fatura kesildi`,
             icon: ShoppingCart,
-            color: "text-orange-600",
-            bg: "bg-orange-50 dark:bg-orange-950/30",
+            gradient: "from-orange-50 to-orange-100 dark:from-orange-950/40 dark:to-orange-900/40",
+            iconColor: "text-orange-600 dark:text-orange-400",
+            iconBg: "bg-orange-200 dark:bg-orange-900/50",
+            borderColor: "border-orange-200 dark:border-orange-800"
         },
         {
             title: "Envanter Değeri",
             value: formatPrice(totalInventoryValue),
             description: "Toplam alış maliyeti",
             icon: DollarSign,
-            color: "text-emerald-600",
-            bg: "bg-emerald-50 dark:bg-emerald-950/30",
+            gradient: "from-emerald-50 to-emerald-100 dark:from-emerald-950/40 dark:to-emerald-900/40",
+            iconColor: "text-emerald-600 dark:text-emerald-400",
+            iconBg: "bg-emerald-200 dark:bg-emerald-900/50",
+            borderColor: "border-emerald-200 dark:border-emerald-800",
             action: (
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
+                    className="h-7 w-7 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-900/50 ml-auto"
                     onClick={(e) => {
                         e.stopPropagation();
                         onOpenAnalysis();
                     }}
                 >
-                    <Eye className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <Eye className="w-4 h-4 text-emerald-700 dark:text-emerald-300" />
                 </Button>
             )
         },
@@ -97,31 +103,36 @@ export function IstatistikKartlari({
             value: formatPrice(todayRevenue),
             description: "Bugün yapılan toplam ciro",
             icon: TrendingUp,
-            color: "text-purple-600",
-            bg: "bg-purple-50 dark:bg-purple-950/30",
+            gradient: "from-purple-50 to-purple-100 dark:from-purple-950/40 dark:to-purple-900/40",
+            iconColor: "text-purple-600 dark:text-purple-400",
+            iconBg: "bg-purple-200 dark:bg-purple-900/50",
+            borderColor: "border-purple-200 dark:border-purple-800"
         },
     ];
 
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {stats.map((stat) => (
-                <Card key={stat.title} className="overflow-hidden border-slate-200 dark:border-slate-800 hover:shadow-lg transition-all duration-300">
+                <Card
+                    key={stat.title}
+                    className={`overflow-hidden border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg bg-gradient-to-br ${stat.gradient} ${stat.borderColor}`}
+                >
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-500 dark:text-slate-400">
+                        <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-300">
                             {stat.title}
                         </CardTitle>
                         <div className="flex items-center gap-2">
-                            {stat.action && stat.action}
-                            <div className={`p-2 rounded-xl ${stat.bg}`}>
-                                <stat.icon className={`w-4 h-4 ${stat.color}`} />
+                            {stat.action}
+                            <div className={`p-2 rounded-full ${stat.iconBg}`}>
+                                <stat.icon className={`w-4 h-4 ${stat.iconColor}`} />
                             </div>
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className={`text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-50 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+                        <div className={`text-2xl font-bold tracking-tight text-slate-900 dark:text-white ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                             {stat.value}
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
                             {stat.description}
                         </p>
                     </CardContent>
