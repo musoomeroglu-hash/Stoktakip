@@ -23,6 +23,7 @@ import { RepairDialog } from "./components/RepairDialog";
 import { PhoneSaleDialog } from "./components/PhoneSaleDialog";
 import { SuppliersView } from "./components/SuppliersView";
 import { PurchasesView } from "./components/PurchasesView";
+import { LabelSystemView } from "./components/LabelSystemView";
 import type { PhoneSale, PhoneStock } from "./utils/api";
 import { CashRegisterWidget } from "./components/CashRegisterWidget";
 import { SalesAnalyticsView } from "./components/SalesAnalyticsView";
@@ -180,7 +181,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [reportPeriod, setReportPeriod] = useState<"daily" | "weekly" | "monthly" | "all">("monthly");
-  const [activeView, setActiveView] = useState<"products" | "salesManagement" | "repairs" | "phoneSales" | "caris" | "calculator" | "requests" | "expenses" | "salesAnalytics" | "customers" | "purchases" | "suppliers">("salesManagement");
+  const [activeView, setActiveView] = useState<"products" | "salesManagement" | "repairs" | "phoneSales" | "caris" | "calculator" | "requests" | "expenses" | "salesAnalytics" | "customers" | "purchases" | "suppliers" | "labels">("salesManagement");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
@@ -1608,6 +1609,17 @@ function App() {
                     onUpdatePhoneSale={handleUpdatePhoneSale}
                     isPrivacyMode={isPrivacyMode}
                   />
+                </motion.div>
+              ) : activeView === "labels" ? (
+                // Etiket Basımı Görünümü
+                <motion.div
+                  key="labels"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                >
+                  <LabelSystemView />
                 </motion.div>
               ) : (
                 // Satış Paneli Görünümü

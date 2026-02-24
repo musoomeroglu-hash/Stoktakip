@@ -28,6 +28,7 @@ import {
     Building2,
     Briefcase,
     ChevronDown,
+    Tag,
 } from "lucide-react";
 import type { Supplier } from "../utils/api";
 
@@ -76,6 +77,12 @@ const menuItems = [
         view: "requests",
         icon: ClipboardList,
         color: "text-blue-500"
+    },
+    {
+        title: "Etiket Basımı",
+        view: "labels",
+        icon: Tag,
+        color: "text-emerald-500"
     },
     {
         title: "Hesap Makinesi",

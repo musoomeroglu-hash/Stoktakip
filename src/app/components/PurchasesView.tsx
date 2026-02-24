@@ -7,6 +7,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Badge } from "./ui/badge";
 import { Textarea } from "./ui/textarea";
 import {
+    ShoppingCart,
+    Plus,
+    Search,
+    Calendar,
+    FileText,
+    ChevronRight,
+    Trash2,
+    Package,
+    CheckCircle2,
+    Clock,
+    AlertCircle,
     TrendingDown,
     Image as ImageIcon,
     Eye,
@@ -14,7 +25,7 @@ import {
     BarChart3
 } from "lucide-react";
 import { toast } from "sonner";
-import { api, type Purchase, type Supplier, type Product, type PurchaseStatus, type PurchasePaymentMethod } from "../utils/api";
+import { api, type Purchase, type Supplier, type Product, type PurchaseStatus, type PurchasePaymentMethod, type PurchaseItem } from "../utils/api";
 
 interface PurchasesViewProps {
     isPrivacyMode: boolean;
