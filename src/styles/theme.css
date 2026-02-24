@@ -2,87 +2,82 @@
 
 :root {
   --font-size: 16px;
-  --background: #f8fafc;
-  /* Softer slate-50 background */
-  --foreground: oklch(0.145 0 0);
+  --background: #f5f8f8;
+  --foreground: #0f2123;
   --card: #ffffff;
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: #0f2123;
   --popover: #ffffff;
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: #0f172a;
-  /* Slate-900 for a softer deep dark */
-  --primary-foreground: oklch(1 0 0);
-  --secondary: #f1f5f9;
-  /* Slate-100 */
-  --secondary-foreground: #0f172a;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  /* Slate-500 */
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
+  --popover-foreground: #0f2123;
+  --primary: #00e1ff;
+  --primary-foreground: #0f2123;
+  --secondary: #e8f5f6;
+  --secondary-foreground: #0f2123;
+  --muted: #e8f5f6;
+  --muted-foreground: #5a7a7d;
+  --accent: #a855f7;
+  --accent-foreground: #ffffff;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #e2e8f0;
-  /* Slate-200 */
-  --input: #f8fafc;
-  --input-background: #f1f5f9;
-  --switch-background: #cbd5e1;
+  --border: #d0e4e6;
+  --input: #f0f8f9;
+  --input-background: #e8f5f6;
+  --switch-background: #a0bfc2;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --ring: #94a3b8;
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --radius: 0.625rem;
-  --sidebar: #f8fafc;
-  /* Matches main background */
-  --sidebar-foreground: #475569;
-  /* Slate-600 */
-  --sidebar-primary: #0f172a;
-  --sidebar-primary-foreground: #f8fafc;
-  --sidebar-accent: #f1f5f9;
-  --sidebar-accent-foreground: #0f172a;
-  --sidebar-border: #e2e8f0;
-  --sidebar-ring: #94a3b8;
+  --ring: #00e1ff;
+  --chart-1: #00e1ff;
+  --chart-2: #a855f7;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
+  --radius: 0.5rem;
+  --sidebar: #f5f8f8;
+  --sidebar-foreground: #3a6063;
+  --sidebar-primary: #00e1ff;
+  --sidebar-primary-foreground: #0f2123;
+  --sidebar-accent: #e8f5f6;
+  --sidebar-accent-foreground: #0f2123;
+  --sidebar-border: #d0e4e6;
+  --sidebar-ring: #00e1ff;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.35 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
+  --background: #0f2123;
+  --foreground: #e8f5f6;
+  --card: #162a2d;
+  --card-foreground: #e8f5f6;
+  --popover: #162a2d;
+  --popover-foreground: #e8f5f6;
+  --primary: #00e1ff;
+  --primary-foreground: #0f2123;
+  --secondary: #1e3639;
+  --secondary-foreground: #e8f5f6;
+  --muted: #1e3639;
+  --muted-foreground: #9ab8bc;
+  --accent: #a855f7;
+  --accent-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #2a4245;
+  --input: #162a2d;
+  --input-background: #1e3639;
+  --switch-background: #2a4245;
   --font-weight-medium: 500;
   --font-weight-normal: 400;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  --ring: #00e1ff;
+  --chart-1: #00e1ff;
+  --chart-2: #a855f7;
+  --chart-3: #10b981;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
+  --sidebar: #0f2123;
+  --sidebar-foreground: #9ab8bc;
+  --sidebar-primary: #00e1ff;
+  --sidebar-primary-foreground: #0f2123;
+  --sidebar-accent: #162a2d;
+  --sidebar-accent-foreground: #e8f5f6;
+  --sidebar-border: #2a4245;
+  --sidebar-ring: #00e1ff;
 }
 
 @theme inline {
@@ -124,6 +119,20 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Stitch custom colors from Step 2 */
+  --color-primary-hover: #33e7ff;
+  --color-background-dark: #0f2123;
+  --color-surface-dark: #162a2d;
+  --color-border-dark: #2a4245;
+  --color-text-subtle: #9ab8bc;
+  --color-accent-violet: #a855f7;
+
+  /* Stitch typography and radius */
+  --font-display: "Inter", sans-serif;
+  --font-sans: "Inter", sans-serif;
+  --radius-DEFAULT: 0.25rem;
+  --radius-full: 9999px;
 }
 
 @layer base {
@@ -134,11 +143,6 @@
   body {
     @apply bg-background text-foreground;
   }
-
-  /**
-  * Default typography styles for HTML elements (h1-h4, p, label, button, input).
-  * These are in @layer base, so Tailwind utility classes (like text-sm, text-lg) automatically override them.
-  */
 
   html {
     font-size: var(--font-size);
@@ -187,7 +191,7 @@
   }
 }
 
-/* Privacy Mode Styles */
+/* Privacy Mode — değişmeden kalır */
 .privacy-mode-blur {
   filter: blur(8px) !important;
   user-select: none !important;
@@ -199,4 +203,13 @@
   opacity: 0 !important;
   user-select: none !important;
   pointer-events: none;
+}
+
+/* Cyan glow efekti — yeni butonlar için */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 225, 255, 0.3);
+}
+
+.glow-cyan:hover {
+  box-shadow: 0 0 28px rgba(0, 225, 255, 0.5);
 }

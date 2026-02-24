@@ -60,41 +60,35 @@ export function IstatistikKartlari({
             value: formatPrice(totalSupplierDebt),
             description: `${suppliers.filter(s => s.balance > 0).length} tedarikçiye borç var`,
             icon: Building2,
-            gradient: "from-red-50 to-red-100 dark:from-red-950/40 dark:to-red-900/40",
-            iconColor: "text-red-600 dark:text-red-400",
-            iconBg: "bg-red-200 dark:bg-red-900/50",
-            borderColor: "border-red-200 dark:border-red-800"
+            iconColor: "text-[#ef4444]",
+            iconBg: "bg-[#ef4444]/10",
         },
         {
             title: "Aylık Alış",
             value: formatPrice(monthlyPurchaseTotal),
             description: `${monthlyPurchases.length} adet fatura kesildi`,
             icon: ShoppingCart,
-            gradient: "from-orange-50 to-orange-100 dark:from-orange-950/40 dark:to-orange-900/40",
-            iconColor: "text-orange-600 dark:text-orange-400",
-            iconBg: "bg-orange-200 dark:bg-orange-900/50",
-            borderColor: "border-orange-200 dark:border-orange-800"
+            iconColor: "text-[#f59e0b]",
+            iconBg: "bg-[#f59e0b]/10",
         },
         {
             title: "Envanter Değeri",
             value: formatPrice(totalInventoryValue),
             description: "Toplam alış maliyeti",
             icon: DollarSign,
-            gradient: "from-emerald-50 to-emerald-100 dark:from-emerald-950/40 dark:to-emerald-900/40",
-            iconColor: "text-emerald-600 dark:text-emerald-400",
-            iconBg: "bg-emerald-200 dark:bg-emerald-900/50",
-            borderColor: "border-emerald-200 dark:border-emerald-800",
+            iconColor: "text-[#10b981]",
+            iconBg: "bg-[#10b981]/10",
             action: (
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-900/50 ml-auto"
+                    className="h-7 w-7 rounded-lg hover:bg-[#10b981]/20 ml-auto"
                     onClick={(e) => {
                         e.stopPropagation();
                         onOpenAnalysis();
                     }}
                 >
-                    <Eye className="w-4 h-4 text-emerald-700 dark:text-emerald-300" />
+                    <Eye className="w-4 h-4 text-[#10b981]" />
                 </Button>
             )
         },
@@ -103,10 +97,8 @@ export function IstatistikKartlari({
             value: formatPrice(todayRevenue),
             description: "Bugün yapılan toplam ciro",
             icon: TrendingUp,
-            gradient: "from-purple-50 to-purple-100 dark:from-purple-950/40 dark:to-purple-900/40",
-            iconColor: "text-purple-600 dark:text-purple-400",
-            iconBg: "bg-purple-200 dark:bg-purple-900/50",
-            borderColor: "border-purple-200 dark:border-purple-800"
+            iconColor: "text-[#a855f7]",
+            iconBg: "bg-[#a855f7]/10",
         },
     ];
 
@@ -115,10 +107,10 @@ export function IstatistikKartlari({
             {stats.map((stat) => (
                 <Card
                     key={stat.title}
-                    className={`overflow-hidden border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg bg-gradient-to-br ${stat.gradient} ${stat.borderColor}`}
+                    className="overflow-hidden border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg bg-white/80 dark:bg-[#162a2d]/80 border-[#d0e4e6] dark:border-[#2a4245] backdrop-blur-xl"
                 >
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                        <CardTitle className="text-sm font-medium text-slate-600 dark:text-[#9ab8bc]">
                             {stat.title}
                         </CardTitle>
                         <div className="flex items-center gap-2">
@@ -129,10 +121,10 @@ export function IstatistikKartlari({
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className={`text-2xl font-bold tracking-tight text-slate-900 dark:text-white ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+                        <div className={`text-2xl font-bold tracking-tight text-[#0f2123] dark:text-[#00e1ff] ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                             {stat.value}
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                        <p className="text-xs text-slate-500 dark:text-[#9ab8bc] mt-1 font-medium">
                             {stat.description}
                         </p>
                     </CardContent>

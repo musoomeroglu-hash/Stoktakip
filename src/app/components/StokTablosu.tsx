@@ -222,13 +222,13 @@ export function StokTablosu({
     return (
         <div className="space-y-4">
             {/* Desktop Table View */}
-            <div className="hidden md:block rounded-xl border border-slate-200/60 dark:border-slate-800 bg-white/40 dark:bg-slate-950/50 overflow-hidden shadow-sm">
+            <div className="hidden md:block rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] bg-white/80 dark:bg-[#162a2d]/80 backdrop-blur-xl overflow-hidden shadow-[0_4px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_30px_rgba(0,225,255,0.05)]">
                 <Table>
-                    <TableHeader className="bg-slate-50/40 dark:bg-slate-900/50 sticky top-0 z-10 backdrop-blur-sm">
+                    <TableHeader className="bg-[#f5f8f8] dark:bg-[#1e3639] sticky top-0 z-10 backdrop-blur-sm">
                         {table.getHeaderGroups().map((headerGroup) => (
-                            <TableRow key={headerGroup.id} className="hover:bg-transparent border-slate-200 dark:border-slate-800">
+                            <TableRow key={headerGroup.id} className="hover:bg-transparent border-[#d0e4e6] dark:border-[#2a4245]">
                                 {headerGroup.headers.map((header) => (
-                                    <TableHead key={header.id} className="h-12 text-slate-900 dark:text-slate-100 font-semibold text-center whitespace-nowrap px-4">
+                                    <TableHead key={header.id} className="h-12 text-[#0f2123] dark:text-[#9ab8bc] font-semibold text-center whitespace-nowrap px-4">
                                         {header.isPlaceholder
                                             ? null
                                             : flexRender(
@@ -247,7 +247,7 @@ export function StokTablosu({
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
                                     className={`
-                                        hover:bg-blue-50/50 dark:hover:bg-blue-900/20 transition-colors even:bg-slate-50/50 dark:even:bg-slate-900/20
+                                        hover:bg-[#e8f5f6] dark:hover:bg-[#1e3639]/50 transition-colors even:bg-white/30 dark:even:bg-[#0f2123]/30
                                         ${row.original.stock <= row.original.minStock ? "border-l-4 border-l-red-500 dark:border-l-red-600" : ""}
                                     `}
                                 >
@@ -277,7 +277,7 @@ export function StokTablosu({
                         return (
                             <div
                                 key={row.id}
-                                className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800 space-y-3"
+                                className="bg-white/80 dark:bg-[#162a2d]/80 backdrop-blur-xl rounded-xl p-4 border border-[#d0e4e6] dark:border-[#2a4245] space-y-3"
                             >
                                 <div className="flex justify-between items-start">
                                     <div className="flex gap-3">

@@ -1182,8 +1182,8 @@ function App() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
-        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#f5f8f8] dark:bg-[#0f2123]">
+        <div className="w-12 h-12 border-4 border-[#00e1ff] border-t-transparent rounded-full animate-spin mb-4"></div>
         <p className="text-lg font-medium animate-pulse">Yükleniyor...</p>
         <p className="text-sm text-muted-foreground mt-2">Lütfen bekleyin, veriler sunucudan çekiliyor.</p>
         <div className="mt-8 p-4 bg-muted/50 rounded-lg border text-[10px] font-mono opacity-50">
@@ -1226,7 +1226,7 @@ function App() {
   const mainCategories = categories.filter(c => !c.parentId);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+    <div className="min-h-screen bg-[#f5f8f8] dark:bg-[#0f2123]">
       <Toaster position="top-right" />
 
       <SidebarProvider>
@@ -1237,9 +1237,9 @@ function App() {
           onOpenCategoryManagement={() => setCategoryManagementOpen(true)}
           suppliers={suppliers}
         />
-        <SidebarInset className="flex flex-col min-h-screen bg-slate-50/30 dark:bg-slate-950/50">
+        <SidebarInset className="flex flex-col min-h-screen bg-[#f5f8f8]/30 dark:bg-[#0f2123]/50">
           {/* Header */}
-          <header className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-slate-200/60 dark:border-slate-800 bg-white/40 dark:bg-slate-950/50 backdrop-blur-md sticky top-0 z-10 transition-all duration-300">
+          <header className="flex h-12 shrink-0 items-center justify-between px-6 border-b border-[#d0e4e6] dark:border-[#2a4245] bg-white/40 dark:bg-[#0f2123]/80 backdrop-blur-md sticky top-0 z-10 transition-all duration-300">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="-ml-1" />
               <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 group-data-[collapsible=icon]:hidden" />
@@ -1260,7 +1260,7 @@ function App() {
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="flex bg-slate-100 dark:bg-slate-900 rounded-full p-1 border border-slate-200 dark:border-slate-800">
+              <div className="flex bg-[#e8f5f6] dark:bg-[#162a2d] rounded-full p-1 border border-[#d0e4e6] dark:border-[#2a4245]">
                 <button
                   onClick={toggleCurrency}
                   className="relative flex items-center cursor-pointer"
@@ -1288,7 +1288,7 @@ function App() {
                 variant="outline"
                 size="icon"
                 onClick={() => setIsPrivacyMode(!isPrivacyMode)}
-                className={`h-9 w-9 rounded-xl border-slate-200 dark:border-slate-800 transition-all ${isPrivacyMode ? "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900" : "hover:bg-slate-100 dark:hover:bg-slate-900"}`}
+                className={`h-9 w-9 rounded-lg transition-all ${isPrivacyMode ? "bg-[#00e1ff]/10 border-[#00e1ff]/30 dark:bg-[#00e1ff]/10 dark:border-[#00e1ff]/30" : "hover:bg-slate-100 dark:hover:bg-[#1e3639] border-[#d0e4e6] dark:border-[#2a4245]"}`}
                 title={isPrivacyMode ? "Gizlilik Modunu Kapat" : "Gizlilik Modunu Aç"}
               >
                 {isPrivacyMode ? (
@@ -1302,14 +1302,14 @@ function App() {
                 variant="outline"
                 size="icon"
                 onClick={() => setIsDarkMode(!isDarkMode)}
-                className="h-9 w-9 rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900"
+                className="h-9 w-9 rounded-lg border-[#d0e4e6] dark:border-[#2a4245] bg-white/50 dark:bg-[#162a2d] hover:border-[#00e1ff] hover:text-[#00e1ff] transition-all duration-200"
               >
                 {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-blue-600" />}
               </Button>
 
               <Button
                 onClick={() => setSalesTypeOpen(true)}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/20 gap-2 h-9 rounded-xl px-4 ml-2"
+                className="bg-[#00e1ff] hover:bg-[#33e7ff] text-[#0f2123] font-bold shadow-[0_0_20px_rgba(0,225,255,0.25)] hover:shadow-[0_0_28px_rgba(0,225,255,0.4)] gap-2 h-9 rounded-lg px-4 ml-2 transition-all duration-200"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">İşlem Ekle</span>

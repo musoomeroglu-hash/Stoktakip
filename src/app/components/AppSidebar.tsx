@@ -132,14 +132,14 @@ export function AppSidebar({
     ];
 
     return (
-        <Sidebar collapsible="icon" className="max-md:hidden border-r border-slate-200 dark:border-slate-800">
+        <Sidebar collapsible="icon" className="max-md:hidden border-r border-[#d0e4e6] dark:border-[#2a4245] bg-[#f5f8f8] dark:bg-[#0f2123]">
             <SidebarHeader className="p-4">
                 <div className="flex items-center gap-3 px-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-md shadow-blue-500/20">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-[#00e1ff] to-[#00acc1] text-[#0f2123] shadow-lg shadow-[#00e1ff]/20">
                         <Package className="h-5 w-5" />
                     </div>
                     <div className="flex flex-col group-data-[collapsible=icon]:hidden">
-                        <span className="text-sm font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        <span className="text-sm font-bold text-[#00e1ff]">
                             Techno.Cep
                         </span>
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
@@ -166,8 +166,8 @@ export function AppSidebar({
                                         className={`
                       transition-all duration-200
                       ${activeView === item.view
-                                                ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-semibold'
-                                                : 'hover:bg-slate-100 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400'
+                                                ? 'bg-[#00e1ff]/10 dark:bg-[#00e1ff]/10 text-[#00e1ff] font-semibold border-l-2 border-[#00e1ff]'
+                                                : 'hover:bg-slate-100 dark:hover:bg-[#1e3639] text-slate-600 dark:text-[#9ab8bc] hover:text-slate-900 dark:hover:text-white'
                                             }
                     `}
                                     >
@@ -189,8 +189,8 @@ export function AppSidebar({
                                     className={`
                     transition-all duration-200 w-full
                     ${GROUP_VIEWS.includes(activeView)
-                                            ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-semibold'
-                                            : 'hover:bg-slate-100 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400'
+                                            ? 'bg-[#00e1ff]/10 text-[#00e1ff] font-semibold'
+                                            : 'hover:bg-slate-100 dark:hover:bg-[#1e3639] text-slate-600 dark:text-[#9ab8bc] hover:dark:text-white'
                                         }
                   `}
                                 >
@@ -223,8 +223,8 @@ export function AppSidebar({
                                                     className={`
                                 transition-all duration-200 h-8
                                 ${activeView === item.view
-                                                            ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 font-semibold'
-                                                            : 'hover:bg-slate-100 dark:hover:bg-slate-900/50 text-slate-600 dark:text-slate-400'
+                                                            ? 'bg-[#00e1ff]/10 dark:bg-[#00e1ff]/10 text-[#00e1ff] font-semibold'
+                                                            : 'hover:bg-slate-100 dark:hover:bg-[#1e3639] text-slate-600 dark:text-[#9ab8bc] hover:text-slate-900 dark:hover:text-white'
                                                         }
                               `}
                                                 >
@@ -267,7 +267,7 @@ export function AppSidebar({
             </SidebarContent>
 
             <SidebarFooter className="p-4 group-data-[collapsible=icon]:hidden">
-                <div className="flex items-center gap-2 rounded-lg bg-slate-50 dark:bg-slate-900/50 p-2 text-[10px] text-slate-500 font-medium">
+                <div className="flex items-center gap-2 rounded-lg bg-[#162a2d] dark:bg-[#1e3639] border border-[#2a4245] p-2 text-[10px] text-[#9ab8bc] font-medium">
                     <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                     Sistem Çevrimiçi
                 </div>

@@ -56,7 +56,14 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#f5f8f8] dark:bg-[#0f2123] p-4 relative overflow-hidden">
+      {/* Stitch glow efektleri */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-[#00e1ff]/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-[#00e1ff]/5 rounded-full blur-[100px]" />
+        <div className="absolute top-[20%] right-[10%] w-[10%] h-[10%] bg-[#a855f7]/10 rounded-full blur-[60px]" />
+      </div>
+
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
@@ -91,7 +98,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md relative z-10"
       >
-        <Card className="shadow-2xl border-2">
+        <Card className="shadow-2xl border border-slate-200 dark:border-[#2a4245] bg-white/80 dark:bg-[#162a2d]/60 backdrop-blur-xl">
           <CardHeader className="space-y-3 text-center pb-6">
             <motion.div
               initial={{ scale: 0 }}
@@ -102,11 +109,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 damping: 20,
                 delay: 0.1
               }}
-              className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg"
+              className="mx-auto w-20 h-20 bg-gradient-to-br from-[#00e1ff]/20 to-[#162a2d] border border-[#00e1ff]/30 rounded-2xl flex items-center justify-center shadow-[0_0_15px_rgba(0,225,255,0.15)]"
             >
-              <Lock className="w-10 h-10 text-white" />
+              <Lock className="w-10 h-10 text-[#00e1ff]" />
             </motion.div>
-            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <CardTitle className="text-3xl font-bold text-[#00e1ff]">
               Techno.Cep
             </CardTitle>
             <CardDescription className="text-base">
@@ -206,7 +213,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                     type="button"
                     variant="outline"
                     onClick={handleFaceIDLogin}
-                    className="w-full h-12 text-base font-semibold border-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 gap-2"
+                    className="w-full h-12 text-base font-semibold border border-[#2a4245] dark:text-[#9ab8bc] hover:border-[#00e1ff] hover:text-[#00e1ff] transition-all duration-200 gap-2"
                     disabled={isLoading}
                   >
                     <Smartphone className="w-5 h-5 text-blue-600" />
@@ -223,7 +230,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
               >
                 <Button
                   type="submit"
-                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg"
+                  className="w-full h-12 text-base font-bold bg-[#00e1ff] hover:bg-[#33e7ff] text-[#0f2123] shadow-[0_0_20px_rgba(0,225,255,0.3)] hover:shadow-[0_0_25px_rgba(0,225,255,0.5)] transition-all duration-200"
                   disabled={isLoading}
                 >
                   {isLoading ? (
