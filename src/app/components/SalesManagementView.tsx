@@ -1,15 +1,14 @@
-import { useState, useMemo, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { useState, useMemo } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
+import { Button } from "./ui/button";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { Wrench, ShoppingCart, TrendingUp, DollarSign, Edit, Trash2, User, BarChart3, Calendar, Smartphone } from "lucide-react";
 import { toast } from "sonner";
+import { Card, CardContent } from "./ui/card";
 import type { Sale, RepairRecord, Customer, CustomerTransaction, SaleItem, PhoneSale } from "../utils/api";
 
 interface SalesManagementViewProps {
@@ -29,1086 +28,572 @@ interface SalesManagementViewProps {
   isPrivacyMode: boolean;
 }
 
-const COLORS = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4', '#f43f5e', '#84cc16'];
+const PIE_COLORS = ["#3b82f6", "#a855f7", "#ec4899"];
 
 export function SalesManagementView({
-  sales,
-  repairs,
-  phoneSales,
-  customers,
-  customerTransactions,
-  onDeleteSale,
-  onUpdateSale,
-  onUpdateRepair,
-  onDeleteRepair,
-  onDeletePhoneSale,
-  currency,
-  usdRate,
-  formatPrice,
-  isPrivacyMode,
+  sales, repairs, phoneSales, customers, customerTransactions,
+  onDeleteSale, onUpdateSale, onUpdateRepair, onDeleteRepair, onDeletePhoneSale,
+  currency, usdRate, formatPrice, isPrivacyMode,
 }: SalesManagementViewProps) {
-  // Date range states
+
   const [startDate, setStartDate] = useState<string>(() => {
-    // Default: ayın ilk günü (local time)
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const year = firstDay.getFullYear();
-    const month = String(firstDay.getMonth() + 1).padStart(2, '0');
-    const day = String(firstDay.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return `${firstDay.getFullYear()}-${String(firstDay.getMonth() + 1).padStart(2, "0")}-01`;
   });
-
   const [endDate, setEndDate] = useState<string>(() => {
-    // Default: bugün (local time)
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   });
 
-  // Helper function to check if date is in range
   const isDateInRange = (dateStr: string | undefined) => {
     if (!dateStr) return false;
     const date = new Date(dateStr);
     const start = new Date(startDate);
     const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999); // End of day
+    end.setHours(23, 59, 59, 999);
     return date >= start && date <= end;
   };
 
-  // Quick date range setters
   const setCurrentMonth = () => {
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const year = firstDay.getFullYear();
-    const month = String(firstDay.getMonth() + 1).padStart(2, '0');
-    const day = String(firstDay.getDate()).padStart(2, '0');
-    setStartDate(`${year}-${month}-${day}`);
-
-    const todayYear = now.getFullYear();
-    const todayMonth = String(now.getMonth() + 1).padStart(2, '0');
-    const todayDay = String(now.getDate()).padStart(2, '0');
-    setEndDate(`${todayYear}-${todayMonth}-${todayDay}`);
+    setStartDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`);
+    setEndDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`);
   };
-
   const setPreviousMonth = () => {
     const now = new Date();
-    const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastDayPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-
-    const startYear = firstDayPrevMonth.getFullYear();
-    const startMonth = String(firstDayPrevMonth.getMonth() + 1).padStart(2, '0');
-    const startDay = String(firstDayPrevMonth.getDate()).padStart(2, '0');
-    setStartDate(`${startYear}-${startMonth}-${startDay}`);
-
-    const endYear = lastDayPrevMonth.getFullYear();
-    const endMonth = String(lastDayPrevMonth.getMonth() + 1).padStart(2, '0');
-    const endDay = String(lastDayPrevMonth.getDate()).padStart(2, '0');
-    setEndDate(`${endYear}-${endMonth}-${endDay}`);
+    const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const last = new Date(now.getFullYear(), now.getMonth(), 0);
+    setStartDate(`${first.getFullYear()}-${String(first.getMonth() + 1).padStart(2, "0")}-01`);
+    setEndDate(`${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}-${String(last.getDate()).padStart(2, "0")}`);
   };
-
   const setAllTime = () => {
-    // Set to very early date to include all records
-    setStartDate('2020-01-01');
+    setStartDate("2020-01-01");
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    setEndDate(`${year}-${month}-${day}`);
+    setEndDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`);
   };
 
-  // Helper to format price with locale
   const formatPriceLocale = (price: number) => {
-    if (currency === "USD" && usdRate > 0) {
-      return `$${(price / usdRate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    }
-    return `₺${price.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (currency === "USD" && usdRate > 0)
+      return `$${(price / usdRate).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₺${price.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const [editingRepair, setEditingRepair] = useState<RepairRecord | null>(null);
   const [editRepairDialogOpen, setEditRepairDialogOpen] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [editSaleDialogOpen, setEditSaleDialogOpen] = useState(false);
+  const [editRepairForm, setEditRepairForm] = useState({ customerName: "", customerPhone: "", deviceInfo: "", imei: "", problemDescription: "", repairCost: 0, partsCost: 0, status: "completed" as "in_progress" | "completed" | "delivered" });
+  const [editSaleForm, setEditSaleForm] = useState<{ items: SaleItem[]; totalPrice: number; totalProfit: number }>({ items: [], totalPrice: 0, totalProfit: 0 });
 
-  // Edit repair form
-  const [editRepairForm, setEditRepairForm] = useState({
-    customerName: "",
-    customerPhone: "",
-    deviceInfo: "",
-    imei: "",
-    problemDescription: "",
-    repairCost: 0,
-    partsCost: 0,
-    status: "completed" as "in_progress" | "completed" | "delivered",
-  });
-
-  // Edit sale form
-  const [editSaleForm, setEditSaleForm] = useState<{
-    items: SaleItem[];
-    totalPrice: number;
-    totalProfit: number;
-  }>({
-    items: [],
-    totalPrice: 0,
-    totalProfit: 0,
-  });
-
-  // Calculate repair stats
   const repairStats = useMemo(() => {
-    const filtered = repairs.filter(r =>
-      (r.status === "completed" || r.status === "delivered") &&
-      isDateInRange(r.createdAt)
-    );
-    const totalRevenue = filtered.reduce((sum, r) => sum + r.repairCost, 0);
-    const totalCost = filtered.reduce((sum, r) => sum + r.partsCost, 0);
-    const totalProfit = totalRevenue - totalCost;
-
-    return { count: filtered.length, revenue: totalRevenue, profit: totalProfit, items: filtered };
+    const filtered = repairs.filter(r => (r.status === "completed" || r.status === "delivered") && isDateInRange(r.createdAt));
+    return { count: filtered.length, revenue: filtered.reduce((s, r) => s + r.repairCost, 0), profit: filtered.reduce((s, r) => s + r.repairCost - r.partsCost, 0), items: filtered };
   }, [repairs, startDate, endDate]);
 
-  // Calculate product sale stats
   const productSaleStats = useMemo(() => {
-    const filtered = sales.filter(s =>
-      !s.items.some(item => item.productId.startsWith('repair-')) &&
-      isDateInRange(s.date)
-    );
-    const totalRevenue = filtered.reduce((sum, s) => sum + s.totalPrice, 0);
-    const totalProfit = filtered.reduce((sum, s) => sum + s.totalProfit, 0);
-
-    return { count: filtered.length, revenue: totalRevenue, profit: totalProfit, items: filtered };
+    const filtered = sales.filter(s => !s.items.some(i => i.productId.startsWith("repair-")) && isDateInRange(s.date));
+    return { count: filtered.length, revenue: filtered.reduce((s, x) => s + x.totalPrice, 0), profit: filtered.reduce((s, x) => s + x.totalProfit, 0), items: filtered };
   }, [sales, startDate, endDate]);
 
-  // Calculate phone sale stats
   const phoneSaleStats = useMemo(() => {
     const filtered = phoneSales.filter(ps => isDateInRange(ps.date));
-    const totalRevenue = filtered.reduce((sum, ps) => sum + ps.salePrice, 0);
-    const totalProfit = filtered.reduce((sum, ps) => sum + ps.profit, 0);
-    const totalCost = filtered.reduce((sum, ps) => sum + ps.purchasePrice, 0);
-
-    return { count: filtered.length, revenue: totalRevenue, profit: totalProfit, cost: totalCost, items: filtered };
+    return { count: filtered.length, revenue: filtered.reduce((s, ps) => s + ps.salePrice, 0), profit: filtered.reduce((s, ps) => s + ps.profit, 0), cost: filtered.reduce((s, ps) => s + ps.purchasePrice, 0), items: filtered };
   }, [phoneSales, startDate, endDate]);
 
-  // Calculate cari stats
   const cariStats = useMemo(() => {
-    const totalDebt = customers.reduce((sum, c) => sum + c.debt, 0);
-    const totalCredit = customers.reduce((sum, c) => sum + c.credit, 0);
-    const balance = totalDebt - totalCredit;
-
-    return { totalDebt, totalCredit, balance, count: customers.length };
+    const totalDebt = customers.reduce((s, c) => s + c.debt, 0);
+    const totalCredit = customers.reduce((s, c) => s + c.credit, 0);
+    return { totalDebt, totalCredit, balance: totalDebt - totalCredit, count: customers.length };
   }, [customers]);
 
-  // Calculate profit/loss
   const profitLossStats = useMemo(() => {
     const totalRevenue = productSaleStats.revenue + repairStats.revenue + phoneSaleStats.revenue;
     const totalProfit = productSaleStats.profit + repairStats.profit + phoneSaleStats.profit;
-    const totalCost = totalRevenue - totalProfit;
-
-    return { totalRevenue, totalProfit, totalCost };
+    return { totalRevenue, totalProfit, totalCost: totalRevenue - totalProfit };
   }, [productSaleStats, repairStats, phoneSaleStats]);
 
-  // Pie chart data
-  const pieChartData = useMemo(() => {
-    return [
-      { name: "Ürün Satışları", value: productSaleStats.profit, color: COLORS[0] },
-      { name: "Tamir Kârı", value: repairStats.profit, color: COLORS[1] },
-      { name: "Telefon Satışları", value: phoneSaleStats.profit, color: COLORS[2] },
-    ].filter(item => item.value > 0);
-  }, [productSaleStats.profit, repairStats.profit, phoneSaleStats.profit]);
+  const pieChartData = useMemo(() => [
+    { name: "Ürün Satışları", value: productSaleStats.profit, color: PIE_COLORS[0] },
+    { name: "Tamir Kârı", value: repairStats.profit, color: PIE_COLORS[1] },
+    { name: "Telefon Satışları", value: phoneSaleStats.profit, color: PIE_COLORS[2] },
+  ].filter(i => i.value > 0), [productSaleStats.profit, repairStats.profit, phoneSaleStats.profit]);
 
-  // Handle edit repair
   const handleEditRepair = (repair: RepairRecord) => {
     setEditingRepair(repair);
-    setEditRepairForm({
-      customerName: repair.customerName,
-      customerPhone: repair.customerPhone,
-      deviceInfo: repair.deviceInfo,
-      imei: repair.imei || "",
-      problemDescription: repair.problemDescription,
-      repairCost: repair.repairCost,
-      partsCost: repair.partsCost,
-      status: repair.status,
-    });
+    setEditRepairForm({ customerName: repair.customerName, customerPhone: repair.customerPhone, deviceInfo: repair.deviceInfo, imei: repair.imei || "", problemDescription: repair.problemDescription, repairCost: repair.repairCost, partsCost: repair.partsCost, status: repair.status });
     setEditRepairDialogOpen(true);
   };
-
   const handleSaveRepair = () => {
     if (!editingRepair) return;
-    const profit = editRepairForm.repairCost - editRepairForm.partsCost;
-    onUpdateRepair(editingRepair.id!, { ...editRepairForm, profit });
-    setEditRepairDialogOpen(false);
-    setEditingRepair(null);
-    toast.success("Tamir kaydı güncellendi");
+    onUpdateRepair(editingRepair.id!, { ...editRepairForm, profit: editRepairForm.repairCost - editRepairForm.partsCost });
+    setEditRepairDialogOpen(false); setEditingRepair(null); toast.success("Tamir kaydı güncellendi");
   };
-
-  // Handle edit sale
   const handleEditSale = (sale: Sale) => {
-    setEditingSale(sale);
-    setEditSaleForm({
-      items: [...sale.items],
-      totalPrice: sale.totalPrice,
-      totalProfit: sale.totalProfit,
-    });
-    setEditSaleDialogOpen(true);
+    setEditingSale(sale); setEditSaleForm({ items: [...sale.items], totalPrice: sale.totalPrice, totalProfit: sale.totalProfit }); setEditSaleDialogOpen(true);
   };
-
   const handleUpdateSaleItem = (index: number, field: keyof SaleItem, value: any) => {
-    const newItems = [...editSaleForm.items];
-    newItems[index] = { ...newItems[index], [field]: value };
-
-    // Recalculate totals
-    const totalPrice = newItems.reduce((sum, item) => sum + (item.salePrice * item.quantity), 0);
-    const totalProfit = newItems.reduce((sum, item) => sum + (item.profit * item.quantity), 0);
-
-    setEditSaleForm({ items: newItems, totalPrice, totalProfit });
+    const newItems = [...editSaleForm.items]; newItems[index] = { ...newItems[index], [field]: value };
+    setEditSaleForm({ items: newItems, totalPrice: newItems.reduce((s, i) => s + i.salePrice * i.quantity, 0), totalProfit: newItems.reduce((s, i) => s + i.profit * i.quantity, 0) });
   };
-
   const handleSaveSale = () => {
     if (!editingSale) return;
-    onUpdateSale(editingSale.id!, {
-      ...editingSale,
-      ...editSaleForm,
-    });
-    setEditSaleDialogOpen(false);
-    setEditingSale(null);
-    toast.success("Satış güncellendi");
+    onUpdateSale(editingSale.id!, { ...editingSale, ...editSaleForm });
+    setEditSaleDialogOpen(false); setEditingSale(null); toast.success("Satış güncellendi");
+  };
+  const handleDeleteSale = (id: string) => {
+    if (window.confirm("Bu satışı silmek istediğinize emin misiniz?")) { onDeleteSale(id); toast.success("Satış silindi"); }
   };
 
-  const handleDeleteSale = (id: string) => {
-    if (window.confirm("Bu satışı silmek istediğinize emin misiniz?")) {
-      onDeleteSale(id);
-      toast.success("Satış silindi");
-    }
-  };
+  // ── STYLE HELPERS ───────────────────────────────────────────────
+  const panel = "rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] bg-white dark:bg-[#162a2d] overflow-hidden";
+  const sectionHeader = "px-6 py-4 border-b border-[#e8f5f6] dark:border-[#2a4245]";
+  const labelCls = "text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#9ab8bc]";
+  const valueCls = "text-2xl font-bold tabular-nums";
+
+  const allItems = useMemo(() => [...productSaleStats.items, ...repairStats.items, ...phoneSaleStats.items]
+    .filter((item: any) => !('items' in item && item.items.some((si: any) => si.productId?.startsWith('repair-'))))
+    .sort((a: any, b: any) => new Date(b.date || b.createdAt || 0).getTime() - new Date(a.date || a.createdAt || 0).getTime()),
+    [productSaleStats.items, repairStats.items, phoneSaleStats.items]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-5">
+      {/* Başlık */}
       <div>
-        <h2 className="text-2xl font-bold">Satış & Raporlar</h2>
-        <p className="text-sm text-muted-foreground">Tüm satış işlemleri ve raporlar</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Satış & Raporlar</h2>
+        <p className="text-sm text-slate-500 dark:text-[#9ab8bc]">Tüm satış işlemleri ve raporlar</p>
       </div>
 
-      {/* Date Range Filter */}
-      <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 border-indigo-200 dark:border-indigo-800">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+      {/* Tarih Aralığı */}
+      <div className={`${panel}`}>
+        <div className="px-6 py-4 flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex items-center gap-2 shrink-0">
+            <Calendar className="w-4 h-4 text-[#00e1ff]" />
+            <span className="text-sm font-semibold text-slate-700 dark:text-[#e8f5f6]">Tarih Aralığı:</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 flex-1">
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-              <span className="font-semibold text-indigo-900 dark:text-indigo-100">Tarih Aralığı:</span>
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                className="h-9 px-3 rounded-lg border border-[#d0e4e6] dark:border-[#2a4245] bg-[#f5f8f8] dark:bg-[#1e3639] text-slate-800 dark:text-[#e8f5f6] text-sm focus:outline-none focus:border-[#00e1ff]" />
+              <span className="text-slate-400">-</span>
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                className="h-9 px-3 rounded-lg border border-[#d0e4e6] dark:border-[#2a4245] bg-[#f5f8f8] dark:bg-[#1e3639] text-slate-800 dark:text-[#e8f5f6] text-sm focus:outline-none focus:border-[#00e1ff]" />
             </div>
-
-            <div className="flex flex-wrap items-center gap-3 flex-1">
-              {/* Date Inputs */}
-              <div className="flex items-center gap-2">
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-auto border-indigo-300 dark:border-indigo-700"
-                />
-                <span className="text-muted-foreground">-</span>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-auto border-indigo-300 dark:border-indigo-700"
-                />
-              </div>
-
-              {/* Quick Filters */}
-              <div className="flex gap-2">
-                <Button
-                  onClick={setCurrentMonth}
-                  variant="outline"
-                  size="sm"
-                  className="bg-white dark:bg-gray-800"
-                >
-                  Bu Ay
-                </Button>
-                <Button
-                  onClick={setPreviousMonth}
-                  variant="outline"
-                  size="sm"
-                  className="bg-white dark:bg-gray-800"
-                >
-                  Geçen Ay
-                </Button>
-                <Button
-                  onClick={setAllTime}
-                  variant="outline"
-                  size="sm"
-                  className="bg-white dark:bg-gray-800"
-                >
-                  Tüm Zamanlar
-                </Button>
-              </div>
-            </div>
-
-            {/* Selected Period Display */}
-            <div className="text-sm text-muted-foreground bg-white dark:bg-gray-800 px-3 py-2 rounded-md border">
-              📅 {new Date(startDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })}
-              {' - '}
-              {new Date(endDate).toLocaleDateString('tr-TR', { day: '2-digit', month: 'short', year: 'numeric' })}
+            <div className="flex gap-2">
+              {[{ label: "Bu Ay", fn: setCurrentMonth }, { label: "Geçen Ay", fn: setPreviousMonth }, { label: "Tüm Zamanlar", fn: setAllTime }].map(btn => (
+                <button key={btn.label} onClick={btn.fn}
+                  className="h-9 px-3 rounded-lg border border-[#d0e4e6] dark:border-[#2a4245] bg-white dark:bg-[#1e3639] text-slate-600 dark:text-[#9ab8bc] hover:border-[#00e1ff]/50 hover:text-[#00e1ff] text-sm font-medium transition-all duration-200">
+                  {btn.label}
+                </button>
+              ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#d0e4e6] dark:border-[#2a4245] bg-[#f5f8f8] dark:bg-[#1e3639] text-sm text-slate-600 dark:text-[#9ab8bc] shrink-0">
+            <Calendar className="w-3.5 h-3.5 text-[#00e1ff]" />
+            {new Date(startDate).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" })} -{" "}
+            {new Date(endDate).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" })}
+          </div>
+        </div>
+      </div>
 
-      {/* Overall Stats */}
+      {/* 4 KPI Kartı — Stitch'ten */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-950 dark:to-blue-900/50 border-blue-200 dark:border-blue-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-700 dark:text-blue-300">Toplam Ciro</p>
-                <p className={`text-3xl font-bold text-blue-900 dark:text-blue-100 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                  {formatPriceLocale(profitLossStats.totalRevenue)}
-                </p>
+        {[
+          { label: "Toplam Ciro", value: formatPriceLocale(profitLossStats.totalRevenue), icon: DollarSign, color: "#3b82f6", bg: "rgba(59,130,246,0.12)", border: "rgba(59,130,246,0.3)", blurred: true },
+          { label: "Toplam Kâr", value: formatPriceLocale(profitLossStats.totalProfit), icon: TrendingUp, color: "#10b981", bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.3)", blurred: true },
+          { label: "Toplam İşlem", value: String(productSaleStats.count + repairStats.count + phoneSaleStats.count), icon: ShoppingCart, color: "#a855f7", bg: "rgba(168,85,247,0.12)", border: "rgba(168,85,247,0.3)", blurred: false },
+          { label: "Cari Bakiye", value: formatPriceLocale(cariStats.balance), icon: User, color: "#f97316", bg: "rgba(249,115,22,0.12)", border: "rgba(249,115,22,0.3)", blurred: true },
+        ].map(kpi => (
+          <div key={kpi.label} className="relative overflow-hidden rounded-xl border bg-white dark:bg-[#162a2d] p-5 group hover:-translate-y-0.5 transition-all duration-300 hover:shadow-lg" style={{ borderColor: kpi.border }}>
+            <div className="absolute -right-6 -top-6 w-20 h-20 rounded-full blur-xl opacity-50 group-hover:opacity-80 transition-opacity" style={{ background: kpi.bg }} />
+            <p className={`${labelCls} mb-3`}>{kpi.label}</p>
+            <div className="flex items-end justify-between">
+              <p className={`${valueCls} text-slate-900 dark:text-white ${kpi.blurred && isPrivacyMode ? "privacy-mode-blur" : ""}`}>{kpi.value}</p>
+              <div className="p-2 rounded-lg" style={{ background: kpi.bg }}>
+                <kpi.icon className="w-5 h-5" style={{ color: kpi.color }} />
               </div>
-              <DollarSign className="w-12 h-12 text-blue-500" />
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950 dark:to-green-900/50 border-green-200 dark:border-green-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-700 dark:text-green-300">Toplam Kâr</p>
-                <p className={`text-3xl font-bold text-green-900 dark:text-green-100 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                  {formatPriceLocale(profitLossStats.totalProfit)}
-                </p>
-              </div>
-              <TrendingUp className="w-12 h-12 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950 dark:to-purple-900/50 border-purple-200 dark:border-purple-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-purple-700 dark:text-purple-300">Toplam İşlem</p>
-                <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">
-                  {productSaleStats.count + repairStats.count + phoneSaleStats.count}
-                </p>
-              </div>
-              <ShoppingCart className="w-12 h-12 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950 dark:to-orange-900/50 border-orange-200 dark:border-orange-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-orange-700 dark:text-orange-300">Cari Bakiye</p>
-                <p className={`text-3xl font-bold ${cariStats.balance >= 0 ? 'text-green-900 dark:text-green-100' : 'text-red-900 dark:text-red-100'} ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                  {formatPriceLocale(cariStats.balance)}
-                </p>
-              </div>
-              <User className="w-12 h-12 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
+            <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: `linear-gradient(to right, ${kpi.color}50, transparent)` }} />
+          </div>
+        ))}
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="all" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="repairs">
-            <Wrench className="w-4 h-4 mr-2" />
-            Tamir
-          </TabsTrigger>
-          <TabsTrigger value="sales">
-            <ShoppingCart className="w-4 h-4 mr-2" />
-            Ürün Satışı
-          </TabsTrigger>
-          <TabsTrigger value="cari">
-            <User className="w-4 h-4 mr-2" />
-            Cari
-          </TabsTrigger>
-          <TabsTrigger value="profitloss">
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Kar Zarar
-          </TabsTrigger>
-          <TabsTrigger value="all">
-            <TrendingUp className="w-4 h-4 mr-2" />
-            Hepsi
-          </TabsTrigger>
-        </TabsList>
+        <div className={`${panel}`}>
+          <TabsList className="flex w-full bg-transparent border-b border-[#e8f5f6] dark:border-[#2a4245] rounded-none h-auto p-0">
+            {[
+              { value: "repairs", icon: Wrench, label: "Tamir" },
+              { value: "sales", icon: ShoppingCart, label: "Ürün Satışı" },
+              { value: "cari", icon: User, label: "Cari" },
+              { value: "profitloss", icon: BarChart3, label: "Kar Zarar" },
+              { value: "all", icon: TrendingUp, label: "Hepsi" },
+            ].map(tab => (
+              <TabsTrigger key={tab.value} value={tab.value}
+                className="flex-1 flex items-center justify-center gap-2 h-12 rounded-none border-b-2 border-transparent text-slate-500 dark:text-[#9ab8bc] data-[state=active]:border-[#00e1ff] data-[state=active]:text-[#00e1ff] data-[state=active]:bg-[#00e1ff]/5 font-medium text-sm transition-all">
+                <tab.icon className="w-4 h-4" />
+                <span className="hidden sm:inline">{tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-        {/* Repairs Tab */}
-        <TabsContent value="repairs" className="space-y-4">
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950">
-              <div className="flex items-center justify-between">
-                <CardTitle>Tamir Kayıtları</CardTitle>
-                <div className="flex gap-4">
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Ciro</p>
-                    <p className={`text-xl font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repairStats.revenue)}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Kâr</p>
-                    <p className={`text-xl font-semibold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repairStats.profit)}</p>
-                  </div>
+          {/* ── REPAIRS TAB ── */}
+          <TabsContent value="repairs" className="p-6 space-y-3">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-800 dark:text-[#e8f5f6]">Tamir Kayıtları</h3>
+              <div className="flex gap-6">
+                <div className="text-right">
+                  <p className={labelCls}>Ciro</p>
+                  <p className={`font-bold text-slate-800 dark:text-white tabular-nums ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repairStats.revenue)}</p>
+                </div>
+                <div className="text-right">
+                  <p className={labelCls}>Kâr</p>
+                  <p className={`font-bold text-[#10b981] tabular-nums ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repairStats.profit)}</p>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {repairStats.items.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Henüz tamamlanmış tamir kaydı yok</p>
-                ) : (
-                  repairStats.items.map((repair) => (
-                    <Card key={repair.id} className="bg-gradient-to-r from-orange-50/50 to-transparent dark:from-orange-950/20">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h4 className="font-semibold">{repair.deviceInfo}</h4>
-                              <Badge variant={repair.status === "delivered" ? "default" : "secondary"}>
-                                {repair.status === "delivered" ? "Teslim Edildi" : "Tamamlandı"}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground mb-1">{repair.customerName} - {repair.customerPhone}</p>
-                            <p className="text-sm text-muted-foreground mb-2">{repair.problemDescription}</p>
-                            <div className="flex gap-4 text-sm">
-                              <div>
-                                <span className="text-muted-foreground">Tamir:</span>{" "}
-                                <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repair.repairCost)}</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Malzeme:</span>{" "}
-                                <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repair.partsCost)}</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Kâr:</span>{" "}
-                                <span className={`font-semibold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repair.profit)}</span>
-                              </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-2">
-                              {new Date(repair.createdAt).toLocaleDateString('tr-TR', {
-                                day: '2-digit',
-                                month: 'long',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
-                          </div>
-                          {/* Düzenleme ve silme butonları kaldırıldı - Tamir Kayıtları'ndan yönetin */}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Product Sales Tab */}
-        <TabsContent value="sales" className="space-y-4">
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950">
-              <div className="flex items-center justify-between">
-                <CardTitle>Ürün Satışları</CardTitle>
-                <div className="flex gap-4">
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Ciro</p>
-                    <p className={`text-xl font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(productSaleStats.revenue)}</p>
+            </div>
+            {repairStats.items.length === 0 ? (
+              <p className="text-center text-slate-400 dark:text-[#9ab8bc] py-10">Henüz tamamlanmış tamir kaydı yok</p>
+            ) : repairStats.items.map(repair => (
+              <div key={repair.id} className="flex items-center justify-between p-4 rounded-xl border border-[#e8f5f6] dark:border-[#2a4245] hover:border-[#00e1ff]/30 hover:bg-[#f0f8f9] dark:hover:bg-[#1e3639] transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(249,115,22,0.12)" }}>
+                    <Wrench className="w-4 h-4 text-orange-500" />
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm text-muted-foreground">Kâr</p>
-                    <p className={`text-xl font-semibold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(productSaleStats.profit)}</p>
+                  <div>
+                    <p className="font-semibold text-sm text-slate-800 dark:text-[#e8f5f6]">{repair.deviceInfo}</p>
+                    <p className="text-xs text-slate-500 dark:text-[#9ab8bc]">{repair.customerName} · {new Date(repair.createdAt).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
                   </div>
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                {productSaleStats.items.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Henüz satış kaydı yok</p>
-                ) : (
-                  productSaleStats.items.map((sale) => (
-                    <Card key={sale.id} className="bg-gradient-to-r from-blue-50/50 to-transparent dark:from-blue-950/20">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h4 className="font-semibold">Satış #{sale.id?.slice(0, 8)}</h4>
-                            </div>
-                            <div className="space-y-1 mb-2">
-                              {sale.items.map((item, index) => (
-                                <div key={index} className="text-sm">
-                                  <span className="font-medium">{item.productName}</span>{" "}
-                                  <span className="text-muted-foreground">x{item.quantity}</span>{" "}
-                                  <span className="text-muted-foreground">-</span>{" "}
-                                  <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(item.salePrice * item.quantity)}</span>
-                                </div>
-                              ))}
-                            </div>
-                            <div className="flex gap-4 text-sm">
-                              <div>
-                                <span className="text-muted-foreground">Toplam:</span>{" "}
-                                <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(sale.totalPrice)}</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground">Kâr:</span>{" "}
-                                <span className={`font-semibold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(sale.totalProfit)}</span>
-                              </div>
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-2">
-                              {new Date(sale.date).toLocaleDateString('tr-TR', {
-                                day: '2-digit',
-                                month: 'long',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button variant="ghost" size="icon" onClick={() => handleEditSale(sale)}>
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteSale(sale.id!)}>
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Cari Tab */}
-        <TabsContent value="cari" className="space-y-4">
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-pink-50 to-rose-50 dark:from-pink-950 dark:to-rose-950">
-              <CardTitle>Cari Hesaplar</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <Card className="bg-red-50 dark:bg-red-950/30">
-                  <CardContent className="p-4">
-                    <p className="text-sm text-muted-foreground">Toplam Alacak</p>
-                    <p className={`text-2xl font-bold text-red-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(cariStats.totalDebt)}</p>
-                  </CardContent>
-                </Card>
-                <Card className="bg-blue-50 dark:bg-blue-950/30">
-                  <CardContent className="p-4">
-                    <p className="text-sm text-muted-foreground">Toplam Borç</p>
-                    <p className={`text-2xl font-bold text-blue-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(cariStats.totalCredit)}</p>
-                  </CardContent>
-                </Card>
-                <Card className={cariStats.balance >= 0 ? "bg-green-50 dark:bg-green-950/30" : "bg-red-50 dark:bg-red-950/30"}>
-                  <CardContent className="p-4">
-                    <p className="text-sm text-muted-foreground">Bakiye</p>
-                    <p className={`text-2xl font-bold ${cariStats.balance >= 0 ? 'text-green-600' : 'text-red-600'} ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                      {formatPriceLocale(cariStats.balance)}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-                {customers.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">Henüz cari kaydı yok</p>
-                ) : (
-                  customers.map((customer) => (
-                    <Card key={customer.id} className="bg-gradient-to-r from-pink-50/50 to-transparent dark:from-pink-950/20">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <h4 className="font-semibold">{customer.name}</h4>
-                            <p className="text-sm text-muted-foreground">{customer.phone}</p>
-                          </div>
-                          <div className="text-right space-y-1">
-                            <div className="text-sm">
-                              <span className="text-muted-foreground">Alacak:</span>{" "}
-                              <span className={`font-semibold text-red-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(customer.debt)}</span>
-                            </div>
-                            <div className="text-sm">
-                              <span className="text-muted-foreground">Borç:</span>{" "}
-                              <span className={`font-semibold text-blue-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(customer.credit)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Profit/Loss Tab */}
-        <TabsContent value="profitloss" className="space-y-4">
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950 dark:to-green-950">
-              <CardTitle>Kar Zarar Tablosu</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card className="bg-blue-50 dark:bg-blue-950/30">
-                    <CardContent className="p-4">
-                      <p className="text-sm text-muted-foreground mb-2">Gelirler</p>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm">Ürün Satışları</span>
-                          <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(productSaleStats.revenue)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm">Tamir Gelirleri</span>
-                          <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repairStats.revenue)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm">Telefon Satışları</span>
-                          <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(phoneSaleStats.revenue)}</span>
-                        </div>
-                        <div className="flex justify-between border-t pt-2">
-                          <span className="font-medium">Toplam Gelir</span>
-                          <span className={`font-bold text-blue-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(profitLossStats.totalRevenue)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-red-50 dark:bg-red-950/30">
-                    <CardContent className="p-4">
-                      <p className="text-sm text-muted-foreground mb-2">Giderler</p>
-                      <div className="space-y-2">
-                        <div className="flex justify-between">
-                          <span className="text-sm">Ürün Maliyetleri</span>
-                          <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(productSaleStats.revenue - productSaleStats.profit)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm">Tamir Maliyetleri</span>
-                          <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repairStats.revenue - repairStats.profit)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-sm">Telefon Maliyetleri</span>
-                          <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(phoneSaleStats.cost)}</span>
-                        </div>
-                        <div className="flex justify-between border-t pt-2">
-                          <span className="font-medium">Toplam Maliyet</span>
-                          <span className={`font-bold text-red-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(profitLossStats.totalCost)}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                <div className="text-right">
+                  <p className={`font-bold tabular-nums text-slate-800 dark:text-white ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(repair.repairCost)}</p>
+                  <p className={`text-xs font-semibold text-[#10b981] ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>+{formatPriceLocale(repair.profit)}</p>
                 </div>
+              </div>
+            ))}
+          </TabsContent>
 
-                <Card className="bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-950 dark:to-emerald-950">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">Net Kar/Zarar</p>
-                        <p className={`text-4xl font-bold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                          {formatPriceLocale(profitLossStats.totalProfit)}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground mb-1">Kar Marjı</p>
-                        <p className={`text-3xl font-bold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                          {profitLossStats.totalRevenue > 0 ? ((profitLossStats.totalProfit / profitLossStats.totalRevenue) * 100).toFixed(1) : 0}%
-                        </p>
-                      </div>
+          {/* ── SALES TAB ── */}
+          <TabsContent value="sales" className="p-6 space-y-3">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-800 dark:text-[#e8f5f6]">Ürün Satışları</h3>
+              <div className="flex gap-6">
+                <div className="text-right">
+                  <p className={labelCls}>Ciro</p>
+                  <p className={`font-bold text-slate-800 dark:text-white tabular-nums ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(productSaleStats.revenue)}</p>
+                </div>
+                <div className="text-right">
+                  <p className={labelCls}>Kâr</p>
+                  <p className={`font-bold text-[#10b981] tabular-nums ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(productSaleStats.profit)}</p>
+                </div>
+              </div>
+            </div>
+            {productSaleStats.items.length === 0 ? (
+              <p className="text-center text-slate-400 dark:text-[#9ab8bc] py-10">Henüz satış kaydı yok</p>
+            ) : productSaleStats.items.map(sale => (
+              <div key={sale.id} className="flex items-center justify-between p-4 rounded-xl border border-[#e8f5f6] dark:border-[#2a4245] hover:border-[#00e1ff]/30 hover:bg-[#f0f8f9] dark:hover:bg-[#1e3639] transition-all">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: "rgba(59,130,246,0.12)" }}>
+                    <ShoppingCart className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm text-slate-800 dark:text-[#e8f5f6]">{sale.items[0]?.productName}{sale.items.length > 1 ? ` +${sale.items.length - 1}` : ""}</p>
+                    <p className="text-xs text-slate-500 dark:text-[#9ab8bc]">{new Date(sale.date).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-right">
+                    <p className={`font-bold tabular-nums text-slate-800 dark:text-white ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(sale.totalPrice)}</p>
+                    <p className={`text-xs font-semibold text-[#10b981] ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>+{formatPriceLocale(sale.totalProfit)}</p>
+                  </div>
+                  <button onClick={() => handleEditSale(sale)} className="p-1.5 rounded-lg hover:bg-[#e8f5f6] dark:hover:bg-[#2a4245] text-slate-400 hover:text-amber-500 transition-colors">
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => handleDeleteSale(sale.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-500 transition-colors">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </TabsContent>
+
+          {/* ── CARİ TAB ── */}
+          <TabsContent value="cari" className="p-6 space-y-4">
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {[
+                { label: "Toplam Alacak", value: formatPriceLocale(cariStats.totalDebt), color: "#ef4444" },
+                { label: "Toplam Borç", value: formatPriceLocale(cariStats.totalCredit), color: "#3b82f6" },
+                { label: "Bakiye", value: formatPriceLocale(cariStats.balance), color: cariStats.balance >= 0 ? "#10b981" : "#ef4444" },
+              ].map(s => (
+                <div key={s.label} className="p-4 rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] bg-[#f5f8f8] dark:bg-[#1e3639]">
+                  <p className={labelCls}>{s.label}</p>
+                  <p className={`font-bold text-lg tabular-nums ${isPrivacyMode ? "privacy-mode-blur" : ""}`} style={{ color: s.color }}>{s.value}</p>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-2 max-h-[500px] overflow-y-auto">
+              {customers.length === 0 ? (
+                <p className="text-center text-slate-400 dark:text-[#9ab8bc] py-10">Henüz cari kaydı yok</p>
+              ) : customers.map(customer => (
+                <div key={customer.id} className="flex items-center justify-between p-4 rounded-xl border border-[#e8f5f6] dark:border-[#2a4245] hover:bg-[#f0f8f9] dark:hover:bg-[#1e3639] transition-all">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-[#00e1ff]/10 flex items-center justify-center">
+                      <User className="w-4 h-4 text-[#00e1ff]" />
                     </div>
-                  </CardContent>
-                </Card>
+                    <div>
+                      <p className="font-semibold text-sm text-slate-800 dark:text-[#e8f5f6]">{customer.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-[#9ab8bc]">{customer.phone}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4 text-right">
+                    <div>
+                      <p className={labelCls}>Alacak</p>
+                      <p className={`font-semibold text-red-500 tabular-nums text-sm ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(customer.debt)}</p>
+                    </div>
+                    <div>
+                      <p className={labelCls}>Borç</p>
+                      <p className={`font-semibold text-blue-500 tabular-nums text-sm ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(customer.credit)}</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Ürün Satış Detayı</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Satış Sayısı</span>
-                        <span className="font-semibold">{productSaleStats.count}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Ortalama Satış</span>
-                        <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                          ₺{productSaleStats.count > 0 ? (productSaleStats.revenue / productSaleStats.count).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '0.00'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Kâr Marjı</span>
-                        <span className="font-semibold text-green-600">
-                          {productSaleStats.revenue > 0 ? ((productSaleStats.profit / productSaleStats.revenue) * 100).toFixed(1) : 0}%
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="text-lg">Tamir Detayı</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex justify-between">
-                        <span>Tamir Sayısı</span>
-                        <span className="font-semibold">{repairStats.count}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Ortalama Gelir</span>
-                        <span className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                          ₺{repairStats.count > 0 ? (repairStats.revenue / repairStats.count).toLocaleString('tr-TR', { minimumFractionDigits: 2 }) : '0.00'}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Kâr Marjı</span>
-                        <span className="font-semibold text-green-600">
-                          {repairStats.revenue > 0 ? ((repairStats.profit / repairStats.revenue) * 100).toFixed(1) : 0}%
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
+          {/* ── KAR ZARAR TAB ── */}
+          <TabsContent value="profitloss" className="p-6 space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Gelirler */}
+              <div className="rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] bg-[#f5f8f8] dark:bg-[#1e3639] p-5">
+                <p className={`${labelCls} mb-3`}>Gelirler</p>
+                <div className="space-y-2">
+                  {[
+                    { label: "Ürün Satışları", val: productSaleStats.revenue },
+                    { label: "Tamir Gelirleri", val: repairStats.revenue },
+                    { label: "Telefon Satışları", val: phoneSaleStats.revenue },
+                  ].map(r => (
+                    <div key={r.label} className="flex justify-between text-sm">
+                      <span className="text-slate-600 dark:text-[#9ab8bc]">{r.label}</span>
+                      <span className={`font-semibold tabular-nums text-slate-800 dark:text-[#e8f5f6] ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(r.val)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between pt-2 border-t border-[#d0e4e6] dark:border-[#2a4245]">
+                    <span className="font-semibold text-slate-700 dark:text-[#e8f5f6]">Toplam Gelir</span>
+                    <span className={`font-bold text-[#3b82f6] tabular-nums ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(profitLossStats.totalRevenue)}</span>
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* All Tab with Pie Chart */}
-        <TabsContent value="all" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950">
-                <CardTitle>Kâr Dağılımı</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                {pieChartData.length === 0 ? (
-                  <div className="h-[300px] flex items-center justify-center">
-                    <p className="text-muted-foreground">Henüz veri yok</p>
+              {/* Giderler */}
+              <div className="rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] bg-[#f5f8f8] dark:bg-[#1e3639] p-5">
+                <p className={`${labelCls} mb-3`}>Giderler</p>
+                <div className="space-y-2">
+                  {[
+                    { label: "Ürün Maliyetleri", val: productSaleStats.revenue - productSaleStats.profit },
+                    { label: "Tamir Maliyetleri", val: repairStats.revenue - repairStats.profit },
+                    { label: "Telefon Maliyetleri", val: phoneSaleStats.cost },
+                  ].map(r => (
+                    <div key={r.label} className="flex justify-between text-sm">
+                      <span className="text-slate-600 dark:text-[#9ab8bc]">{r.label}</span>
+                      <span className={`font-semibold tabular-nums text-slate-800 dark:text-[#e8f5f6] ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(r.val)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between pt-2 border-t border-[#d0e4e6] dark:border-[#2a4245]">
+                    <span className="font-semibold text-slate-700 dark:text-[#e8f5f6]">Toplam Maliyet</span>
+                    <span className={`font-bold text-red-500 tabular-nums ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(profitLossStats.totalCost)}</span>
                   </div>
+                </div>
+              </div>
+            </div>
+            {/* Net Kar */}
+            <div className="rounded-xl border border-[#10b981]/30 bg-[#10b981]/5 p-6 flex items-center justify-between">
+              <div>
+                <p className={labelCls}>Net Kâr / Zarar</p>
+                <p className={`text-4xl font-bold text-[#10b981] tabular-nums ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(profitLossStats.totalProfit)}</p>
+              </div>
+              <div className="text-right">
+                <p className={labelCls}>Kâr Marjı</p>
+                <p className="text-3xl font-bold text-[#10b981]">
+                  {profitLossStats.totalRevenue > 0 ? ((profitLossStats.totalProfit / profitLossStats.totalRevenue) * 100).toFixed(1) : 0}%
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ── HEPSİ TAB — Stitch tasarımı ── */}
+          <TabsContent value="all" className="p-6 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              {/* Kâr Dağılımı Pasta Grafik */}
+              <div className="rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] bg-[#f5f8f8] dark:bg-[#1e3639] p-5">
+                <p className="font-bold text-slate-800 dark:text-[#e8f5f6] mb-4">Kâr Dağılımı</p>
+                {pieChartData.length === 0 ? (
+                  <div className="h-56 flex items-center justify-center text-slate-400 dark:text-[#9ab8bc]">Henüz veri yok</div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={300}>
+                  <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
-                      <Pie
-                        data={pieChartData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
+                      <Pie data={pieChartData} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={3} dataKey="value"
                         label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {pieChartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        labelLine={{ stroke: "#9ab8bc", strokeWidth: 1 }}>
+                        {pieChartData.map((entry, i) => (
+                          <Cell key={i} fill={entry.color} stroke="transparent" />
                         ))}
                       </Pie>
-                      <Tooltip
-                        formatter={(value: number) => isPrivacyMode ? "****" : `₺${value.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`}
-                      />
-                      <Legend />
+                      <Tooltip formatter={(v: number) => isPrivacyMode ? "****" : `₺${v.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}`}
+                        contentStyle={{ background: "#162a2d", border: "1px solid #2a4245", borderRadius: "8px", color: "#e8f5f6" }} />
+                      <Legend iconType="circle" iconSize={8} formatter={(v) => <span className="text-xs text-slate-600 dark:text-[#9ab8bc]">{v}</span>} />
                     </PieChart>
                   </ResponsiveContainer>
                 )}
-              </CardContent>
-            </Card>
+              </div>
 
-            <Card>
-              <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950">
-                <CardTitle>Özet</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-                    <span className="text-sm font-medium">Ürün Satışları</span>
-                    <span className="font-semibold">{productSaleStats.count} adet</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg">
-                    <span className="text-sm font-medium">Tamir İşlemleri</span>
-                    <span className="font-semibold">{repairStats.count} adet</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
-                    <span className="text-sm font-medium">Toplam İşlem</span>
-                    <span className="font-semibold">{productSaleStats.count + repairStats.count + phoneSaleStats.count} adet</span>
+              {/* Özet Panel */}
+              <div className="rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] bg-[#f5f8f8] dark:bg-[#1e3639] p-5">
+                <p className="font-bold text-slate-800 dark:text-[#e8f5f6] mb-4">Özet</p>
+                <div className="space-y-2 mb-5">
+                  {[
+                    { label: "Ürün Satışları", val: `${productSaleStats.count} adet`, bg: "rgba(59,130,246,0.1)" },
+                    { label: "Tamir İşlemleri", val: `${repairStats.count} adet`, bg: "rgba(249,115,22,0.1)" },
+                    { label: "Toplam İşlem", val: `${productSaleStats.count + repairStats.count + phoneSaleStats.count} adet`, bg: "rgba(168,85,247,0.1)" },
+                  ].map(r => (
+                    <div key={r.label} className="flex justify-between items-center p-3 rounded-lg" style={{ background: r.bg }}>
+                      <span className="text-sm font-medium text-slate-700 dark:text-[#e8f5f6]">{r.label}</span>
+                      <span className="font-bold text-slate-800 dark:text-white">{r.val}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-2 pt-4 border-t border-[#d0e4e6] dark:border-[#2a4245]">
+                  {[
+                    { label: "Ürün Satış Kârı", val: formatPriceLocale(productSaleStats.profit), color: "#3b82f6" },
+                    { label: "Tamir Kârı", val: formatPriceLocale(repairStats.profit), color: "#f97316" },
+                  ].map(r => (
+                    <div key={r.label} className="flex justify-between items-center">
+                      <span className="text-sm text-slate-500 dark:text-[#9ab8bc]">{r.label}</span>
+                      <span className={`font-semibold tabular-nums ${isPrivacyMode ? "privacy-mode-blur" : ""}`} style={{ color: r.color }}>{r.val}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between items-center p-3 rounded-lg bg-[#10b981]/10 mt-1">
+                    <span className="font-semibold text-slate-800 dark:text-[#e8f5f6]">Toplam Kâr</span>
+                    <span className={`text-xl font-bold text-[#10b981] tabular-nums ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(profitLossStats.totalProfit)}</span>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                <div className="border-t pt-4 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Ürün Satış Kârı</span>
-                    <span className={`font-semibold text-blue-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                      {formatPriceLocale(productSaleStats.profit)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Tamir Kârı</span>
-                    <span className={`font-semibold text-orange-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                      {formatPriceLocale(repairStats.profit)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                    <span className="font-medium">Toplam Kâr</span>
-                    <span className={`text-xl font-bold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                      {formatPriceLocale(profitLossStats.totalProfit)}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+            {/* Son İşlemler — Stitch listesi */}
+            <div className="rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] overflow-hidden">
+              <div className="px-6 py-4 border-b border-[#e8f5f6] dark:border-[#2a4245]">
+                <p className="font-bold text-slate-800 dark:text-[#e8f5f6]">Son İşlemler</p>
+              </div>
+              <div className="divide-y divide-[#e8f5f6] dark:divide-[#2a4245] max-h-[500px] overflow-y-auto">
+                {allItems.length === 0 ? (
+                  <p className="text-center text-slate-400 dark:text-[#9ab8bc] py-10">Henüz işlem yok</p>
+                ) : allItems.map((item: any, index) => {
+                  const isSale = "items" in item;
+                  const isRepair = "deviceInfo" in item;
+                  const cfg = isSale
+                    ? { icon: ShoppingCart, color: "#3b82f6", bg: "rgba(59,130,246,0.12)", label: `Satış - ${item.items[0]?.productName}`, amount: item.totalPrice, profit: item.totalProfit }
+                    : isRepair
+                    ? { icon: Wrench, color: "#f97316", bg: "rgba(249,115,22,0.12)", label: `Tamir - ${item.deviceInfo}`, amount: item.repairCost, profit: item.profit }
+                    : { icon: Smartphone, color: "#a855f7", bg: "rgba(168,85,247,0.12)", label: `Telefon - ${item.brand} ${item.model}`, amount: item.salePrice, profit: item.profit };
 
-          {/* Recent Transactions */}
-          <Card>
-            <CardHeader className="bg-gradient-to-r from-slate-50 to-gray-50 dark:from-slate-950 dark:to-gray-950">
-              <CardTitle>Son İşlemler</CardTitle>
-            </CardHeader>
-            <CardContent className="p-6">
-              <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
-                {[...productSaleStats.items, ...repairStats.items, ...phoneSaleStats.items]
-                  .sort((a: any, b: any) => {
-                    const dateB = new Date(b.date || b.createdAt || 0).getTime();
-                    const dateA = new Date(a.date || a.createdAt || 0).getTime();
-                    return dateB - dateA;
-                  })
-                  .map((item: any, index) => {
-                    const isSale = 'items' in item;
-                    const isPhoneSale = 'brand' in item || 'salePrice' in item;
-                    const isRepair = 'deviceInfo' in item;
-
-                    // Skip repair sales since we already show repair records
-                    if (isSale && item.items.some((saleItem: any) => saleItem.productId?.startsWith('repair-'))) {
-                      return null;
-                    }
-
-                    return (
-                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          {isSale ? (
-                            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                              <ShoppingCart className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                            </div>
-                          ) : isPhoneSale ? (
-                            <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900 flex items-center justify-center">
-                              <Smartphone className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                            </div>
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900 flex items-center justify-center">
-                              <Wrench className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-                            </div>
-                          )}
-                          <div>
-                            <p className="font-medium">
-                              {isSale
-                                ? `Satış - ${item.items[0]?.productName}`
-                                : isPhoneSale
-                                  ? `Telefon Satışı - ${item.brand} ${item.model}`
-                                  : `Tamir - ${item.deviceInfo}`
-                              }
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {new Date(item.date || item.createdAt || 0).toLocaleDateString('tr-TR', {
-                                day: '2-digit',
-                                month: 'short',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
-                          </div>
+                  return (
+                    <div key={index} className="flex items-center justify-between px-6 py-4 hover:bg-[#f0f8f9] dark:hover:bg-[#1e3639] transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: cfg.bg }}>
+                          <cfg.icon className="w-4 h-4" style={{ color: cfg.color }} />
                         </div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-right">
-                            <p className={`font-semibold ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                              {formatPriceLocale(
-                                isSale
-                                  ? item.totalPrice
-                                  : isPhoneSale
-                                    ? item.salePrice
-                                    : item.repairCost
-                              )}
-                            </p>
-                            <p className={`text-sm text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                              +{formatPriceLocale(
-                                isSale
-                                  ? item.totalProfit
-                                  : item.profit
-                              )}
-                            </p>
-                          </div>
-                          {isSale && (
-                            <div className="flex gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => handleEditSale(item)}>
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleDeleteSale(item.id!)}>
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                              </Button>
-                            </div>
-                          )}
-                          {!isSale && !isPhoneSale && (
-                            <div className="flex gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => onDeleteRepair(item.id!)}>
-                                <Trash2 className="w-4 h-4 text-destructive" />
-                              </Button>
-                            </div>
-                          )}
+                        <div>
+                          <p className="font-semibold text-sm text-slate-800 dark:text-[#e8f5f6]">{cfg.label}</p>
+                          <p className="text-xs text-slate-500 dark:text-[#9ab8bc]">
+                            {new Date(item.date || item.createdAt || 0).toLocaleDateString("tr-TR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                          </p>
                         </div>
                       </div>
-                    );
-                  })
-                  .filter(item => item !== null) // Filter out null values
-                }
-                {productSaleStats.items.length === 0 && repairStats.items.length === 0 && phoneSaleStats.items.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">Henüz işlem yok</p>
-                )}
+                      <div className="flex items-center gap-2">
+                        <div className="text-right">
+                          <p className={`font-bold tabular-nums text-slate-800 dark:text-white ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPriceLocale(cfg.amount)}</p>
+                          <p className={`text-xs font-semibold text-[#10b981] ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>+{formatPriceLocale(cfg.profit)}</p>
+                        </div>
+                        {isSale && (
+                          <>
+                            <button onClick={() => handleEditSale(item)} className="p-1.5 rounded-lg hover:bg-[#e8f5f6] dark:hover:bg-[#2a4245] text-slate-400 hover:text-amber-500 transition-colors">
+                              <Edit className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={() => handleDeleteSale(item.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-500 transition-colors">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
+                        )}
+                        {isRepair && (
+                          <button onClick={() => onDeleteRepair(item.id!)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-500 transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </TabsContent>
+        </div>
       </Tabs>
 
       {/* Edit Repair Dialog */}
       <Dialog open={editRepairDialogOpen} onOpenChange={setEditRepairDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl bg-white dark:bg-[#162a2d] border-[#d0e4e6] dark:border-[#2a4245]">
           <DialogHeader>
-            <DialogTitle>Tamir Kaydını Düzenle</DialogTitle>
-            <DialogDescription>
-              Tamir kaydını düzenlemek için aşağıdaki bilgileri güncelleyin.
-            </DialogDescription>
+            <DialogTitle className="dark:text-[#e8f5f6]">Tamir Kaydını Düzenle</DialogTitle>
+            <DialogDescription className="dark:text-[#9ab8bc]">Tamir kaydını düzenlemek için bilgileri güncelleyin.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Müşteri Adı</Label>
-                <Input
-                  value={editRepairForm.customerName}
-                  onChange={(e) => setEditRepairForm({ ...editRepairForm, customerName: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Telefon</Label>
-                <Input
-                  value={editRepairForm.customerPhone}
-                  onChange={(e) => setEditRepairForm({ ...editRepairForm, customerPhone: e.target.value })}
-                />
-              </div>
+              <div className="space-y-2"><Label>Müşteri Adı</Label><Input value={editRepairForm.customerName} onChange={e => setEditRepairForm({ ...editRepairForm, customerName: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Telefon</Label><Input value={editRepairForm.customerPhone} onChange={e => setEditRepairForm({ ...editRepairForm, customerPhone: e.target.value })} /></div>
             </div>
-            <div className="space-y-2">
-              <Label>Cihaz Bilgisi</Label>
-              <Input
-                value={editRepairForm.deviceInfo}
-                onChange={(e) => setEditRepairForm({ ...editRepairForm, deviceInfo: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>IMEI</Label>
-              <Input
-                value={editRepairForm.imei}
-                onChange={(e) => setEditRepairForm({ ...editRepairForm, imei: e.target.value })}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Arıza Açıklaması</Label>
-              <Textarea
-                value={editRepairForm.problemDescription}
-                onChange={(e) => setEditRepairForm({ ...editRepairForm, problemDescription: e.target.value })}
-                rows={3}
-              />
-            </div>
+            <div className="space-y-2"><Label>Cihaz Bilgisi</Label><Input value={editRepairForm.deviceInfo} onChange={e => setEditRepairForm({ ...editRepairForm, deviceInfo: e.target.value })} /></div>
+            <div className="space-y-2"><Label>IMEI</Label><Input value={editRepairForm.imei} onChange={e => setEditRepairForm({ ...editRepairForm, imei: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Arıza Açıklaması</Label><Textarea value={editRepairForm.problemDescription} onChange={e => setEditRepairForm({ ...editRepairForm, problemDescription: e.target.value })} rows={3} /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Tamir Ücreti (₺)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={editRepairForm.repairCost}
-                  onChange={(e) => setEditRepairForm({ ...editRepairForm, repairCost: parseFloat(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Malzeme Maliyeti (₺)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={editRepairForm.partsCost}
-                  onChange={(e) => setEditRepairForm({ ...editRepairForm, partsCost: parseFloat(e.target.value) || 0 })}
-                />
-              </div>
+              <div className="space-y-2"><Label>Tamir Ücreti (₺)</Label><Input type="number" step="0.01" value={editRepairForm.repairCost} onChange={e => setEditRepairForm({ ...editRepairForm, repairCost: parseFloat(e.target.value) || 0 })} /></div>
+              <div className="space-y-2"><Label>Malzeme Maliyeti (₺)</Label><Input type="number" step="0.01" value={editRepairForm.partsCost} onChange={e => setEditRepairForm({ ...editRepairForm, partsCost: parseFloat(e.target.value) || 0 })} /></div>
             </div>
-            <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
-              <p className="text-sm text-muted-foreground">Kâr</p>
-              <p className="text-2xl font-bold text-green-600">
-                ₺{(editRepairForm.repairCost - editRepairForm.partsCost).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-              </p>
+            <div className="p-4 rounded-xl bg-[#10b981]/10 border border-[#10b981]/20">
+              <p className="text-xs text-slate-500 dark:text-[#9ab8bc] mb-1">Kâr</p>
+              <p className="text-2xl font-bold text-[#10b981]">₺{(editRepairForm.repairCost - editRepairForm.partsCost).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditRepairDialogOpen(false)}>İptal</Button>
-            <Button onClick={handleSaveRepair}>Kaydet</Button>
+            <Button onClick={handleSaveRepair} className="bg-[#00e1ff] hover:bg-[#33e7ff] text-[#0f2123] font-bold">Kaydet</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Sale Dialog */}
       <Dialog open={editSaleDialogOpen} onOpenChange={setEditSaleDialogOpen}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl bg-white dark:bg-[#162a2d] border-[#d0e4e6] dark:border-[#2a4245]">
           <DialogHeader>
-            <DialogTitle>Satışı Düzenle</DialogTitle>
-            <DialogDescription>
-              Satışı düzenlemek için aşağıdaki bilgileri güncelleyin.
-            </DialogDescription>
+            <DialogTitle className="dark:text-[#e8f5f6]">Satışı Düzenle</DialogTitle>
+            <DialogDescription className="dark:text-[#9ab8bc]">Satışı düzenlemek için bilgileri güncelleyin.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto">
             {editSaleForm.items.map((item, index) => (
-              <Card key={index}>
-                <CardContent className="p-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="col-span-2">
-                      <Label>Ürün Adı</Label>
-                      <Input value={item.productName} disabled />
-                    </div>
-                    <div>
-                      <Label>Adet</Label>
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => handleUpdateSaleItem(index, 'quantity', parseInt(e.target.value) || 0)}
-                      />
-                    </div>
-                    <div>
-                      <Label>Satış Fiyatı (₺)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={item.salePrice}
-                        onChange={(e) => handleUpdateSaleItem(index, 'salePrice', parseFloat(e.target.value) || 0)}
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <div key={index} className="p-4 rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] bg-[#f5f8f8] dark:bg-[#1e3639]">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="col-span-2"><Label>Ürün Adı</Label><Input value={item.productName} disabled /></div>
+                  <div><Label>Adet</Label><Input type="number" value={item.quantity} onChange={e => handleUpdateSaleItem(index, "quantity", parseInt(e.target.value) || 0)} /></div>
+                  <div><Label>Satış Fiyatı (₺)</Label><Input type="number" step="0.01" value={item.salePrice} onChange={e => handleUpdateSaleItem(index, "salePrice", parseFloat(e.target.value) || 0)} /></div>
+                </div>
+              </div>
             ))}
-            <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 rounded-lg">
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium">Toplam</span>
-                <span className="text-xl font-bold">₺{editSaleForm.totalPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Kâr</span>
-                <span className="text-xl font-bold text-green-600">₺{editSaleForm.totalProfit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
-              </div>
+            <div className="p-4 rounded-xl bg-[#10b981]/10 border border-[#10b981]/20 flex justify-between">
+              <div><p className="text-xs text-slate-500 dark:text-[#9ab8bc]">Toplam</p><p className="text-xl font-bold text-slate-800 dark:text-white">₺{editSaleForm.totalPrice.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</p></div>
+              <div className="text-right"><p className="text-xs text-slate-500 dark:text-[#9ab8bc]">Kâr</p><p className="text-xl font-bold text-[#10b981]">₺{editSaleForm.totalProfit.toLocaleString("tr-TR", { minimumFractionDigits: 2 })}</p></div>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditSaleDialogOpen(false)}>İptal</Button>
-            <Button onClick={handleSaveSale}>Kaydet</Button>
+            <Button onClick={handleSaveSale} className="bg-[#00e1ff] hover:bg-[#33e7ff] text-[#0f2123] font-bold">Kaydet</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,18 +1,9 @@
 import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "./ui/card";
-import {
-    Package,
-    AlertTriangle,
     TrendingUp,
     DollarSign,
     ShoppingCart,
-    Wrench,
+    Building2,
     Eye,
-    Building2
 } from "lucide-react";
 import { Button } from "./ui/button";
 import type { Sale, RepairRecord, PhoneSale, Product, Supplier, Purchase } from "../utils/api";
@@ -60,75 +51,101 @@ export function IstatistikKartlari({
             value: formatPrice(totalSupplierDebt),
             description: `${suppliers.filter(s => s.balance > 0).length} tedarikçiye borç var`,
             icon: Building2,
-            iconColor: "text-[#ef4444]",
-            iconBg: "bg-[#ef4444]/10",
+            accentColor: "#ef4444",
+            accentBg: "rgba(239,68,68,0.12)",
+            accentBorder: "rgba(239,68,68,0.25)",
         },
         {
             title: "Aylık Alış",
             value: formatPrice(monthlyPurchaseTotal),
             description: `${monthlyPurchases.length} adet fatura kesildi`,
             icon: ShoppingCart,
-            iconColor: "text-[#f59e0b]",
-            iconBg: "bg-[#f59e0b]/10",
+            accentColor: "#f97316",
+            accentBg: "rgba(249,115,22,0.12)",
+            accentBorder: "rgba(249,115,22,0.25)",
         },
         {
             title: "Envanter Değeri",
             value: formatPrice(totalInventoryValue),
             description: "Toplam alış maliyeti",
             icon: DollarSign,
-            iconColor: "text-[#10b981]",
-            iconBg: "bg-[#10b981]/10",
-            action: (
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 rounded-lg hover:bg-[#10b981]/20 ml-auto"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onOpenAnalysis();
-                    }}
-                >
-                    <Eye className="w-4 h-4 text-[#10b981]" />
-                </Button>
-            )
+            accentColor: "#00e1ff",
+            accentBg: "rgba(0,225,255,0.10)",
+            accentBorder: "rgba(0,225,255,0.25)",
+            hasAction: true,
         },
         {
             title: "Günlük Satış",
             value: formatPrice(todayRevenue),
             description: "Bugün yapılan toplam ciro",
             icon: TrendingUp,
-            iconColor: "text-[#a855f7]",
-            iconBg: "bg-[#a855f7]/10",
+            accentColor: "#a855f7",
+            accentBg: "rgba(168,85,247,0.12)",
+            accentBorder: "rgba(168,85,247,0.25)",
         },
     ];
 
     return (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {stats.map((stat) => (
-                <Card
+                <div
                     key={stat.title}
-                    className="overflow-hidden border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg bg-white/80 dark:bg-[#162a2d]/80 border-[#d0e4e6] dark:border-[#2a4245] backdrop-blur-xl"
+                    className="relative overflow-hidden rounded-xl border bg-white dark:bg-[#162a2d] transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 group"
+                    style={{ borderColor: stat.accentBorder }}
                 >
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-sm font-medium text-slate-600 dark:text-[#9ab8bc]">
-                            {stat.title}
-                        </CardTitle>
-                        <div className="flex items-center gap-2">
-                            {stat.action}
-                            <div className={`p-2 rounded-full ${stat.iconBg}`}>
-                                <stat.icon className={`w-4 h-4 ${stat.iconColor}`} />
+                    {/* Dekoratif arka plan glow */}
+                    <div
+                        className="absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-50 group-hover:opacity-80 transition-opacity duration-300 blur-xl"
+                        style={{ background: stat.accentBg }}
+                    />
+
+                    <div className="relative z-10 p-5">
+                        {/* Üst satır */}
+                        <div className="flex items-start justify-between mb-4">
+                            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#9ab8bc]">
+                                {stat.title}
+                            </p>
+                            <div className="flex items-center gap-1.5">
+                                {stat.hasAction && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-6 w-6 rounded-md opacity-60 hover:opacity-100 transition-opacity"
+                                        style={{ color: stat.accentColor }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onOpenAnalysis();
+                                        }}
+                                    >
+                                        <Eye className="w-3.5 h-3.5" />
+                                    </Button>
+                                )}
+                                <div
+                                    className="p-2 rounded-lg transition-transform group-hover:scale-110 duration-300"
+                                    style={{ background: stat.accentBg }}
+                                >
+                                    <stat.icon className="w-4 h-4" style={{ color: stat.accentColor }} />
+                                </div>
                             </div>
                         </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className={`text-2xl font-bold tracking-tight text-[#0f2123] dark:text-[#00e1ff] ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+
+                        {/* Değer */}
+                        <div className={`text-2xl font-bold tabular-nums tracking-tight text-slate-900 dark:text-white mb-1 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
                             {stat.value}
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-[#9ab8bc] mt-1 font-medium">
+
+                        {/* Açıklama */}
+                        <p className="text-xs text-slate-500 dark:text-[#9ab8bc] font-medium">
                             {stat.description}
                         </p>
-                    </CardContent>
-                </Card>
+                    </div>
+
+                    {/* Alt accent çizgisi */}
+                    <div
+                        className="absolute bottom-0 left-0 right-0 h-0.5"
+                        style={{ background: `linear-gradient(to right, ${stat.accentColor}60, transparent)` }}
+                    />
+                </div>
             ))}
         </div>
     );

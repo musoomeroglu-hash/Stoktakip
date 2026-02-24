@@ -1,15 +1,13 @@
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Textarea } from "./ui/textarea";
+import { Button } from "./ui/button";
 import { Wrench, Phone, Calendar, DollarSign, Package, CheckCircle, Truck, Edit, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
 import { toast } from "sonner";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import type { RepairRecord } from "../utils/api";
 
 interface RepairsViewProps {
@@ -23,32 +21,20 @@ interface RepairsViewProps {
   isPrivacyMode: boolean;
 }
 
-export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteRepair, currency, usdRate, formatPrice, isPrivacyMode }: RepairsViewProps) {
+export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteRepair, formatPrice, isPrivacyMode }: RepairsViewProps) {
   const [editingRepair, setEditingRepair] = useState<RepairRecord | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  // Date range states
   const [startDate, setStartDate] = useState<string>(() => {
-    // Default: ayın ilk günü
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const year = firstDay.getFullYear();
-    const month = String(firstDay.getMonth() + 1).padStart(2, '0');
-    const day = String(firstDay.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
   });
-
   const [endDate, setEndDate] = useState<string>(() => {
-    // Default: ayın son günü
     const now = new Date();
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const year = lastDay.getFullYear();
-    const month = String(lastDay.getMonth() + 1).padStart(2, '0');
-    const day = String(lastDay.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}-${String(last.getDate()).padStart(2, "0")}`;
   });
 
-  // Helper function to check if date is in range
   const isDateInRange = (dateStr: string) => {
     const date = new Date(dateStr);
     const start = new Date(startDate);
@@ -57,403 +43,182 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
     return date >= start && date <= end;
   };
 
-  // Quick date range setters
   const setCurrentMonth = () => {
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-
-    const startYear = firstDay.getFullYear();
-    const startMonth = String(firstDay.getMonth() + 1).padStart(2, '0');
-    const startDay = String(firstDay.getDate()).padStart(2, '0');
-    setStartDate(`${startYear}-${startMonth}-${startDay}`);
-
-    const endYear = lastDay.getFullYear();
-    const endMonth = String(lastDay.getMonth() + 1).padStart(2, '0');
-    const endDay = String(lastDay.getDate()).padStart(2, '0');
-    setEndDate(`${endYear}-${endMonth}-${endDay}`);
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    setStartDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`);
+    setEndDate(`${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}-${String(last.getDate()).padStart(2, "0")}`);
   };
-
   const setPreviousMonth = () => {
     const now = new Date();
-    const firstDayPrevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastDayPrevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-
-    const startYear = firstDayPrevMonth.getFullYear();
-    const startMonth = String(firstDayPrevMonth.getMonth() + 1).padStart(2, '0');
-    const startDay = String(firstDayPrevMonth.getDate()).padStart(2, '0');
-    setStartDate(`${startYear}-${startMonth}-${startDay}`);
-
-    const endYear = lastDayPrevMonth.getFullYear();
-    const endMonth = String(lastDayPrevMonth.getMonth() + 1).padStart(2, '0');
-    const endDay = String(lastDayPrevMonth.getDate()).padStart(2, '0');
-    setEndDate(`${endYear}-${endMonth}-${endDay}`);
+    const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const last = new Date(now.getFullYear(), now.getMonth(), 0);
+    setStartDate(`${first.getFullYear()}-${String(first.getMonth() + 1).padStart(2, "0")}-01`);
+    setEndDate(`${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, "0")}-${String(last.getDate()).padStart(2, "0")}`);
   };
-
   const setAllTime = () => {
-    setStartDate('2020-01-01');
+    setStartDate("2020-01-01");
     const now = new Date();
-    const year = now.getFullYear();
-    const month = String(now.getMonth() + 1).padStart(2, '0');
-    const day = String(now.getDate()).padStart(2, '0');
-    setEndDate(`${year}-${month}-${day}`);
+    setEndDate(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`);
   };
 
-  // Edit form state
   const [editForm, setEditForm] = useState({
-    customerName: "",
-    customerPhone: "",
-    deviceInfo: "",
-    imei: "",
-    problemDescription: "",
-    repairCost: 0,
-    partsCost: 0,
+    customerName: "", customerPhone: "", deviceInfo: "", imei: "",
+    problemDescription: "", repairCost: 0, partsCost: 0,
     status: "in_progress" as "in_progress" | "completed" | "delivered",
   });
 
-  // Grouping repairs by status with date filtering
-  const filteredRepairs = useMemo(() => {
-    return repairs.filter(r => isDateInRange(r.createdAt));
-  }, [repairs, startDate, endDate]);
-
+  const filteredRepairs = useMemo(() => repairs.filter(r => isDateInRange(r.createdAt)), [repairs, startDate, endDate]);
   const inProgressRepairs = filteredRepairs.filter(r => r.status === "in_progress");
   const completedRepairs = filteredRepairs.filter(r => r.status === "completed");
   const deliveredRepairs = filteredRepairs.filter(r => r.status === "delivered");
+  const totalRevenue = deliveredRepairs.reduce((s, r) => s + r.repairCost, 0);
+  const totalProfit = deliveredRepairs.reduce((s, r) => s + r.profit, 0);
 
-  // Summary statistics
-  const totalRevenue = deliveredRepairs.reduce((sum, r) => sum + r.repairCost, 0);
-  const totalProfit = deliveredRepairs.reduce((sum, r) => sum + r.profit, 0);
-
-  // Handle edit repair
   const handleEditRepair = (repair: RepairRecord) => {
     setEditingRepair(repair);
-    setEditForm({
-      customerName: repair.customerName,
-      customerPhone: repair.customerPhone,
-      deviceInfo: repair.deviceInfo,
-      imei: repair.imei || "",
-      problemDescription: repair.problemDescription,
-      repairCost: repair.repairCost,
-      partsCost: repair.partsCost,
-      status: repair.status,
-    });
+    setEditForm({ customerName: repair.customerName, customerPhone: repair.customerPhone, deviceInfo: repair.deviceInfo, imei: repair.imei || "", problemDescription: repair.problemDescription, repairCost: repair.repairCost, partsCost: repair.partsCost, status: repair.status });
     setEditDialogOpen(true);
   };
-
   const handleSaveEdit = () => {
     if (!editingRepair || !onUpdateRepair) return;
-
-    const profit = editForm.repairCost - editForm.partsCost;
-
-    onUpdateRepair(editingRepair.id!, {
-      ...editForm,
-      profit,
-    });
-
-    setEditDialogOpen(false);
-    setEditingRepair(null);
-    toast.success("Tamir kaydı güncellendi");
+    onUpdateRepair(editingRepair.id!, { ...editForm, profit: editForm.repairCost - editForm.partsCost });
+    setEditDialogOpen(false); setEditingRepair(null); toast.success("Tamir kaydı güncellendi");
   };
 
+  // Kanban sütun config
+  const columns = [
+    { key: "in_progress", label: "Tamir Ediliyor", count: inProgressRepairs.length, items: inProgressRepairs, icon: Wrench, color: "#f97316", bg: "rgba(249,115,22,0.08)", border: "rgba(249,115,22,0.4)", emptyIcon: Wrench, emptyLabel: "Tamir işleminde cihaz yok" },
+    { key: "completed", label: "Teslim Bekleyen", count: completedRepairs.length, items: completedRepairs, icon: CheckCircle, color: "#64748b", bg: "rgba(100,116,139,0.08)", border: "rgba(100,116,139,0.35)", emptyIcon: CheckCircle, emptyLabel: "Teslim bekleyen cihaz yok" },
+    { key: "delivered", label: "Teslim Edildi", count: deliveredRepairs.length, items: deliveredRepairs, icon: Truck, color: "#10b981", bg: "rgba(16,185,129,0.08)", border: "rgba(16,185,129,0.4)", emptyIcon: Truck, emptyLabel: "Teslim edilen cihaz yok" },
+  ];
+
+  const kpis = [
+    { label: "Tamir Ediliyor", value: String(inProgressRepairs.length), icon: Wrench, color: "#f97316", bg: "rgba(249,115,22,0.15)", border: "rgba(249,115,22,0.4)", blurred: false },
+    { label: "Teslim Bekleyen", value: String(completedRepairs.length), icon: CheckCircle, color: "#64748b", bg: "rgba(100,116,139,0.12)", border: "rgba(100,116,139,0.3)", blurred: false },
+    { label: "Toplam Gelir", value: formatPrice(totalRevenue), icon: DollarSign, color: "#a855f7", bg: "rgba(168,85,247,0.12)", border: "rgba(168,85,247,0.35)", blurred: true },
+    { label: "Toplam Kâr", value: formatPrice(totalProfit), icon: Package, color: "#10b981", bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.35)", blurred: true },
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
+    <div className="space-y-5">
+      {/* KPI Kartları */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100/50 dark:from-orange-950 dark:to-orange-900/50 border-orange-200 dark:border-orange-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-orange-700 dark:text-orange-300">Tamir Ediliyor</div>
-                <div className="text-3xl font-bold text-orange-900 dark:text-orange-100 mt-2">{inProgressRepairs.length}</div>
+        {kpis.map(kpi => (
+          <div key={kpi.label} className="relative overflow-hidden rounded-xl border p-5 bg-white dark:bg-[#162a2d] group hover:-translate-y-0.5 hover:shadow-lg transition-all duration-300" style={{ borderColor: kpi.border }}>
+            <div className="absolute -right-6 -top-6 w-20 h-20 rounded-full blur-xl opacity-60 group-hover:opacity-90 transition-opacity" style={{ background: kpi.bg }} />
+            <div className="relative z-10">
+              <div className="flex items-start justify-between mb-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-[#9ab8bc]">{kpi.label}</p>
+                <div className="p-2 rounded-lg" style={{ background: kpi.bg }}>
+                  <kpi.icon className="w-4 h-4" style={{ color: kpi.color }} />
+                </div>
               </div>
-              <Wrench className="w-10 h-10 text-orange-500" />
+              <p className={`text-3xl font-bold tabular-nums text-slate-900 dark:text-white ${kpi.blurred && isPrivacyMode ? "privacy-mode-blur" : ""}`}>{kpi.value}</p>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-950 dark:to-slate-900/50 border-slate-200 dark:border-slate-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-slate-700 dark:text-slate-300">Teslim Bekleyen</div>
-                <div className="text-3xl font-bold text-slate-900 dark:text-slate-100 mt-2">{completedRepairs.length}</div>
-              </div>
-              <CheckCircle className="w-10 h-10 text-slate-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-950 dark:to-purple-900/50 border-purple-200 dark:border-purple-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-purple-700 dark:text-purple-300">Toplam Gelir</div>
-                <div className={`text-3xl font-bold text-purple-900 dark:text-purple-100 mt-2 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(totalRevenue)}</div>
-              </div>
-              <DollarSign className="w-10 h-10 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-50 to-green-100/50 dark:from-green-950 dark:to-green-900/50 border-green-200 dark:border-green-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm text-green-700 dark:text-green-300">Toplam Kâr</div>
-                <div className={`text-3xl font-bold text-green-900 dark:text-green-100 mt-2 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(totalProfit)}</div>
-              </div>
-              <Package className="w-10 h-10 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
+            <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ background: `linear-gradient(to right, ${kpi.color}60, transparent)` }} />
+          </div>
+        ))}
       </div>
 
-      {/* Date Range Filter */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-2 border-blue-200 dark:border-blue-800">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center gap-4">
+      {/* Tarih Filtresi */}
+      <div className="rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] bg-white dark:bg-[#162a2d] px-6 py-4">
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex items-center gap-2 shrink-0">
+            <Calendar className="w-4 h-4 text-[#00e1ff]" />
+            <span className="text-sm font-semibold text-slate-700 dark:text-[#e8f5f6]">Tarih Aralığı:</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 flex-1">
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <span className="font-semibold text-blue-900 dark:text-blue-100">Tarih Aralığı:</span>
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)}
+                className="h-9 px-3 rounded-lg border border-[#d0e4e6] dark:border-[#2a4245] bg-[#f5f8f8] dark:bg-[#1e3639] text-slate-800 dark:text-[#e8f5f6] text-sm focus:outline-none focus:border-[#00e1ff]" />
+              <span className="text-slate-400">-</span>
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)}
+                className="h-9 px-3 rounded-lg border border-[#d0e4e6] dark:border-[#2a4245] bg-[#f5f8f8] dark:bg-[#1e3639] text-slate-800 dark:text-[#e8f5f6] text-sm focus:outline-none focus:border-[#00e1ff]" />
             </div>
-
-            <div className="flex flex-wrap items-center gap-3 flex-1">
-              <div className="flex items-center gap-2">
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-auto border-2 border-blue-300 dark:border-blue-700"
-                />
-                <span className="text-muted-foreground">-</span>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-auto border-2 border-blue-300 dark:border-blue-700"
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  onClick={setCurrentMonth}
-                  variant="outline"
-                  size="sm"
-                  className="bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700"
-                >
-                  Bu Ay
-                </Button>
-                <Button
-                  onClick={setPreviousMonth}
-                  variant="outline"
-                  size="sm"
-                  className="bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700"
-                >
-                  Geçen Ay
-                </Button>
-                <Button
-                  onClick={setAllTime}
-                  variant="outline"
-                  size="sm"
-                  className="bg-white dark:bg-gray-800 border-blue-200 dark:border-blue-700"
-                >
-                  Tüm Zamanlar
-                </Button>
-              </div>
-
-              <div className="ml-auto bg-white/50 dark:bg-gray-800/50 px-3 py-1.5 rounded-full border border-blue-200 dark:border-blue-800 text-xs font-medium text-blue-700 dark:text-blue-300 flex items-center gap-2">
-                <Calendar className="w-3.5 h-3.5" />
-                {format(new Date(startDate), "dd MMM yyyy", { locale: tr })} - {format(new Date(endDate), "dd MMM yyyy", { locale: tr })}
-              </div>
+            <div className="flex gap-2">
+              {[{ label: "Bu Ay", fn: setCurrentMonth }, { label: "Geçen Ay", fn: setPreviousMonth }, { label: "Tüm Zamanlar", fn: setAllTime }].map(btn => (
+                <button key={btn.label} onClick={btn.fn}
+                  className="h-9 px-3 rounded-lg border border-[#d0e4e6] dark:border-[#2a4245] bg-white dark:bg-[#1e3639] text-slate-600 dark:text-[#9ab8bc] hover:border-[#00e1ff]/50 hover:text-[#00e1ff] text-sm font-medium transition-all duration-200">
+                  {btn.label}
+                </button>
+              ))}
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Repairs List */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* In Progress - Orange */}
-        <Card className="bg-gradient-to-b from-orange-50/50 to-white dark:from-orange-950/20 dark:to-gray-900 border-t-4 border-t-orange-500">
-          <CardHeader className="bg-orange-50/50 dark:bg-orange-950/30 pb-2">
-            <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-400">
-              <Wrench className="w-5 h-5" />
-              Tamir Ediliyor ({inProgressRepairs.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
-            {inProgressRepairs.map((repair) => (
-              <RepairCard
-                key={repair.id}
-                repair={repair}
-                onUpdateStatus={onUpdateStatus}
-                onEdit={handleEditRepair}
-                onDelete={onDeleteRepair}
-                formatPrice={formatPrice}
-                isPrivacyMode={isPrivacyMode}
-              />
-            ))}
-            {inProgressRepairs.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground opacity-50">
-                <Wrench className="w-12 h-12 mb-2" />
-                <p>Tamir işleminde cihaz yok</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Completed (Waiting) - Slate */}
-        <Card className="bg-gradient-to-b from-slate-50/50 to-white dark:from-slate-950/20 dark:to-gray-900 border-t-4 border-t-slate-500">
-          <CardHeader className="bg-slate-50/50 dark:bg-slate-950/30 pb-2">
-            <CardTitle className="flex items-center gap-2 text-slate-700 dark:text-slate-400">
-              <CheckCircle className="w-5 h-5" />
-              Teslim Bekleyen ({completedRepairs.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
-            {completedRepairs.map((repair) => (
-              <RepairCard
-                key={repair.id}
-                repair={repair}
-                onUpdateStatus={onUpdateStatus}
-                onEdit={handleEditRepair}
-                onDelete={onDeleteRepair}
-                formatPrice={formatPrice}
-                isPrivacyMode={isPrivacyMode}
-              />
-            ))}
-            {completedRepairs.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground opacity-50">
-                <CheckCircle className="w-12 h-12 mb-2" />
-                <p>Teslim bekleyen cihaz yok</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Delivered - Green */}
-        <Card className="bg-gradient-to-b from-green-50/50 to-white dark:from-green-950/20 dark:to-gray-900 border-t-4 border-t-green-500">
-          <CardHeader className="bg-green-50/50 dark:bg-green-950/30 pb-2">
-            <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-400">
-              <Truck className="w-5 h-5" />
-              Teslim Edildi ({deliveredRepairs.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
-            {deliveredRepairs.map((repair) => (
-              <RepairCard
-                key={repair.id}
-                repair={repair}
-                onUpdateStatus={onUpdateStatus}
-                onEdit={handleEditRepair}
-                onDelete={onDeleteRepair}
-                formatPrice={formatPrice}
-                isPrivacyMode={isPrivacyMode}
-              />
-            ))}
-            {deliveredRepairs.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground opacity-50">
-                <Truck className="w-12 h-12 mb-2" />
-                <p>Teslim edilen cihaz yok</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#d0e4e6] dark:border-[#2a4245] bg-[#f5f8f8] dark:bg-[#1e3639] text-sm text-slate-600 dark:text-[#9ab8bc] shrink-0">
+            <Calendar className="w-3.5 h-3.5 text-[#00e1ff]" />
+            {format(new Date(startDate), "dd MMM yyyy", { locale: tr })} - {format(new Date(endDate), "dd MMM yyyy", { locale: tr })}
+          </div>
+        </div>
       </div>
 
-      {/* Edit Repair Dialog */}
+      {/* Kanban 3 Kolon */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {columns.map(col => (
+          <div key={col.key} className="rounded-xl border overflow-hidden" style={{ borderColor: col.border, background: col.bg }}>
+            {/* Kolon başlığı */}
+            <div className="px-5 py-4 border-b" style={{ borderColor: col.border }}>
+              <div className="flex items-center gap-2">
+                <col.icon className="w-4 h-4" style={{ color: col.color }} />
+                <span className="font-bold text-sm" style={{ color: col.color }}>
+                  {col.label} ({col.count})
+                </span>
+              </div>
+            </div>
+
+            {/* Kartlar */}
+            <div className="p-4 space-y-3 max-h-[620px] overflow-y-auto">
+              {col.items.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 opacity-30">
+                  <col.emptyIcon className="w-12 h-12 mb-3" style={{ color: col.color }} />
+                  <p className="text-sm text-center text-slate-500 dark:text-[#9ab8bc]">{col.emptyLabel}</p>
+                </div>
+              ) : col.items.map(repair => (
+                <RepairCard
+                  key={repair.id}
+                  repair={repair}
+                  onUpdateStatus={onUpdateStatus}
+                  onEdit={handleEditRepair}
+                  onDelete={onDeleteRepair}
+                  formatPrice={formatPrice}
+                  isPrivacyMode={isPrivacyMode}
+                  accentColor={col.color}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl bg-white dark:bg-[#162a2d] border-[#d0e4e6] dark:border-[#2a4245]">
           <DialogHeader>
-            <DialogTitle>Tamir Kaydını Düzenle</DialogTitle>
-            <DialogDescription>
-              Tamir bilgilerini güncelleyin
-            </DialogDescription>
+            <DialogTitle className="dark:text-[#e8f5f6]">Tamir Kaydını Düzenle</DialogTitle>
+            <DialogDescription className="dark:text-[#9ab8bc]">Tamir bilgilerini güncelleyin</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-customer-name">Müşteri Adı</Label>
-                <Input
-                  id="edit-customer-name"
-                  value={editForm.customerName}
-                  onChange={(e) => setEditForm({ ...editForm, customerName: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-customer-phone">Telefon</Label>
-                <Input
-                  id="edit-customer-phone"
-                  value={editForm.customerPhone}
-                  onChange={(e) => setEditForm({ ...editForm, customerPhone: e.target.value })}
-                />
-              </div>
+              <div className="space-y-2"><Label>Müşteri Adı</Label><Input value={editForm.customerName} onChange={e => setEditForm({ ...editForm, customerName: e.target.value })} /></div>
+              <div className="space-y-2"><Label>Telefon</Label><Input value={editForm.customerPhone} onChange={e => setEditForm({ ...editForm, customerPhone: e.target.value })} /></div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-device-info">Cihaz Bilgisi</Label>
-              <Input
-                id="edit-device-info"
-                value={editForm.deviceInfo}
-                onChange={(e) => setEditForm({ ...editForm, deviceInfo: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-imei">IMEI</Label>
-              <Input
-                id="edit-imei"
-                value={editForm.imei}
-                onChange={(e) => setEditForm({ ...editForm, imei: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-problem">Arıza Açıklaması</Label>
-              <Textarea
-                id="edit-problem"
-                value={editForm.problemDescription}
-                onChange={(e) => setEditForm({ ...editForm, problemDescription: e.target.value })}
-                rows={3}
-              />
-            </div>
-
+            <div className="space-y-2"><Label>Cihaz Bilgisi</Label><Input value={editForm.deviceInfo} onChange={e => setEditForm({ ...editForm, deviceInfo: e.target.value })} /></div>
+            <div className="space-y-2"><Label>IMEI</Label><Input value={editForm.imei} onChange={e => setEditForm({ ...editForm, imei: e.target.value })} /></div>
+            <div className="space-y-2"><Label>Arıza Açıklaması</Label><Textarea value={editForm.problemDescription} onChange={e => setEditForm({ ...editForm, problemDescription: e.target.value })} rows={3} /></div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-repair-cost">Tamir Ücreti (₺)</Label>
-                <Input
-                  id="edit-repair-cost"
-                  type="number"
-                  step="0.01"
-                  value={editForm.repairCost}
-                  onChange={(e) => setEditForm({ ...editForm, repairCost: parseFloat(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-parts-cost">Malzeme Maliyeti (₺)</Label>
-                <Input
-                  id="edit-parts-cost"
-                  type="number"
-                  step="0.01"
-                  value={editForm.partsCost}
-                  onChange={(e) => setEditForm({ ...editForm, partsCost: parseFloat(e.target.value) || 0 })}
-                />
-              </div>
+              <div className="space-y-2"><Label>Tamir Ücreti (₺)</Label><Input type="number" step="0.01" value={editForm.repairCost} onChange={e => setEditForm({ ...editForm, repairCost: parseFloat(e.target.value) || 0 })} /></div>
+              <div className="space-y-2"><Label>Malzeme Maliyeti (₺)</Label><Input type="number" step="0.01" value={editForm.partsCost} onChange={e => setEditForm({ ...editForm, partsCost: parseFloat(e.target.value) || 0 })} /></div>
             </div>
-
-            <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg">
-              <p className="text-sm text-muted-foreground">Kâr</p>
-              <p className={`text-2xl font-bold text-green-600 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                ₺{(editForm.repairCost - editForm.partsCost).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+            <div className="p-4 rounded-xl bg-[#10b981]/10 border border-[#10b981]/20">
+              <p className="text-xs text-slate-500 dark:text-[#9ab8bc] mb-1">Kâr</p>
+              <p className={`text-2xl font-bold text-[#10b981] ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+                ₺{(editForm.repairCost - editForm.partsCost).toLocaleString("tr-TR", { minimumFractionDigits: 2 })}
               </p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-              İptal
-            </Button>
-            <Button onClick={handleSaveEdit}>
-              Kaydet
-            </Button>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>İptal</Button>
+            <Button onClick={handleSaveEdit} className="bg-[#00e1ff] hover:bg-[#33e7ff] text-[#0f2123] font-bold">Kaydet</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -461,143 +226,120 @@ export function RepairsView({ repairs, onUpdateStatus, onUpdateRepair, onDeleteR
   );
 }
 
-function RepairCard({
-  repair,
-  onUpdateStatus,
-  onEdit,
-  onDelete,
-  formatPrice,
-  isPrivacyMode
-}: {
+// ── RepairCard bileşeni ──────────────────────────────────────────
+function RepairCard({ repair, onUpdateStatus, onEdit, onDelete, formatPrice, isPrivacyMode, accentColor }: {
   repair: RepairRecord;
   onUpdateStatus: (id: string, status: "in_progress" | "completed" | "delivered") => void;
   onEdit: (repair: RepairRecord) => void;
   onDelete?: (id: string) => void;
   formatPrice: (price: number) => string;
   isPrivacyMode: boolean;
+  accentColor: string;
 }) {
-  const nextStatus = getNextStatus(repair.status);
-  const NextIcon = nextStatus?.icon;
+  const next = getNextStatus(repair.status);
+  const NextIcon = next?.icon;
 
   return (
-    <div className="border rounded-lg p-4 bg-white dark:bg-gray-950 hover:shadow-md transition-shadow">
-      <div className="space-y-3">
-        {/* Header */}
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <h3 className="font-bold text-lg leading-tight">{repair.deviceInfo}</h3>
-            <div className="flex items-center gap-2 mt-2">
-              <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-semibold text-slate-600 dark:text-slate-400">
-                {repair.customerName.charAt(0).toUpperCase()}
-              </div>
-              <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">{repair.customerName}</span>
-              {getStatusBadge(repair.status)}
+    <div className="rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] bg-white dark:bg-[#162a2d] p-4 space-y-3 hover:border-opacity-80 transition-all">
+      {/* Başlık + aksiyonlar */}
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-base text-slate-800 dark:text-[#e8f5f6] leading-tight truncate">{repair.deviceInfo}</h3>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+              style={{ background: accentColor }}>
+              {repair.customerName.charAt(0).toUpperCase()}
             </div>
-          </div>
-          <div className="flex gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onEdit(repair)}
-              className="h-8 w-8"
-            >
-              <Edit className="w-4 h-4" />
-            </Button>
-            {onDelete && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (window.confirm("Bu tamir kaydını silmek istediğinize emin misiniz?")) {
-                    onDelete(repair.id);
-                  }
-                }}
-                className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            )}
+            <span className="text-xs text-slate-500 dark:text-[#9ab8bc] font-medium truncate">{repair.customerName}</span>
+            {getStatusBadge(repair.status)}
           </div>
         </div>
-
-        {/* Contact */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Phone className="w-4 h-4" />
-          {repair.customerPhone}
+        <div className="flex gap-0.5 shrink-0">
+          <button onClick={() => onEdit(repair)} className="p-1.5 rounded-lg hover:bg-[#e8f5f6] dark:hover:bg-[#2a4245] text-slate-400 hover:text-amber-500 transition-colors">
+            <Edit className="w-3.5 h-3.5" />
+          </button>
+          {onDelete && (
+            <button onClick={() => { if (window.confirm("Bu tamir kaydını silmek istiyor musunuz?")) onDelete(repair.id); }}
+              className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 text-slate-400 hover:text-red-500 transition-colors">
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
-
-        {/* IMEI */}
-        {repair.imei && (
-          <div className="text-sm">
-            <span className="text-muted-foreground">IMEI:</span>
-            <p className="font-mono">{repair.imei}</p>
-          </div>
-        )}
-
-        {/* Problem */}
-        <div className="text-sm">
-          <p className="text-muted-foreground line-clamp-2">{repair.problemDescription}</p>
-        </div>
-
-        {/* Pricing */}
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          <div>
-            <span className="text-muted-foreground">Tamir Ücreti:</span>
-            <p className={`font-medium ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(repair.repairCost)}</p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Kâr:</span>
-            <p className={`font-medium text-green-600 dark:text-green-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(repair.profit)}</p>
-          </div>
-        </div>
-
-        {/* Date */}
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Calendar className="w-3 h-3" />
-          {format(new Date(repair.createdAt), "dd MMM yyyy, HH:mm", { locale: tr })}
-        </div>
-
-        {/* Action Button */}
-        {nextStatus && (
-          <Button
-            onClick={() => onUpdateStatus(repair.id, nextStatus.status)}
-            className="w-full"
-            size="sm"
-            variant={nextStatus.status === "delivered" ? "default" : "outline"}
-          >
-            {NextIcon && <NextIcon className="w-4 h-4 mr-2" />}
-            {nextStatus.label}
-          </Button>
-        )}
-
-        {repair.status === "delivered" && repair.deliveredAt && (
-          <div className="text-xs text-muted-foreground text-center">
-            Teslim: {format(new Date(repair.deliveredAt), "dd MMM yyyy, HH:mm", { locale: tr })}
-          </div>
-        )}
       </div>
+
+      {/* Telefon */}
+      <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-[#9ab8bc]">
+        <Phone className="w-3.5 h-3.5" />
+        {repair.customerPhone}
+      </div>
+
+      {/* IMEI */}
+      {repair.imei && (
+        <div className="text-xs">
+          <span className="text-slate-400 dark:text-[#9ab8bc]">IMEI:</span>
+          <p className="font-mono text-slate-600 dark:text-[#e8f5f6]">{repair.imei}</p>
+        </div>
+      )}
+
+      {/* Arıza */}
+      <p className="text-xs text-slate-500 dark:text-[#9ab8bc] line-clamp-2">{repair.problemDescription}</p>
+
+      {/* Fiyatlar */}
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div>
+          <span className="text-slate-400 dark:text-[#9ab8bc]">Tamir Ücreti:</span>
+          <p className={`font-bold text-sm text-slate-800 dark:text-[#e8f5f6] tabular-nums ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(repair.repairCost)}</p>
+        </div>
+        <div>
+          <span className="text-slate-400 dark:text-[#9ab8bc]">Kâr:</span>
+          <p className={`font-bold text-sm text-[#10b981] tabular-nums ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(repair.profit)}</p>
+        </div>
+      </div>
+
+      {/* Tarih */}
+      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-[#9ab8bc]">
+        <Calendar className="w-3 h-3" />
+        {format(new Date(repair.createdAt), "dd MMM yyyy, HH:mm", { locale: tr })}
+      </div>
+
+      {/* İleri duruma geç butonu */}
+      {next && (
+        <button onClick={() => onUpdateStatus(repair.id, next.status)}
+          className="w-full h-8 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all duration-200 hover:opacity-90"
+          style={next.status === "delivered"
+            ? { background: accentColor, color: "#fff", borderColor: accentColor }
+            : { background: "transparent", color: accentColor, borderColor: accentColor }}>
+          {NextIcon && <NextIcon className="w-3.5 h-3.5" />}
+          {next.label}
+        </button>
+      )}
+
+      {/* Teslim tarihi */}
+      {repair.status === "delivered" && repair.deliveredAt && (
+        <p className="text-[10px] text-slate-400 dark:text-[#9ab8bc] text-center">
+          Teslim: {format(new Date(repair.deliveredAt), "dd MMM yyyy, HH:mm", { locale: tr })}
+        </p>
+      )}
     </div>
   );
 }
 
 function getStatusBadge(status: RepairRecord["status"]) {
-  switch (status) {
-    case "in_progress":
-      return <Badge className="bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 border-orange-200">Tamir Ediliyor</Badge>;
-    case "completed":
-      return <Badge className="bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300 border-slate-200">Teslim Bekliyor</Badge>;
-    case "delivered":
-      return <Badge className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 border-green-200">Teslim Edildi</Badge>;
-  }
+  const cfg = {
+    in_progress: { label: "Tamir Ediliyor", color: "#f97316", bg: "rgba(249,115,22,0.12)", border: "rgba(249,115,22,0.3)" },
+    completed: { label: "Teslim Bekliyor", color: "#64748b", bg: "rgba(100,116,139,0.12)", border: "rgba(100,116,139,0.3)" },
+    delivered: { label: "Teslim Edildi", color: "#10b981", bg: "rgba(16,185,129,0.12)", border: "rgba(16,185,129,0.3)" },
+  }[status];
+  return (
+    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold border"
+      style={{ color: cfg.color, background: cfg.bg, borderColor: cfg.border }}>
+      {cfg.label}
+    </span>
+  );
 }
 
-function getNextStatus(currentStatus: RepairRecord["status"]) {
-  switch (currentStatus) {
-    case "in_progress":
-      return { status: "completed" as const, label: "Tamamlandı", icon: CheckCircle };
-    case "completed":
-      return { status: "delivered" as const, label: "Teslim Et", icon: Truck };
-    default:
-      return null;
-  }
+function getNextStatus(status: RepairRecord["status"]) {
+  if (status === "in_progress") return { status: "completed" as const, label: "Tamamlandı", icon: CheckCircle };
+  if (status === "completed") return { status: "delivered" as const, label: "Teslim Et", icon: Truck };
+  return null;
 }

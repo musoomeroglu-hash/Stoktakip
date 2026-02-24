@@ -132,7 +132,7 @@ export function StokTablosu({
         {
             accessorKey: "salePrice",
             header: () => <div className="text-right">Satış</div>,
-            cell: ({ row }) => <div className={`text-right font-mono font-semibold text-blue-600 dark:text-blue-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(row.getValue("salePrice"))}</div>,
+            cell: ({ row }) => <div className={`text-right font-mono font-semibold text-[#00e1ff] ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>{formatPrice(row.getValue("salePrice"))}</div>,
         },
         {
             id: "actions",
@@ -140,22 +140,20 @@ export function StokTablosu({
             cell: ({ row }) => {
                 const product = row.original;
                 return (
-                    <div className="flex items-center justify-center gap-2">
+                    <div className="flex items-center justify-center gap-1.5">
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
-                                        variant="outline"
+                                        variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-900/50 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+                                        className="h-8 w-8 rounded-lg text-[#00e1ff] hover:bg-[#00e1ff]/10 transition-colors"
                                         onClick={() => onViewDetail(product)}
                                     >
                                         <Eye className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Detayları Gör</p>
-                                </TooltipContent>
+                                <TooltipContent><p>Detayları Gör</p></TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
 
@@ -163,17 +161,15 @@ export function StokTablosu({
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
-                                        variant="outline"
+                                        variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-900/50 hover:bg-amber-50 dark:hover:bg-amber-950/30"
+                                        className="h-8 w-8 rounded-lg text-amber-500 hover:bg-amber-500/10 transition-colors"
                                         onClick={() => onEdit(product)}
                                     >
                                         <Edit className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Düzenle</p>
-                                </TooltipContent>
+                                <TooltipContent><p>Düzenle</p></TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
 
@@ -181,17 +177,15 @@ export function StokTablosu({
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button
-                                        variant="outline"
+                                        variant="ghost"
                                         size="icon"
-                                        className="h-8 w-8 text-red-600 dark:text-red-400 border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                        className="h-8 w-8 rounded-lg text-red-500 hover:bg-red-500/10 transition-colors"
                                         onClick={() => onDelete(product.id)}
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </Button>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                    <p>Sil</p>
-                                </TooltipContent>
+                                <TooltipContent><p>Sil</p></TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
                     </div>
@@ -222,13 +216,13 @@ export function StokTablosu({
     return (
         <div className="space-y-4">
             {/* Desktop Table View */}
-            <div className="hidden md:block rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] bg-white/80 dark:bg-[#162a2d]/80 backdrop-blur-xl overflow-hidden shadow-[0_4px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_30px_rgba(0,225,255,0.05)]">
+            <div className="hidden md:block rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] bg-white dark:bg-[#162a2d] overflow-hidden shadow-sm">
                 <Table>
-                    <TableHeader className="bg-[#f5f8f8] dark:bg-[#1e3639] sticky top-0 z-10 backdrop-blur-sm">
+                    <TableHeader className="bg-[#f0f8f9] dark:bg-[#1e3639] sticky top-0 z-10">
                         {table.getHeaderGroups().map((headerGroup) => (
                             <TableRow key={headerGroup.id} className="hover:bg-transparent border-[#d0e4e6] dark:border-[#2a4245]">
                                 {headerGroup.headers.map((header) => (
-                                    <TableHead key={header.id} className="h-12 text-[#0f2123] dark:text-[#9ab8bc] font-semibold text-center whitespace-nowrap px-4">
+                                    <TableHead key={header.id} className="h-10 text-[10px] uppercase tracking-wider font-bold text-slate-500 dark:text-[#9ab8bc] text-center whitespace-nowrap px-4">
                                         {header.isPlaceholder
                                             ? null
                                             : flexRender(
@@ -247,12 +241,13 @@ export function StokTablosu({
                                     key={row.id}
                                     data-state={row.getIsSelected() && "selected"}
                                     className={`
-                                        hover:bg-[#e8f5f6] dark:hover:bg-[#1e3639]/50 transition-colors even:bg-white/30 dark:even:bg-[#0f2123]/30
-                                        ${row.original.stock <= row.original.minStock ? "border-l-4 border-l-red-500 dark:border-l-red-600" : ""}
+                                        hover:bg-[#f0f8f9] dark:hover:bg-[#1e3639]/60 transition-colors duration-150
+                                        border-b border-[#e8f5f6] dark:border-[#2a4245]/60
+                                        ${row.original.stock <= row.original.minStock ? "border-l-2 border-l-red-500" : "border-l-2 border-l-transparent"}
                                     `}
                                 >
                                     {row.getVisibleCells().map((cell) => (
-                                        <TableCell key={cell.id} className="py-3 px-4 text-center">
+                                        <TableCell key={cell.id} className="py-2.5 px-4 text-center text-sm text-slate-700 dark:text-[#e8f5f6]">
                                             {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                         </TableCell>
                                     ))}
@@ -260,7 +255,7 @@ export function StokTablosu({
                             ))
                         ) : (
                             <TableRow>
-                                <TableCell colSpan={columns.length} className="h-24 text-center">
+                                <TableCell colSpan={columns.length} className="h-24 text-center text-slate-400 dark:text-[#9ab8bc]">
                                     Ürün bulunamadı.
                                 </TableCell>
                             </TableRow>
@@ -277,7 +272,7 @@ export function StokTablosu({
                         return (
                             <div
                                 key={row.id}
-                                className="bg-white/80 dark:bg-[#162a2d]/80 backdrop-blur-xl rounded-xl p-4 border border-[#d0e4e6] dark:border-[#2a4245] space-y-3"
+                                className="bg-white dark:bg-slate-900 rounded-xl p-4 shadow-sm border border-slate-200 dark:border-slate-800 space-y-3"
                             >
                                 <div className="flex justify-between items-start">
                                     <div className="flex gap-3">

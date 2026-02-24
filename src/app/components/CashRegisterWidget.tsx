@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Banknote, CreditCard, Landmark, TrendingUp } from "lucide-react";
 import type { Sale, RepairRecord, PaymentMethod, PaymentDetails, PhoneSale } from "../utils/api";
 
@@ -105,110 +104,74 @@ export function CashRegisterWidget({ sales, repairs, phoneSales, formatPrice, is
 
   const totalRevenue = totalCash + totalCard + totalTransfer;
 
+  const cashPct = totalRevenue > 0 ? (totalCash / totalRevenue) * 100 : 0;
+  const cardPct = totalRevenue > 0 ? (totalCard / totalRevenue) * 100 : 0;
+  const transferPct = totalRevenue > 0 ? (totalTransfer / totalRevenue) * 100 : 0;
+  const totalTxn = thisMonthSales.length + thisMonthRepairs.length + thisMonthPhoneSales.length;
+
+  const channels = [
+    { label: "Nakit", icon: Banknote, value: totalCash, pct: cashPct, color: "#f97316", bg: "rgba(249,115,22,0.12)", border: "rgba(249,115,22,0.25)", bar: "#f97316" },
+    { label: "Kart", icon: CreditCard, value: totalCard, pct: cardPct, color: "#00e1ff", bg: "rgba(0,225,255,0.10)", border: "rgba(0,225,255,0.25)", bar: "#00e1ff" },
+    { label: "Havale", icon: Landmark, value: totalTransfer, pct: transferPct, color: "#a855f7", bg: "rgba(168,85,247,0.12)", border: "rgba(168,85,247,0.25)", bar: "#a855f7" },
+  ];
+
   return (
-    <Card className="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-950 border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-      <CardHeader className="pb-4 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2 text-slate-700 dark:text-slate-200">
-            <TrendingUp className="w-5 h-5 text-emerald-500" />
-            Bu Ayki Kasa Durumu
-          </CardTitle>
-          <div className="text-right">
-            <p className="text-xs text-slate-400 font-medium">Toplam Gelir</p>
-            <p className={`text-2xl font-bold bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-              {formatPrice(totalRevenue)}
-            </p>
-          </div>
+    <div className="rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] bg-white dark:bg-[#162a2d] overflow-hidden shadow-sm">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-[#e8f5f6] dark:border-[#2a4245]">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="w-4 h-4 text-[#00e1ff]" />
+          <span className="text-sm font-semibold text-slate-700 dark:text-[#e8f5f6]">Bu Ayki Kasa Durumu</span>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-6 pt-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Nakit */}
-          <div className="group p-4 rounded-xl bg-orange-50/50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/50 hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-colors">
-            <div className="flex items-center justify-between mb-2">
+        <div className="text-right">
+          <p className="text-[10px] uppercase tracking-wider text-slate-400 dark:text-[#9ab8bc] font-semibold">Toplam Gelir</p>
+          <p className={`text-xl font-bold tabular-nums text-[#00e1ff] ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
+            {formatPrice(totalRevenue)}
+          </p>
+        </div>
+      </div>
+
+      {/* Kanallar */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-0 divide-y md:divide-y-0 md:divide-x divide-[#e8f5f6] dark:divide-[#2a4245]">
+        {channels.map((ch) => (
+          <div key={ch.label} className="p-5 group hover:bg-[#f5f8f8] dark:hover:bg-[#1e3639] transition-colors duration-200">
+            <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400">
-                  <Banknote className="w-4 h-4" />
+                <div className="p-1.5 rounded-lg" style={{ background: ch.bg }}>
+                  <ch.icon className="w-4 h-4" style={{ color: ch.color }} />
                 </div>
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Nakit</span>
+                <span className="text-sm font-semibold text-slate-700 dark:text-[#e8f5f6]">{ch.label}</span>
               </div>
-              <span className={`text-sm font-bold text-orange-600 dark:text-orange-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                {formatPrice(totalCash)}
+              <span className={`text-sm font-bold tabular-nums ${isPrivacyMode ? "privacy-mode-blur" : ""}`} style={{ color: ch.color }}>
+                {formatPrice(ch.value)}
               </span>
             </div>
-            <div className="w-full bg-orange-100 dark:bg-orange-950/50 rounded-full h-1.5 mb-1">
+            {/* Progress bar */}
+            <div className="w-full h-1.5 rounded-full bg-[#e8f5f6] dark:bg-[#2a4245] overflow-hidden mb-1.5">
               <div
-                className="bg-orange-500 h-1.5 rounded-full transition-all duration-500"
-                style={{ width: `${totalRevenue > 0 ? (totalCash / totalRevenue) * 100 : 0}%` }}
+                className="h-full rounded-full transition-all duration-700 ease-out"
+                style={{ width: `${ch.pct}%`, background: ch.bar }}
               />
             </div>
-            <p className="text-[10px] text-orange-600/70 dark:text-orange-400/70 font-medium text-right">
-              %{totalRevenue > 0 ? ((totalCash / totalRevenue) * 100).toFixed(1) : "0.0"}
+            <p className="text-[10px] font-semibold text-right" style={{ color: ch.color, opacity: 0.7 }}>
+              %{ch.pct.toFixed(1)}
             </p>
           </div>
+        ))}
+      </div>
 
-          {/* Kart */}
-          <div className="group p-4 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
-                  <CreditCard className="w-4 h-4" />
-                </div>
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Kart</span>
-              </div>
-              <span className={`text-sm font-bold text-blue-600 dark:text-blue-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                {formatPrice(totalCard)}
-              </span>
-            </div>
-            <div className="w-full bg-blue-100 dark:bg-blue-950/50 rounded-full h-1.5 mb-1">
-              <div
-                className="bg-blue-500 h-1.5 rounded-full transition-all duration-500"
-                style={{ width: `${totalRevenue > 0 ? (totalCard / totalRevenue) * 100 : 0}%` }}
-              />
-            </div>
-            <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70 font-medium text-right">
-              %{totalRevenue > 0 ? ((totalCard / totalRevenue) * 100).toFixed(1) : "0.0"}
-            </p>
-          </div>
-
-          {/* Havale */}
-          <div className="group p-4 rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900/50 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400">
-                  <Landmark className="w-4 h-4" />
-                </div>
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Havale</span>
-              </div>
-              <span className={`text-sm font-bold text-purple-600 dark:text-purple-400 ${isPrivacyMode ? "privacy-mode-blur" : ""}`}>
-                {formatPrice(totalTransfer)}
-              </span>
-            </div>
-            <div className="w-full bg-purple-100 dark:bg-purple-950/50 rounded-full h-1.5 mb-1">
-              <div
-                className="bg-purple-500 h-1.5 rounded-full transition-all duration-500"
-                style={{ width: `${totalRevenue > 0 ? (totalTransfer / totalRevenue) * 100 : 0}%` }}
-              />
-            </div>
-            <p className="text-[10px] text-purple-600/70 dark:text-purple-400/70 font-medium text-right">
-              %{totalRevenue > 0 ? ((totalTransfer / totalRevenue) * 100).toFixed(1) : "0.0"}
-            </p>
-          </div>
+      {/* Global progress bar */}
+      <div className="px-6 py-3 border-t border-[#e8f5f6] dark:border-[#2a4245]">
+        <div className="flex h-1.5 w-full rounded-full overflow-hidden bg-[#e8f5f6] dark:bg-[#2a4245]">
+          <div className="transition-all duration-700" style={{ width: `${cashPct}%`, background: "#f97316" }} />
+          <div className="transition-all duration-700" style={{ width: `${cardPct}%`, background: "#00e1ff" }} />
+          <div className="transition-all duration-700" style={{ width: `${transferPct}%`, background: "#a855f7" }} />
         </div>
-
-        {/* Global Progress */}
-        <div className="pt-2">
-          <div className="flex h-2 w-full rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-            <div className="bg-orange-500 transition-all duration-500 hover:opacity-90" style={{ width: `${totalRevenue > 0 ? (totalCash / totalRevenue) * 100 : 0}%` }} title="Nakit" />
-            <div className="bg-blue-500 transition-all duration-500 hover:opacity-90" style={{ width: `${totalRevenue > 0 ? (totalCard / totalRevenue) * 100 : 0}%` }} title="Kart" />
-            <div className="bg-purple-500 transition-all duration-500 hover:opacity-90" style={{ width: `${totalRevenue > 0 ? (totalTransfer / totalRevenue) * 100 : 0}%` }} title="Havale" />
-          </div>
-          <div className="flex justify-between mt-2 text-xs text-slate-400">
-            <span>Distribüsyon</span>
-            <span>{thisMonthSales.length + thisMonthRepairs.length + thisMonthPhoneSales.length} işlem</span>
-          </div>
+        <div className="flex justify-between mt-2">
+          <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-400 dark:text-[#9ab8bc]">Distribüsyon</span>
+          <span className="text-[10px] font-semibold text-slate-400 dark:text-[#9ab8bc]">{totalTxn} işlem</span>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

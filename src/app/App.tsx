@@ -21,7 +21,6 @@ import { BulkUploadDialog } from "./components/BulkUploadDialog";
 import { SalesTypeDialog } from "./components/SalesTypeDialog";
 import { RepairDialog } from "./components/RepairDialog";
 import { PhoneSaleDialog } from "./components/PhoneSaleDialog";
-import { PhoneSellDialog } from "./components/PhoneSellDialog";
 import { SuppliersView } from "./components/SuppliersView";
 import { PurchasesView } from "./components/PurchasesView";
 import { LabelSystemView } from "./components/LabelSystemView";
@@ -190,8 +189,6 @@ function App() {
   const [repairOpen, setRepairOpen] = useState(false);
   const [phoneSaleOpen, setPhoneSaleOpen] = useState(false);
   const [phoneStockOpen, setPhoneStockOpen] = useState(false);
-  const [isPhoneSellDialogOpen, setPhoneSellDialogOpen] = useState(false);
-  const [sellingPhoneStock, setSellingPhoneStock] = useState<PhoneStock | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [stockValueDialogOpen, setStockValueDialogOpen] = useState(false);
   const [saleDetailOpen, setSaleDetailOpen] = useState(false);
@@ -842,51 +839,14 @@ function App() {
   };
 
   const handleDeletePhoneStock = async (id: string) => {
-    if (!window.confirm("Bu telefon stoğunu silmek istediğinize emin misiniz?")) return;
+    if (!window.confirm("Bu stok kaydını silmek istediğinize emin misiniz?")) return;
     try {
       await api.deletePhoneStock(id);
-      setPhoneStocks(phoneStocks.filter((ps) => ps.id !== id));
-      toast.success("Telefon stoğu silindi");
+      setPhoneStocks(phoneStocks.filter(s => s.id !== id));
+      toast.success("Stok kaydı silindi");
     } catch (error) {
       console.error("Error deleting phone stock:", error);
-      toast.error("Telefon stoğu silinemedi");
-    }
-  };
-
-  const handleSellPhoneStock = (stock: PhoneStock) => {
-    setSellingPhoneStock(stock);
-    setPhoneSellDialogOpen(true);
-  };
-
-  const handleConfirmPhoneSale = async (saleData: Omit<PhoneSale, "id" | "createdAt" | "profit">) => {
-    if (!sellingPhoneStock) return;
-
-    try {
-      // 1. Calculate profit
-      const profit = saleData.salePrice - saleData.purchasePrice;
-
-      // 2. Add to Phone Sales
-      const newPhoneSale = await api.addPhoneSale({
-        ...saleData,
-        profit,
-        createdAt: new Date().toISOString(),
-        date: saleData.date || new Date().toISOString(),
-      });
-      setPhoneSales((prev) => [newPhoneSale, ...prev]);
-
-      // 3. Delete from Phone Stocks
-      await api.deletePhoneStock(sellingPhoneStock.id);
-      setPhoneStocks((prev) => prev.filter((s) => s.id !== sellingPhoneStock.id));
-
-      // 4. Play success sound & notify
-      playSuccessSound();
-      toast.success("Telefon satışı başarıyla tamamlandı!");
-      setPhoneSellDialogOpen(false);
-      setSellingPhoneStock(null);
-
-    } catch (error) {
-      console.error("Error selling phone:", error);
-      toast.error("Telefon satışı sırasında bir hata oluştu");
+      toast.error("Stok silinirken hata oluştu");
     }
   };
 
@@ -1136,6 +1096,8 @@ function App() {
       return "bg-orange-100 dark:bg-orange-900/40";
     } else if (normalized < 0.6) {
       return "bg-yellow-100 dark:bg-yellow-900/40";
+    } else if (normalized < 0.8) {
+      return "bg-lime-100 dark:bg-lime-900/40";
     } else {
       return "bg-green-50 dark:bg-green-900/20"; // Lightest green
     }
@@ -1182,8 +1144,8 @@ function App() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#f5f8f8] dark:bg-[#0f2123]">
-        <div className="w-12 h-12 border-4 border-[#00e1ff] border-t-transparent rounded-full animate-spin mb-4"></div>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
         <p className="text-lg font-medium animate-pulse">Yükleniyor...</p>
         <p className="text-sm text-muted-foreground mt-2">Lütfen bekleyin, veriler sunucudan çekiliyor.</p>
         <div className="mt-8 p-4 bg-muted/50 rounded-lg border text-[10px] font-mono opacity-50">
@@ -1226,7 +1188,7 @@ function App() {
   const mainCategories = categories.filter(c => !c.parentId);
 
   return (
-    <div className="min-h-screen bg-[#f5f8f8] dark:bg-[#0f2123]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       <Toaster position="top-right" />
 
       <SidebarProvider>
@@ -1237,9 +1199,9 @@ function App() {
           onOpenCategoryManagement={() => setCategoryManagementOpen(true)}
           suppliers={suppliers}
         />
-        <SidebarInset className="flex flex-col min-h-screen bg-[#f5f8f8]/30 dark:bg-[#0f2123]/50">
+        <SidebarInset className="flex flex-col min-h-screen bg-slate-50/30 dark:bg-slate-950/50">
           {/* Header */}
-          <header className="flex h-12 shrink-0 items-center justify-between px-6 border-b border-[#d0e4e6] dark:border-[#2a4245] bg-white/40 dark:bg-[#0f2123]/80 backdrop-blur-md sticky top-0 z-10 transition-all duration-300">
+          <header className="flex h-16 shrink-0 items-center justify-between px-6 border-b border-slate-200/60 dark:border-slate-800 bg-white/40 dark:bg-slate-950/50 backdrop-blur-md sticky top-0 z-10 transition-all duration-300">
             <div className="flex items-center gap-4">
               <SidebarTrigger className="-ml-1" />
               <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 group-data-[collapsible=icon]:hidden" />
@@ -1260,7 +1222,7 @@ function App() {
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="flex bg-[#e8f5f6] dark:bg-[#162a2d] rounded-full p-1 border border-[#d0e4e6] dark:border-[#2a4245]">
+              <div className="flex bg-slate-100 dark:bg-slate-900 rounded-full p-1 border border-slate-200 dark:border-slate-800">
                 <button
                   onClick={toggleCurrency}
                   className="relative flex items-center cursor-pointer"
@@ -1288,7 +1250,7 @@ function App() {
                 variant="outline"
                 size="icon"
                 onClick={() => setIsPrivacyMode(!isPrivacyMode)}
-                className={`h-9 w-9 rounded-lg transition-all ${isPrivacyMode ? "bg-[#00e1ff]/10 border-[#00e1ff]/30 dark:bg-[#00e1ff]/10 dark:border-[#00e1ff]/30" : "hover:bg-slate-100 dark:hover:bg-[#1e3639] border-[#d0e4e6] dark:border-[#2a4245]"}`}
+                className={`h-9 w-9 rounded-xl border-slate-200 dark:border-slate-800 transition-all ${isPrivacyMode ? "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-900" : "hover:bg-slate-100 dark:hover:bg-slate-900"}`}
                 title={isPrivacyMode ? "Gizlilik Modunu Kapat" : "Gizlilik Modunu Aç"}
               >
                 {isPrivacyMode ? (
@@ -1302,14 +1264,14 @@ function App() {
                 variant="outline"
                 size="icon"
                 onClick={() => setIsDarkMode(!isDarkMode)}
-                className="h-9 w-9 rounded-lg border-[#d0e4e6] dark:border-[#2a4245] bg-white/50 dark:bg-[#162a2d] hover:border-[#00e1ff] hover:text-[#00e1ff] transition-all duration-200"
+                className="h-9 w-9 rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900"
               >
                 {isDarkMode ? <Sun className="w-4 h-4 text-amber-500" /> : <Moon className="w-4 h-4 text-blue-600" />}
               </Button>
 
               <Button
                 onClick={() => setSalesTypeOpen(true)}
-                className="bg-[#00e1ff] hover:bg-[#33e7ff] text-[#0f2123] font-bold shadow-[0_0_20px_rgba(0,225,255,0.25)] hover:shadow-[0_0_28px_rgba(0,225,255,0.4)] gap-2 h-9 rounded-lg px-4 ml-2 transition-all duration-200"
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg shadow-blue-500/20 gap-2 h-9 rounded-xl px-4 ml-2"
               >
                 <Plus className="w-4 h-4" />
                 <span className="hidden sm:inline text-xs font-bold uppercase tracking-wider">İşlem Ekle</span>
@@ -1350,7 +1312,7 @@ function App() {
                   />
 
                   {/* Search and Quick Filters */}
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/50 dark:bg-slate-900/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 backdrop-blur-sm shadow-sm transition-all duration-300">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white dark:bg-[#162a2d] p-4 rounded-xl border border-[#d0e4e6] dark:border-[#2a4245] shadow-sm">
                     <StokFiltre
                       searchQuery={searchQuery}
                       onSearchChange={setSearchQuery}
@@ -1359,47 +1321,54 @@ function App() {
                       categories={categories}
                     />
 
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm" onClick={() => setCategoryDialogOpen(true)} className="h-10 rounded-lg border-blue-200 dark:border-blue-900 shadow-sm">
-                        <FolderTree className="w-4 h-4 mr-2 text-blue-500" />
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        onClick={() => setCategoryDialogOpen(true)}
+                        className="flex items-center gap-1.5 h-10 px-4 rounded-lg border border-[#d0e4e6] dark:border-[#2a4245] bg-white dark:bg-[#1e3639] text-slate-700 dark:text-[#9ab8bc] hover:border-[#00e1ff]/40 hover:text-[#00e1ff] text-sm font-medium transition-all duration-200"
+                      >
+                        <FolderTree className="w-4 h-4" />
                         Kategori Ekle
-                      </Button>
-                      <Button onClick={() => setProductDialogOpen(true)} className="h-10 rounded-lg bg-blue-600 hover:bg-blue-700 shadow-blue-500/20 shadow-lg px-6">
-                        <Plus className="w-4 h-4 mr-2" />
+                      </button>
+                      <button
+                        onClick={() => setProductDialogOpen(true)}
+                        className="flex items-center gap-1.5 h-10 px-5 rounded-lg bg-[#00e1ff] hover:bg-[#33e7ff] text-[#0f2123] font-bold text-sm shadow-[0_0_15px_rgba(0,225,255,0.25)] hover:shadow-[0_0_20px_rgba(0,225,255,0.4)] transition-all duration-200"
+                      >
+                        <Plus className="w-4 h-4" />
                         Ürün Ekle
-                      </Button>
+                      </button>
                     </div>
                   </div>
 
                   {/* Products Table */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between px-2">
-                      <h3 className="text-lg font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                        <Package className="w-5 h-5 text-blue-500" />
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between px-1">
+                      <h3 className="text-sm font-bold text-slate-800 dark:text-[#e8f5f6] flex items-center gap-2">
+                        <Package className="w-4 h-4 text-[#00e1ff]" />
                         {selectedCategoryId
                           ? `${getCategoryName(selectedCategoryId)} - Ürünler`
                           : "Tüm Ürün Listesi"
                         }
-                        <span className="ml-2 text-xs font-medium px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full border border-slate-200 dark:border-slate-700">
+                        <span className="ml-1 text-xs font-semibold px-2 py-0.5 bg-[#00e1ff]/10 text-[#00e1ff] rounded-md border border-[#00e1ff]/20">
                           {filteredProducts.length} adet
                         </span>
                       </h3>
 
                       <div className="flex gap-2">
-                        <Button onClick={handleExportToExcel} variant="outline" size="sm" className="h-9 rounded-lg px-4 border-slate-200 dark:border-slate-800">
-                          <Download className="w-4 h-4 mr-2 text-orange-500" />
+                        <button
+                          onClick={handleExportToExcel}
+                          className="flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#d0e4e6] dark:border-[#2a4245] bg-white dark:bg-[#162a2d] text-slate-600 dark:text-[#9ab8bc] hover:border-[#00e1ff]/40 hover:text-[#00e1ff] text-sm font-medium transition-all duration-200"
+                        >
+                          <Download className="w-4 h-4 text-orange-500" />
                           Excel İndir
-                        </Button>
+                        </button>
                         {selectedProducts.size > 0 && (
-                          <Button
-                            variant="destructive"
-                            size="sm"
+                          <button
                             onClick={handleBulkDelete}
-                            className="h-9 px-4 rounded-lg shadow-lg shadow-red-500/20"
+                            className="flex items-center gap-1.5 h-9 px-3 rounded-lg bg-red-500/10 border border-red-500/30 text-red-500 hover:bg-red-500/20 text-sm font-semibold transition-all duration-200"
                           >
-                            <Trash2 className="w-4 h-4 mr-2" />
+                            <Trash2 className="w-4 h-4" />
                             Seçili Sil ({selectedProducts.size})
-                          </Button>
+                          </button>
                         )}
                       </div>
                     </div>
@@ -1520,7 +1489,6 @@ function App() {
                     onDeletePhoneSale={handleDeletePhoneSale}
                     onDeletePhoneStock={handleDeletePhoneStock}
                     onAddPhoneStock={() => setPhoneStockOpen(true)}
-                    onSellPhoneStock={handleSellPhoneStock}
                     isPrivacyMode={isPrivacyMode}
                   />
                 </motion.div>
@@ -1778,18 +1746,6 @@ function App() {
         formatPrice={formatPrice}
         isPrivacyMode={isPrivacyMode}
       />
-
-      <PhoneSellDialog
-        isOpen={isPhoneSellDialogOpen}
-        onClose={() => {
-          setPhoneSellDialogOpen(false);
-          setSellingPhoneStock(null);
-        }}
-        onConfirm={handleConfirmPhoneSale}
-        phoneStock={sellingPhoneStock}
-        formatPrice={formatPrice}
-      />
-
     </div>
   );
 }
