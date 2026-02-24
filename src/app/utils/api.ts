@@ -581,71 +581,57 @@ export const api = {
 
   // Phone Stocks
   async getPhoneStocks(): Promise<PhoneStock[]> {
-    const result = await fetchSupabase("/phone_stocks?select=*&order=created_at.desc");
-    const data = Array.isArray(result.data) ? result.data : [];
-    return data.map((item: any) => ({
-      ...item,
-      purchasePrice: item.purchase_price,
-      salePrice: item.sale_price,
-      createdAt: item.created_at || item.createdAt
-    }));
+    try {
+      const result = await fetchAPI("/phone-stocks");
+      return result.data || [];
+    } catch (error: any) {
+      if (error.message.includes("404")) {
+        try {
+          const result = await fetchAPI("/make-server/phone-stocks");
+          return result.data || [];
+        } catch (fallbackError: any) {
+          if (fallbackError.message.includes("404")) {
+            console.warn("⚠️ phone-stocks endpoint not found on server, returning empty array.");
+            return [];
+          }
+          throw fallbackError;
+        }
+      }
+      throw error;
+    }
   },
 
   async addPhoneStock(phoneStock: Omit<PhoneStock, "id">): Promise<PhoneStock> {
-    const dbPayload = {
-      ...phoneStock,
-      purchase_price: phoneStock.purchasePrice,
-      sale_price: phoneStock.salePrice,
-    };
-    delete (dbPayload as any).purchasePrice;
-    delete (dbPayload as any).salePrice;
-
-    const result = await fetchSupabase("/phone_stocks", {
-      method: "POST",
-      body: JSON.stringify(dbPayload),
-    });
-
-    const data = Array.isArray(result.data) ? result.data[0] : result.data;
-    if (!data) return { ...phoneStock, id: "temp-id" } as PhoneStock;
-
-    return {
-      ...data,
-      purchasePrice: data.purchase_price,
-      salePrice: data.sale_price,
-      createdAt: data.created_at || data.createdAt
-    };
+    try {
+      const result = await fetchAPI("/phone-stocks", {
+        method: "POST",
+        body: JSON.stringify(phoneStock),
+      });
+      return result.data;
+    } catch (error: any) {
+      // 404 durumunda alternatif rotayı dene (bazı deployment'larda prefix gerekebiliyor)
+      if (error.message.includes("404")) {
+        console.warn("Retrying with fallback prefix...");
+        const result = await fetchAPI("/make-server/phone-stocks", {
+          method: "POST",
+          body: JSON.stringify(phoneStock),
+        });
+        return result.data;
+      }
+      throw error;
+    }
   },
 
   async updatePhoneStock(id: string, phoneStock: Partial<PhoneStock>): Promise<PhoneStock> {
-    const dbPayload: any = { ...phoneStock };
-    if (dbPayload.purchasePrice !== undefined) {
-      dbPayload.purchase_price = dbPayload.purchasePrice;
-      delete dbPayload.purchasePrice;
-    }
-    if (dbPayload.salePrice !== undefined) {
-      dbPayload.sale_price = dbPayload.salePrice;
-      delete dbPayload.salePrice;
-    }
-    if (dbPayload.createdAt !== undefined) delete dbPayload.createdAt;
-
-    const result = await fetchSupabase(`/phone_stocks?id=eq.${id}`, {
-      method: "PATCH",
-      body: JSON.stringify(dbPayload),
+    const result = await fetchAPI(`/phone-stocks/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(phoneStock),
     });
-
-    const data = Array.isArray(result.data) ? result.data[0] : result.data;
-    if (!data) return { ...phoneStock, id } as PhoneStock;
-
-    return {
-      ...data,
-      purchasePrice: data.purchase_price,
-      salePrice: data.sale_price,
-      createdAt: data.created_at || data.createdAt
-    };
+    return result.data;
   },
 
   async deletePhoneStock(id: string): Promise<void> {
-    await fetchSupabase(`/phone_stocks?id=eq.${id}`, {
+    await fetchAPI(`/phone-stocks/${id}`, {
       method: "DELETE",
     });
   },

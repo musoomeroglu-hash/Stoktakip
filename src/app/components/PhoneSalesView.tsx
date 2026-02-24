@@ -15,10 +15,11 @@ interface PhoneSalesViewProps {
   onDeletePhoneSale: (id: string) => void;
   onDeletePhoneStock: (id: string) => void;
   onAddPhoneStock: () => void;
+  onSellPhoneStock: (stock: PhoneStock) => void;
   isPrivacyMode: boolean;
 }
 
-export function PhoneSalesView({ phoneSales, phoneStocks, onDeletePhoneSale, onDeletePhoneStock, onAddPhoneStock, isPrivacyMode }: PhoneSalesViewProps) {
+export function PhoneSalesView({ phoneSales, phoneStocks, onDeletePhoneSale, onDeletePhoneStock, onAddPhoneStock, onSellPhoneStock, isPrivacyMode }: PhoneSalesViewProps) {
   // Date range states
   const [startDate, setStartDate] = useState<string>(() => {
     // Default: ayın ilk günü
@@ -154,14 +155,24 @@ export function PhoneSalesView({ phoneSales, phoneStocks, onDeletePhoneSale, onD
                       <h3 className="font-bold text-indigo-900 dark:text-indigo-100">{stock.brand} {stock.model}</h3>
                       <p className="text-xs text-muted-foreground font-mono">IMEI: {stock.imei || "Belirtilmedi"}</p>
                     </div>
-                    <Button
-                      onClick={() => onDeletePhoneStock(stock.id)}
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                    <div className="flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        onClick={() => onSellPhoneStock(stock)}
+                        variant="outline"
+                        size="sm"
+                        className="h-8 border-green-200 text-green-700 bg-green-50 hover:bg-green-100 hover:text-green-800 dark:border-green-800/50 dark:bg-green-900/20 dark:text-green-400 font-medium"
+                      >
+                        Satıldı
+                      </Button>
+                      <Button
+                        onClick={() => onDeletePhoneStock(stock.id)}
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-2 mt-3">

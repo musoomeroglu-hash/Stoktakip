@@ -21,6 +21,7 @@ import { BulkUploadDialog } from "./components/BulkUploadDialog";
 import { SalesTypeDialog } from "./components/SalesTypeDialog";
 import { RepairDialog } from "./components/RepairDialog";
 import { PhoneSaleDialog } from "./components/PhoneSaleDialog";
+import { PhoneSellDialog } from "./components/PhoneSellDialog";
 import { SuppliersView } from "./components/SuppliersView";
 import { PurchasesView } from "./components/PurchasesView";
 import { LabelSystemView } from "./components/LabelSystemView";
@@ -189,6 +190,8 @@ function App() {
   const [repairOpen, setRepairOpen] = useState(false);
   const [phoneSaleOpen, setPhoneSaleOpen] = useState(false);
   const [phoneStockOpen, setPhoneStockOpen] = useState(false);
+  const [isPhoneSellDialogOpen, setPhoneSellDialogOpen] = useState(false);
+  const [sellingPhoneStock, setSellingPhoneStock] = useState<PhoneStock | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [stockValueDialogOpen, setStockValueDialogOpen] = useState(false);
   const [saleDetailOpen, setSaleDetailOpen] = useState(false);
@@ -839,14 +842,51 @@ function App() {
   };
 
   const handleDeletePhoneStock = async (id: string) => {
-    if (!window.confirm("Bu stok kaydını silmek istediğinize emin misiniz?")) return;
+    if (!window.confirm("Bu telefon stoğunu silmek istediğinize emin misiniz?")) return;
     try {
       await api.deletePhoneStock(id);
-      setPhoneStocks(phoneStocks.filter(s => s.id !== id));
-      toast.success("Stok kaydı silindi");
+      setPhoneStocks(phoneStocks.filter((ps) => ps.id !== id));
+      toast.success("Telefon stoğu silindi");
     } catch (error) {
       console.error("Error deleting phone stock:", error);
-      toast.error("Stok silinirken hata oluştu");
+      toast.error("Telefon stoğu silinemedi");
+    }
+  };
+
+  const handleSellPhoneStock = (stock: PhoneStock) => {
+    setSellingPhoneStock(stock);
+    setPhoneSellDialogOpen(true);
+  };
+
+  const handleConfirmPhoneSale = async (saleData: Omit<PhoneSale, "id" | "createdAt" | "profit">) => {
+    if (!sellingPhoneStock) return;
+
+    try {
+      // 1. Calculate profit
+      const profit = saleData.salePrice - saleData.purchasePrice;
+
+      // 2. Add to Phone Sales
+      const newPhoneSale = await api.addPhoneSale({
+        ...saleData,
+        profit,
+        createdAt: new Date().toISOString(),
+        date: saleData.date || new Date().toISOString(),
+      });
+      setPhoneSales((prev) => [newPhoneSale, ...prev]);
+
+      // 3. Delete from Phone Stocks
+      await api.deletePhoneStock(sellingPhoneStock.id);
+      setPhoneStocks((prev) => prev.filter((s) => s.id !== sellingPhoneStock.id));
+
+      // 4. Play success sound & notify
+      playSuccessSound();
+      toast.success("Telefon satışı başarıyla tamamlandı!");
+      setPhoneSellDialogOpen(false);
+      setSellingPhoneStock(null);
+
+    } catch (error) {
+      console.error("Error selling phone:", error);
+      toast.error("Telefon satışı sırasında bir hata oluştu");
     }
   };
 
@@ -1096,8 +1136,6 @@ function App() {
       return "bg-orange-100 dark:bg-orange-900/40";
     } else if (normalized < 0.6) {
       return "bg-yellow-100 dark:bg-yellow-900/40";
-    } else if (normalized < 0.8) {
-      return "bg-lime-100 dark:bg-lime-900/40";
     } else {
       return "bg-green-50 dark:bg-green-900/20"; // Lightest green
     }
@@ -1482,6 +1520,7 @@ function App() {
                     onDeletePhoneSale={handleDeletePhoneSale}
                     onDeletePhoneStock={handleDeletePhoneStock}
                     onAddPhoneStock={() => setPhoneStockOpen(true)}
+                    onSellPhoneStock={handleSellPhoneStock}
                     isPrivacyMode={isPrivacyMode}
                   />
                 </motion.div>
@@ -1739,6 +1778,18 @@ function App() {
         formatPrice={formatPrice}
         isPrivacyMode={isPrivacyMode}
       />
+
+      <PhoneSellDialog
+        isOpen={isPhoneSellDialogOpen}
+        onClose={() => {
+          setPhoneSellDialogOpen(false);
+          setSellingPhoneStock(null);
+        }}
+        onConfirm={handleConfirmPhoneSale}
+        phoneStock={sellingPhoneStock}
+        formatPrice={formatPrice}
+      />
+
     </div>
   );
 }
