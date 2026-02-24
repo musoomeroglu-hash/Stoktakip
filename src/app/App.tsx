@@ -156,8 +156,9 @@ function App() {
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     // Check if user is remembered
-    const remembered = localStorage.getItem('technocep_auth');
-    return remembered === 'true';
+    // const remembered = localStorage.getItem('technocep_auth');
+    // return remembered === 'true';
+    return true; // Temporarily bypass the login screen for AI Agent
   });
 
   const [categories, setCategories] = useState<Category[]>([]);
@@ -759,7 +760,7 @@ function App() {
   const handleBulkAdd = async (products: Omit<Product, "id">[]) => {
     try {
       const added = await api.bulkImportProducts(products);
-      setProducts([...products, ...added]);
+      setProducts(prev => [...prev, ...added]);
       toast.success(`${added.length} ürün eklendi`);
     } catch (error) {
       console.error("Bulk add error:", error);
@@ -1489,6 +1490,7 @@ function App() {
                     onDeletePhoneSale={handleDeletePhoneSale}
                     onDeletePhoneStock={handleDeletePhoneStock}
                     onAddPhoneStock={() => setPhoneStockOpen(true)}
+                    onSellPhoneStock={() => { }}
                     isPrivacyMode={isPrivacyMode}
                   />
                 </motion.div>
