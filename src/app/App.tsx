@@ -190,6 +190,7 @@ function App() {
   const [repairOpen, setRepairOpen] = useState(false);
   const [phoneSaleOpen, setPhoneSaleOpen] = useState(false);
   const [phoneStockOpen, setPhoneStockOpen] = useState(false);
+  const [selectedPhoneStockToSell, setSelectedPhoneStockToSell] = useState<PhoneStock | null>(null);
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [stockValueDialogOpen, setStockValueDialogOpen] = useState(false);
   const [saleDetailOpen, setSaleDetailOpen] = useState(false);
@@ -852,12 +853,18 @@ function App() {
   };
 
   // Handle phone sale
-  const handleAddPhoneSale = async (phoneSale: PhoneSale) => {
+  const handleAddPhoneSale = async (phoneSale: PhoneSale, sourceStockId?: string) => {
     try {
       console.log("📱 Telefon satışı ekleniyor...", phoneSale);
       const newPhoneSale = await api.addPhoneSale(phoneSale);
       const updatedPhoneSales = [newPhoneSale, ...phoneSales];
       setPhoneSales(updatedPhoneSales);
+
+      if (sourceStockId) {
+        await api.deletePhoneStock(sourceStockId);
+        setPhoneStocks(phoneStocks.filter(s => s.id !== sourceStockId));
+        console.log("✅ Satılan stok silindi:", sourceStockId);
+      }
       console.log("✅ Telefon satışı Supabase'e kaydedildi. Toplam:", updatedPhoneSales.length);
       console.log("📱 Kaydedilen satış:", newPhoneSale);
       playSuccessSound();
@@ -1490,7 +1497,10 @@ function App() {
                     onDeletePhoneSale={handleDeletePhoneSale}
                     onDeletePhoneStock={handleDeletePhoneStock}
                     onAddPhoneStock={() => setPhoneStockOpen(true)}
-                    onSellPhoneStock={() => { }}
+                    onSellPhoneStock={(stock) => {
+                      setSelectedPhoneStockToSell(stock);
+                      setPhoneSaleOpen(true);
+                    }}
                     isPrivacyMode={isPrivacyMode}
                   />
                 </motion.div>
@@ -1714,9 +1724,13 @@ function App() {
 
       <PhoneSaleDialog
         open={phoneSaleOpen}
-        onOpenChange={setPhoneSaleOpen}
+        onOpenChange={(open) => {
+          setPhoneSaleOpen(open);
+          if (!open) setSelectedPhoneStockToSell(null);
+        }}
         onSave={handleAddPhoneSale}
         customers={allUniqueCustomers}
+        initialStock={selectedPhoneStockToSell}
       />
 
       <PhoneStockDialog

@@ -8,16 +8,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Smartphone, Plus, User, Camera, X } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { toast } from "sonner";
-import type { PaymentMethod, PaymentDetails, Customer, PhoneSale } from "../utils/api";
+import type { PaymentMethod, PaymentDetails, Customer, PhoneSale, PhoneStock } from "../utils/api";
 
 interface PhoneSaleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (phoneSale: PhoneSale) => void;
+  onSave: (phoneSale: PhoneSale, sourceStockId?: string) => void;
   customers: Customer[];
+  initialStock?: PhoneStock | null;
 }
 
-export function PhoneSaleDialog({ open, onOpenChange, onSave, customers }: PhoneSaleDialogProps) {
+export function PhoneSaleDialog({ open, onOpenChange, onSave, customers, initialStock }: PhoneSaleDialogProps) {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
   const [brand, setBrand] = useState("");
   const [model, setModel] = useState("");
@@ -48,6 +49,21 @@ export function PhoneSaleDialog({ open, onOpenChange, onSave, customers }: Phone
       }
     }
   };
+
+  useEffect(() => {
+    if (open) {
+      if (initialStock) {
+        setBrand(initialStock.brand);
+        setModel(initialStock.model);
+        setImei(initialStock.imei || "");
+        setPurchasePrice(initialStock.purchasePrice.toString());
+        setSalePrice(initialStock.salePrice.toString());
+        setNotes(initialStock.notes || "");
+      } else {
+        resetForm();
+      }
+    }
+  }, [open, initialStock]);
 
   // Scanner Effect
   useEffect(() => {
@@ -172,7 +188,7 @@ export function PhoneSaleDialog({ open, onOpenChange, onSave, customers }: Phone
     };
 
     console.log("📱 Telefon satışı kaydediliyor:", phoneSale);
-    onSave(phoneSale);
+    onSave(phoneSale, initialStock?.id);
     resetForm();
     onOpenChange(false);
     toast.success(`Telefon satışı başarıyla kaydedildi! ${brand} ${model} - Kâr: ₺${profit.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`);
@@ -332,14 +348,14 @@ export function PhoneSaleDialog({ open, onOpenChange, onSave, customers }: Phone
           {/* Kâr Göstergesi */}
           {purchasePrice && salePrice && !isNaN(parseFloat(purchasePrice)) && !isNaN(parseFloat(salePrice)) && (
             <div className={`p-4 rounded-lg border-2 ${parseFloat(salePrice) - parseFloat(purchasePrice) >= 0
-                ? 'bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-700'
-                : 'bg-red-50 dark:bg-red-950/20 border-red-300 dark:border-red-700'
+              ? 'bg-green-50 dark:bg-green-950/20 border-green-300 dark:border-green-700'
+              : 'bg-red-50 dark:bg-red-950/20 border-red-300 dark:border-red-700'
               }`}>
               <div className="text-center">
                 <p className="text-sm text-muted-foreground mb-1">Tahmini Kâr</p>
                 <p className={`text-2xl font-bold ${parseFloat(salePrice) - parseFloat(purchasePrice) >= 0
-                    ? 'text-green-600 dark:text-green-400'
-                    : 'text-red-600 dark:text-red-400'
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-red-600 dark:text-red-400'
                   }`}>
                   {parseFloat(salePrice) - parseFloat(purchasePrice) >= 0 ? '₺' : '-₺'}
                   {Math.abs(parseFloat(salePrice) - parseFloat(purchasePrice)).toLocaleString('tr-TR', {
